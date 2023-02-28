@@ -1,0 +1,115 @@
+/*
+ * SDXI tracepoints header
+ *
+ * Copyright (c) 2022 AMD, Inc. All rights reserved.
+ *
+ * Author: Wei Huang <wei.huang2@amd.com>
+ */
+#undef TRACE_SYSTEM
+#define TRACE_SYSTEM sdxi
+#define TRACE_INCLUDE_FILE trace
+
+#if !defined(_TRACE_SDXI_H) || defined(TRACE_HEADER_MULTI_READ)
+#define _TRACE_SDXI_H
+
+#include <linux/tracepoint.h>
+#include <linux/trace_seq.h>
+
+#include "sdxi.h"
+
+TRACE_EVENT(sdxi_create_ctxt,
+	    TP_PROTO(struct sdxi_dev *sdxi, struct sdxi_ctxt *ctxt),
+	    TP_ARGS(sdxi, ctxt),
+	    TP_STRUCT__entry(
+		    __field(u16, sfunc)
+		    __field(uint, ctxt_id)
+		    __field(void *, cce)
+		    __field(u64, cce_dma_addr)
+		    __field(void *, akey)
+		    __field(u64, akey_dma_addr)
+	    ),
+	    TP_fast_assign(
+		    __entry->sfunc = sdxi->sfunc;
+		    __entry->ctxt_id = ctxt->id;
+		    __entry->cce = &(ctxt->cce);
+		    __entry->cce_dma_addr = ctxt->cce_addr;
+		    __entry->akey = ctxt->akey;
+		    __entry->akey_dma_addr = ctxt->akey_addr;
+	    ),
+	    TP_printk("ctxt %d created (dev=0x%04x)\n"
+		      "  cce addr:  v=0x%p:d=0x%llx\n"
+		      "  akey addr: v=0x%p:d=0x%llx\n",
+		      __entry->ctxt_id, __entry->sfunc, __entry->cce,
+		      __entry->cce_dma_addr, __entry->akey, __entry->akey_dma_addr)
+);
+
+TRACE_EVENT(sdxi_free_ctxt,
+	    TP_PROTO(struct sdxi_dev *sdxi, struct sdxi_ctxt *ctxt),
+	    TP_ARGS(sdxi, ctxt),
+	    TP_STRUCT__entry(
+		    __field(u16, sfunc)
+		    __field(uint, ctxt_id)
+	    ),
+	    TP_fast_assign(
+		    __entry->sfunc = sdxi->sfunc;
+		    __entry->ctxt_id = ctxt->id;
+	    ),
+	    TP_printk("ctxt %d freed (dev=0x%04x)\n",
+		      __entry->ctxt_id, __entry->sfunc)
+);
+
+TRACE_EVENT(sdxi_create_sq,
+	    TP_PROTO(struct sdxi_ctxt *ctxt, struct sdxi_sq *sq),
+	    TP_ARGS(ctxt, sq),
+	    TP_STRUCT__entry(
+		    __field(u16, sfunc)
+		    __field(uint, ctxt_id)
+		    __field(void *, desc_ring)
+		    __field(u64, desc_ring_addr)
+		    __field(void *, write_index)
+		    __field(u64, write_index_addr)
+		    __field(void *, ctxt_status)
+		    __field(u64, ctxt_status_addr)
+	    ),
+	    TP_fast_assign(
+		    __entry->sfunc = ctxt->sdxi->sfunc;
+		    __entry->ctxt_id = ctxt->id;
+		    __entry->desc_ring = sq->desc_ring;
+		    __entry->desc_ring_addr = sq->ring_dma;
+		    __entry->write_index = sq->write_index;
+		    __entry->write_index_addr = sq->write_index_dma;
+		    __entry->ctxt_status = sq->ctxt_status;
+		    __entry->ctxt_status_addr = sq->ctxt_status_dma;
+	    ),
+	    TP_printk("sq created (ctxt=%d, dev=0x%04x)\n"
+		      "  desc ring addr:   v=0x%p:d=0x%llx\n"
+		      "  write index addr: v=0x%p:d=0x%llx\n"
+		      "  ctxt status addr: v=0x%p:d=0x%llx\n",
+		      __entry->ctxt_id, __entry->sfunc, __entry->desc_ring,
+		      __entry->desc_ring_addr, __entry->write_index,
+		      __entry->write_index_addr, __entry->ctxt_status,
+		      __entry->ctxt_status_addr)
+);
+
+TRACE_EVENT(sdxi_free_sq,
+	    TP_PROTO(struct sdxi_ctxt *ctxt, struct sdxi_sq *sq),
+	    TP_ARGS(ctxt, sq),
+	    TP_STRUCT__entry(
+		    __field(u16, sfunc)
+		    __field(uint, ctxt_id)
+	    ),
+	    TP_fast_assign(
+		    __entry->sfunc = ctxt->sdxi->sfunc;
+		    __entry->ctxt_id = ctxt->id;
+	    ),
+	    TP_printk("sq created (ctxt=%d, dev=0x%04x)\n",
+		      __entry->ctxt_id, __entry->sfunc)
+);
+
+#endif /* _TRACE_SDXI_H */
+
+/* This part must be outside protection */
+#undef TRACE_INCLUDE_PATH
+#define TRACE_INCLUDE_PATH ../../../drivers/dma/sdxi/
+
+#include <trace/define_trace.h>
