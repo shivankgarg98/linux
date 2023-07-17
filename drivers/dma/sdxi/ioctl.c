@@ -104,7 +104,7 @@ static int sdxi_ioctl_get_version(struct file *filep, struct sdxi_process *p,
 	struct sdxi_get_version_args *args = data;
 
 	args->major_version = SDXI_IOCTL_MAJOR_VER;
-	args->major_version = SDXI_IOCTL_MINOR_VER;
+	args->minor_version = SDXI_IOCTL_MINOR_VER;
 
 	return 0;
 }
