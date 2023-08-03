@@ -122,7 +122,7 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 	/* setup err log interrupt handler */
 	ret = request_threaded_irq(sdxi->err_irq.vector,
 				   sdxi_irq_handler, sdxi_irq_thread, 0,
-				   SDXI_DRV_NAME, &sdxi->err_irq);
+				   SDXI_DRV_NAME, sdxi);
 	if (ret) {
 		dev_err(dev, "cannot alloc irq handler for error irq\n");
 		goto err_irq0_alloc;
