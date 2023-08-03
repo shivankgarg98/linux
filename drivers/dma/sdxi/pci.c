@@ -313,7 +313,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 
 	ctrl2 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
-	ctrl2 |= 0x0000000000020000ULL;
+	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
 	ctrl2 &= 0x00000000FFFFFFFFULL;
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET, ctrl2);
