@@ -167,7 +167,7 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	sq->desc_ring[dest].valid = 1;
 	/* make sure the update of valid bit is visible */
 	wmb();
-	*sq->write_index = dest + 1;
+	*sq->write_index += 1;
 
 	/* ring the door bell */
 	sdxi_sq_ring_doorbell(sq, *sq->write_index);
