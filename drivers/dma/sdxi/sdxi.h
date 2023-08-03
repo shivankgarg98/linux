@@ -269,21 +269,27 @@ struct rkey_ent {
 
 /* Error Log Entry */
 struct sdxi_err {
-	u32 valid		: 1;	/* QW0 */
+	u32 vl			: 1;	/* QW0 */
+	u32 rsvd1		: 7;
+	u32 step		: 6;
+	u32 rsvd2		: 2;
 	u32 type		: 11;
-	u32 sub_type		: 8;
-	u32 rsvd1		: 11;
-	u32 chain		: 1;
-	u32 err_ctxt_num	: 16;
-	u32 rsvd2		: 4;
-	u32 ctxt_num_valid	: 1;
-	u32 addr_valid		: 1;
-	u32 idx_valid		: 1;
-	u32 retry		: 1;
-	u32 err_sub_type	: 8;
-	u64 err_addr;			/* QW1 */
-	u64 err_idx;			/* QW2 */
-	u64 rsvd3[5];			/* QW3+ */
+	u32 rsvd3		: 5;
+	u32 cv			: 1;
+	u32 div			: 1;
+	u32 bv			: 1;
+	u32 rsvd4		: 1;
+	u32 buf			: 3;
+	u32 rsvd5		: 1;
+	u32 sub_step		: 4;
+	u32 re			: 3;
+	u32 rsvd6		: 1;
+	u32 ctxt_num		: 16;
+	u64 desc_idx;
+	u32 rsvd7[7];
+	u32 err_class		: 16;
+	u32 rsvd8		: 16;
+	u32 vendor[4];
 } __packed;
 
 /* L1 Table Entry */
