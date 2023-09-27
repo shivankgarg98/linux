@@ -43,8 +43,8 @@ static int sdxi_ctxt_doorbell_mmap(struct sdxi_process *process,
 
 	address = ctxt->db_base;
 
-	vma->vm_flags |= VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
-		VM_DONTDUMP | VM_PFNMAP;
+	vm_flags_set(vma, VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
+		     VM_DONTDUMP | VM_PFNMAP);
 
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
@@ -83,8 +83,8 @@ static int sdxi_ctxt_struct_mmap(struct sdxi_process *process,
 		return -EINVAL;
 	}
 
-	vma->vm_flags |= VM_IO | VM_DONTCOPY | VM_DONTEXPAND
-		| VM_NORESERVE | VM_DONTDUMP | VM_PFNMAP;
+	vm_flags_set(vma, VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
+		     VM_DONTDUMP | VM_PFNMAP);
 
 	//vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
@@ -409,7 +409,7 @@ int sdxi_chardev_init(void)
 	if (err < 0)
 		goto err_register_chrdev;
 
-	sdxi_class = class_create(THIS_MODULE, sdxi_dev_name);
+	sdxi_class = class_create(sdxi_dev_name);
 	err = PTR_ERR(sdxi_class);
 	if (IS_ERR(sdxi_class))
 		goto err_class_create;
