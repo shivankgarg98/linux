@@ -431,28 +431,29 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 	if (ret)
 		goto err_pci_init;
 
-	ret = sdxi_device_init(sdxi);
+	ret = sdxi_pci_enable(sdxi);
 	if (ret)
-		goto err_dev_init;
+		goto err_pci_enable;
 
 	ret = sdxi_iommu_device_init(sdxi);
 	if (ret)
 		goto err_iommu_init;
 
-	ret = sdxi_pci_enable(sdxi);
+	ret = sdxi_device_init(sdxi);
 	if (ret)
-		goto err_pci_enable;
+		goto err_dev_init;
 
 	return 0;
 
-err_pci_enable:
+err_dev_init:
 	sdxi_iommu_device_exit(sdxi);
 err_iommu_init:
-	sdxi_device_exit(sdxi);
-err_dev_init:
+	sdxi_pci_disable(sdxi);
+err_pci_enable:
 	sdxi_pci_exit(sdxi);
 err_pci_init:
 	sdxi_device_free(sdxi);
+
 	return ret;
 }
 
@@ -460,9 +461,9 @@ static void sdxi_pci_remove(struct pci_dev *pdev)
 {
 	struct sdxi_dev *sdxi = pci_get_drvdata(pdev);
 
-	sdxi_pci_disable(sdxi);
-	sdxi_iommu_device_exit(sdxi);
 	sdxi_device_exit(sdxi);
+	sdxi_iommu_device_exit(sdxi);
+	sdxi_pci_disable(sdxi);
 	sdxi_pci_exit(sdxi);
 	sdxi_device_free(sdxi);
 }
