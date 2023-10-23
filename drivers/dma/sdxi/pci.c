@@ -6,6 +6,9 @@
  * Author: Wei Huang <wei.huang2@amd.com>
  */
 
+#define pr_fmt(fmt)     "SDXI: " fmt
+#define dev_fmt(fmt)    pr_fmt(fmt)
+
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/pci.h>
@@ -68,7 +71,6 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	reg_write64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET, 0xB);
 }
 
-/*
 static void sdxi_do_cmd_complete(unsigned long data)
 {
 	struct sdxi_tasklet_data *tdata = (void *)data;
@@ -77,7 +79,6 @@ static void sdxi_do_cmd_complete(unsigned long data)
 	if (cmd->sdxi_cmd_callback)
 		cmd->sdxi_cmd_callback(cmd->data, cmd->ret);
 }
-*/
 
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
@@ -90,7 +91,7 @@ static irqreturn_t sdxi_irq_thread(int irq, void *data)
 		status = reg_read64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET);
 	}
 
-	/* sdxi_do_cmd_complete((ulong)&sdxi->tdata); */
+	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
 
 	return IRQ_HANDLED;
 }
@@ -186,12 +187,8 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 
 	sdxi->op_grp_cap = (cap1 >> CAP1_OP_GRP_CAP_SHIFT) & CAP1_OP_GRP_CAP_MASK;
 
-	pr_info("SDXI function [sfunc=0x%04x, vf=%d]:\n", sdxi->sfunc, sdxi->is_vf);
-	pr_info("  max contexts:     %d\n", sdxi->max_cxts);
-	pr_info("  max ring entries: 0x%llx\n", sdxi->max_ring_entries);
-	pr_info("  max rkeys/akeys:  %d/%d\n", sdxi->max_rkeys, sdxi->max_akeys);
-	pr_info("  op group cap:     0x%04x\n", sdxi->op_grp_cap);
-	pr_info("  err log size:     %d\n", sdxi->max_err_logs);
+	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
+		sdxi->sfunc, cap0, cap1);
 }
 
 static int sdxi_pci_map(struct sdxi_dev *sdxi)
@@ -318,12 +315,14 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET, ctrl2);
 
 	status = reg_read64(sdxi->ctrl_regs + MMIO_STATUS_0_OFFSET);
-	pr_info("  err log addr: v=0x%p:d=0x%llx\n"
-		"  rkey addr:    v=0x%p:d=0x%llx\n"
-		"  func status:  0x%lx"
-		"  ctrl2:        0x%llx",
-		sdxi->err_log, err_log_addr & ~0x1, sdxi->rkey, rkey_addr,
-		(unsigned long)status, (unsigned long long)ctrl2);
+
+	pr_debug("function info:\n"
+		 "  err log addr: v=0x%p:d=0x%llx\n"
+		 "  rkey addr:    v=0x%p:d=0x%llx\n"
+		 "  func status:  0x%lx\n"
+		 "  ctrl2:        0x%llx\n",
+		 sdxi->err_log, err_log_addr & ~0x1, sdxi->rkey, rkey_addr,
+		 (unsigned long)status, (unsigned long long)ctrl2);
 
 	return 0;
 }
@@ -341,7 +340,7 @@ static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 {
-	u64 ctrl0, status;
+	u64 ctrl0;
 
 	sdxi_dump_errlog(sdxi);
 	/* disable device */
@@ -349,10 +348,6 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 	ctrl0 &= ~CTRL0_ENABLE_MASK;
 	ctrl0 |= FUNC_REQ_SOFT_STOP;
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET, ctrl0);
-
-	status = reg_read64(sdxi->ctrl_regs + MMIO_STATUS_0_OFFSET);
-	if (status != STATUS_STOPPED && status != STATUS_STP_ON_ERR)
-		pr_err("final function status: 0x%lx\n", (unsigned long)status);
 }
 
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)

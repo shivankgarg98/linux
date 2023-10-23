@@ -7,6 +7,9 @@
  *
  */
 
+#define pr_fmt(fmt)     "SDXI: " fmt
+#define dev_fmt(fmt)    pr_fmt(fmt)
+
 #include "sdxi.h"
 #include "pci.h"
 #include "sq.h"
@@ -239,14 +242,14 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_ctxt *ctxt, int ring_entries)
 	ctxt->sq = sq;
 	ctxt->cce.valid = 1;
 
-	pr_info("sq created, id=%d, cce=%p\n"
-		"  desc ring addr:   v=0x%p:d=0x%llx\n"
-		"  write index addr: v=0x%p:d=0x%llx\n"
-		"  ctxt status addr: v=0x%p:d=0x%llx\n",
-		ctxt->id, &(ctxt->cce),
-		sq->desc_ring, virt_to_phys(sq->desc_ring),
-		sq->write_index, virt_to_phys(sq->write_index),
-		sq->ctxt_status, virt_to_phys(sq->ctxt_status));
+	pr_debug("sq created, id=%d, cce=%p\n"
+		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
+		 "  write index addr: v=0x%p:d=0x%llx\n"
+		 "  ctxt status addr: v=0x%p:d=0x%llx\n",
+		 ctxt->id, &(ctxt->cce),
+		 sq->desc_ring, virt_to_phys(sq->desc_ring),
+		 sq->write_index, virt_to_phys(sq->write_index),
+		 sq->ctxt_status, virt_to_phys(sq->ctxt_status));
 
 	/* dump SQ info */
 	trace_sdxi_create_sq(ctxt, sq);
