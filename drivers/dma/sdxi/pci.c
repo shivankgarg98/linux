@@ -140,9 +140,8 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi->pdev;
 
-	free_irq(sdxi->err_irq.vector, &sdxi->err_irq);
+	free_irq(sdxi->err_irq.vector, sdxi);
 	/* NB: free context IRQs */
-
 	pci_free_irq_vectors(pdev);
 }
 
