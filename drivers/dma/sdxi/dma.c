@@ -281,7 +281,7 @@ static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 	struct sdxi_sq *sq = ctxt->sq;
 	struct sdxi_cmd *cmd = ctxt->sdxi->tdata.cmd;
 
-	if (sq->cst_blk[cmd->index].comp_signal == 0xFE)
+	if (sq->csb[cmd->index].signal == 0xFE)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
 }
 

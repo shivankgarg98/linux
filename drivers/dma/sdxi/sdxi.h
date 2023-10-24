@@ -110,17 +110,19 @@ enum sdxi_ctxt_id {
 /* context status entry */
 struct sdxi_ctxt_status {
 	u64 state		: 4;	/* QW0 */
-	u64 rsvd1		: 60;
+	u64 rsvd1		: 4;
+	u64 rsh			: 1;
+	u64 rsvd2		: 55;
 	u64 read_idx;			/* QW1 */
 } __packed __aligned(16);
 
 /* Context Control Entry */
 struct ctxt_ctrl_entry {
-	u64 valid		: 1;	/* QW0 */
+	u64 vl			: 1;	/* QW0 */
 	u64 rsvd1		: 1;
 	u64 qos			: 2;
-	u64 sh			: 1;
-	u64 rsvd2		: 1;
+	u64 se			: 1;
+	u64 csa			: 1;
 	u64 desc_ring_base	: 58;
 	u64 desc_ring_size	: 32;	/* QW1 */
 	u64 rsvd3		: 32;
@@ -132,20 +134,21 @@ struct ctxt_ctrl_entry {
 } __packed __aligned(64);
 
 struct sdxi_desc {
-	u32 valid		: 1;
-	u32 seq			: 1;
-	u32 fence		: 1;
-	u32 chain		: 1;
-	u32 rsvd1		: 4;
-	u32 sub_type		: 8;
+	u32 vl			: 1;
+	u32 se			: 1;
+	u32 fe			: 1;
+	u32 ch			: 1;
+	u32 csr			: 1;
+	u32 rsvd1		: 3;
+	u32 subtype		: 8;
 	u32 type		: 11;
 	u32 rsvd2		: 5;
 	u32 body[13];
-	u64 comp_ptr;
+	u64 csb_ptr;
 } __packed;
 
-struct cst_blk {
-	u64 comp_signal;		/* QW0 */
+struct csb {
+	u64 signal;			/* QW0 */
 	u32 rsvd1		: 31;	/* QW1 */
 	u32 er			: 1;
 	u32 rsvd2[5];			/* DW3+ */
@@ -159,8 +162,8 @@ struct sdxi_sq {
 	u32 ring_size;
 	struct sdxi_desc *desc_ring;
 	dma_addr_t ring_dma;
-	struct cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
+	struct csb *csb;
+	dma_addr_t csb_dma;
 
 	u32 write_index_size;
 	u64 *write_index;
@@ -255,7 +258,7 @@ struct rkey_ent {
 	u32 vl			: 1;	/* QW0 */
 	u32 iv			: 1;
 	u32 pv			: 1;
-	u32 se			: 1;
+	u32 ste			: 1;
 	u32 intr_num		: 11;
 	u32 rsvd1		: 1;
 	u32 req_sfunc		: 16;
@@ -294,9 +297,9 @@ struct sdxi_err {
 
 /* L1 Table Entry */
 struct ctxt_l1_entry {
-	u64 valid		: 1;	/* QW0 */
-	u64 active		: 1;
-	u64 pasid_valid		: 1;
+	u64 vl			: 1;	/* QW0 */
+	u64 ka			: 1;
+	u64 pv			: 1;
 	u64 rsvd1		: 3;
 	u64 ctxt_ctrl_ptr	: 58;
 	u64 akey_tbl_size	: 4;	/* QW1 */
@@ -305,15 +308,15 @@ struct ctxt_l1_entry {
 	u64 ctxt_pasid		: 20;	/* QW2 */
 	u64 max_buf		: 4;
 	u64 rsvd3		: 8;
-	u64 cmd_grp0_support	: 32;
+	u64 opb_000_enb		: 32;
 	u64 rsvd4;			/* QW3 */
 } __packed;
 
 /* L2 Table Entry */
 struct ctxt_l2_entry {
-	u64 valid		: 1;	/* QW0 */
+	u64 vl			: 1;	/* QW0 */
 	u64 rsvd		: 11;
-	u64 ctxt_l1_base	: 52;
+	u64 l1_ptr		: 52;
 } __packed;
 
 struct irq_entry {

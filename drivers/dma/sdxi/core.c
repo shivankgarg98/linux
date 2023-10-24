@@ -36,7 +36,7 @@ static void set_ctxt_l2_entry(struct sdxi_dev *sdxi,
 
 	if (l1_table) {
 		/* already set, nothing to do. NB: maybe do checking */
-		if (l2_entry->valid)
+		if (l2_entry->vl)
 			return;
 
 		l1_addr = dma_map_single(dev, l1_table, L1_TABLE_SIZE,
@@ -46,8 +46,8 @@ static void set_ctxt_l2_entry(struct sdxi_dev *sdxi,
 			return;
 		}
 
-		l2_entry->ctxt_l1_base = l1_addr >> L2_CTXT_L1_BASE_SHIFT;
-		l2_entry->valid = 1;
+		l2_entry->l1_ptr = l1_addr >> L2_CTXT_L1_BASE_SHIFT;
+		l2_entry->vl = 1;
 	} else {
 		memset(l2_entry, 0, sizeof(*l2_entry));
 	}
@@ -83,9 +83,9 @@ static void set_ctxt_l1_entry(struct sdxi_dev *sdxi,
 		l1_entry->ctxt_ctrl_ptr = ctxt->cce_addr >> L1_CTXT_CTRL_PTR_SHIFT;
 		l1_entry->akey_tbl_ptr = ctxt->akey_addr >> L1_CTXT_AKEY_PTR_SHIFT;
 		l1_entry->akey_tbl_size = (ctxt->akey_entries * sizeof(struct akey_entry) >> 12) - 1;
-		l1_entry->cmd_grp0_support = sdxi->op_grp_cap;
-		l1_entry->valid = 1;
-		l1_entry->active = 1;
+		l1_entry->opb_000_enb = sdxi->op_grp_cap;
+		l1_entry->vl = 1;
+		l1_entry->ka = 1;
 
 		ctxt->akey[0].vl = 1;
 	} else {

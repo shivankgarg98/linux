@@ -14,9 +14,9 @@
 
 #define DESC_BUILD_TYPE(d, t, s)		\
 	do {					\
-		(d)->valid = 1;			\
+		(d)->vl = 1;			\
 		(d)->type = (t);		\
-		(d)->sub_type = (s);		\
+		(d)->subtype = (s);		\
 	} while (0)
 
 #define DESC_ADM_BUILD_VF(d, vf, vf_num)				\
