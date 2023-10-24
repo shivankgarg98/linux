@@ -56,8 +56,8 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	u64 read_ptr, write_ptr, offset;
 	struct sdxi_err *err_entry;
 
-	read_ptr = reg_read64(sdxi->ctrl_regs + ERR_LOG_READ_PTR_OFFSET);
-	write_ptr = reg_read64(sdxi->ctrl_regs + ERR_LOG_WRITE_PTR_OFFSET);
+	read_ptr = reg_read64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	write_ptr = reg_read64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 
 	while (read_ptr != write_ptr) {
 		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
@@ -67,8 +67,8 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 		read_ptr++;
 	}
 
-	reg_write64(sdxi->ctrl_regs + ERR_LOG_READ_PTR_OFFSET, read_ptr);
-	reg_write64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET, 0xB);
+	reg_write64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET, read_ptr);
+	reg_write64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET, 0xB);
 }
 
 static void sdxi_do_cmd_complete(unsigned long data)
@@ -83,12 +83,12 @@ static void sdxi_do_cmd_complete(unsigned long data)
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = (struct sdxi_dev *)data;
-	u64 status = reg_read64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET);
+	u64 status = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 
-	while (status & ERR_LOG_STATUS_MASK) {
+	while (status & ERR_STS_REC_MASK) {
 		printk(KERN_ERR "read status\n");
 		sdxi_handle_err(sdxi);
-		status = reg_read64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET);
+		status = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 	}
 
 	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
@@ -175,7 +175,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	max_buff_sz = cap1 & CAP1_MAX_BUFF_MASK;
 	sdxi->max_buffer = 2 << (max_buff_sz + 21);
 
-	sdxi->has_rkey = (cap1 >> CAP1_RKEY_SUP_SHIFT) & CAP1_RKEY_SUP_MASK;
+	sdxi->has_rkey = (cap1 >> CAP1_RKEY_CAP_SHIFT) & CAP1_RKEY_CAP_MASK;
 
 	max_errlog_sz = (cap1 >> CAP1_MAX_ERR_LOG_SZ_SHIFT) & CAP1_MAX_ERR_LOG_SZ_MASK;
 	sdxi->max_err_logs = 2 << (max_errlog_sz + 7);
@@ -183,9 +183,9 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	max_akey_sz = (cap1 >> CAP1_MAX_AKT_SIZE_SHIFT) & CAP1_MAX_AKT_SIZE_MASK;
 	sdxi->max_akeys = 1 << (max_akey_sz + 8);
 
-	sdxi->max_cxts = ((cap1 >> CAP1_N_CXT_SHIFT) & CAP1_N_CXT_MASK) + 1;
+	sdxi->max_cxts = ((cap1 >> CAP1_MAX_CXT_SHIFT) & CAP1_MAX_CXT_MASK) + 1;
 
-	sdxi->op_grp_cap = (cap1 >> CAP1_OP_GRP_CAP_SHIFT) & CAP1_OP_GRP_CAP_MASK;
+	sdxi->op_grp_cap = (cap1 >> CAP1_OPB_000_CAP_SHIFT) & CAP1_OPB_000_CAP_MASK;
 
 	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
 		sdxi->sfunc, cap0, cap1);
@@ -275,36 +275,33 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	u64 ctrl0, ctrl2, status;
 
 	/* l2 table */
-	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
-				 DMA_TO_DEVICE);
-	l2_addr &= CXT_TABLE_BASE_PTR_MASK;
-	reg_write64(sdxi->ctrl_regs + CXT_TABLE_BASE_OFFSET, l2_addr);
+	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE, DMA_TO_DEVICE);
+	l2_addr &= CXT_L2_PTR_MASK;
+	reg_write64(sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET, l2_addr);
 
 	/* rkey */
 	rkey_addr = dma_map_single(dev, sdxi->rkey,
 				   sdxi->rkey_num * sizeof(struct rkey_ent),
 				   DMA_FROM_DEVICE);
-	rkey_addr &= ERR_LOG_BASE_PTR_MASK;
-	rkey_addr |= 0x1;
-	rkey_addr |= (((sdxi->rkey_num >> 8) & RKEY_TABLE_SIZE_MASK) <<
-		      RKEY_TABLE_SIZE_SHIFT);
+	rkey_addr &= RKEY_PTR_MASK;
+	rkey_addr |= RKEY_EN_MASK;
+	rkey_addr |= (((sdxi->rkey_num >> 8) & RKEY_SZ_MASK) << RKEY_SZ_SHIFT);
+	reg_write64(sdxi->ctrl_regs + MMIO_RKEY_OFFSET, rkey_addr);
 
 	/* err log */
-	reg_write64(sdxi->ctrl_regs + ERR_LOG_CTRL_OFFSET, 0x1);
-
 	err_log_addr = dma_map_single(dev, sdxi->err_log,
-				      sdxi->err_log_num * sizeof(struct sdxi_err),
-				      DMA_FROM_DEVICE);
-	err_log_addr &= ERR_LOG_BASE_PTR_MASK;
-	err_log_addr |= 0x1;
-	reg_write64(sdxi->ctrl_regs + ERR_LOG_CFG_OFFSET, err_log_addr);
+				 sdxi->err_log_num * sizeof(struct sdxi_err),
+				 DMA_FROM_DEVICE);
+	err_log_addr &= ERR_CFG_PTR_MASK;
+	err_log_addr |= ERR_CFG_EN_MASK;
+	err_log_addr |= (((sdxi->err_log_num >> 6) & ERR_CFG_SZ_MASK) << ERR_CFG_SZ_SHIFT);
+	reg_write64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET, err_log_addr);
+	reg_write64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET, ERR_CTL_INTR_EN_MASK);
 
 	/* enable device */
 	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET);
-	ctrl0 &= ~CTRL0_ENABLE_MASK;
-	ctrl0 |= FUNC_REQ_ACTIVE;
-	//enable err_intr
-	ctrl0 |= (1 << CTRL0_FUNC_ERR_INT_EN_SHIFT);
+	ctrl0 |= GSRV_ACTIVE & CTRL0_FN_GSR_MASK;
+	ctrl0 |= (CTRL0_FN_ERR_INTR_EN_MASK << CTRL0_FN_ERR_INTR_EN_SHIFT);
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET, ctrl0);
 
 	ctrl2 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET);
@@ -314,7 +311,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET, ctrl2);
 
-	status = reg_read64(sdxi->ctrl_regs + MMIO_STATUS_0_OFFSET);
+	status = reg_read64(sdxi->ctrl_regs + MMIO_STS0_OFFSET);
 
 	pr_debug("function info:\n"
 		 "  err log addr: v=0x%p:d=0x%llx\n"
@@ -331,11 +328,11 @@ static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 {
 	u64 err_ctl, err_sts, err_cfg, err_wrt, err_rd;
 
-	err_ctl = reg_read64(sdxi->ctrl_regs + ERR_LOG_CTRL_OFFSET);
-	err_sts = reg_read64(sdxi->ctrl_regs + ERR_LOG_STS_OFFSET);
-	err_cfg = reg_read64(sdxi->ctrl_regs + ERR_LOG_CFG_OFFSET);
-	err_wrt = reg_read64(sdxi->ctrl_regs + ERR_LOG_WRITE_PTR_OFFSET);
-	err_rd = reg_read64(sdxi->ctrl_regs + ERR_LOG_READ_PTR_OFFSET);
+	err_ctl = reg_read64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
+	err_sts = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+	err_cfg = reg_read64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
+	err_wrt = reg_read64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
+	err_rd = reg_read64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
 }
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
@@ -345,8 +342,8 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 	sdxi_dump_errlog(sdxi);
 	/* disable device */
 	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET);
-	ctrl0 &= ~CTRL0_ENABLE_MASK;
-	ctrl0 |= FUNC_REQ_SOFT_STOP;
+	ctrl0 &= ~CTRL0_FN_GSR_MASK;
+	ctrl0 |= (GSRV_STOP_SF & CTRL0_FN_GSR_MASK);
 	reg_write64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET, ctrl0);
 }
 
