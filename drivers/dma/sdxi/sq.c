@@ -131,6 +131,15 @@ void build_dma_write_imm(struct sdxi_desc *desc, u32 size, u64 dst_addr,
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_WRT_IMM);
 }
 
+void build_intr_op(struct sdxi_desc *desc, u16 akey)
+{
+	memset(desc, 0, sizeof(*desc));
+
+	desc->body[2] = akey & 0x0000FFFF;
+
+	DESC_BUILD_TYPE(desc, OP_TYPE_INTR, OP_INTR_INTERRUPT);
+}
+
 static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 {
 	struct sdxi_ctxt *ctxt = sq->ctxt;

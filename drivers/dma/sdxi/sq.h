@@ -60,7 +60,7 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 		    u64 src_addr, u64 dst_dst, u64 comp_ptr);
 void build_dma_write_imm(struct sdxi_desc *desc, u32 size, u64 dst_addr,
 			 u32 data);
-
+void build_intr_op(struct sdxi_desc *desc, u16 akey);
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc, bool cst,
 			u64 init_signal);
 
