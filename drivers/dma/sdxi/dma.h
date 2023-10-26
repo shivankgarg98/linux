@@ -11,13 +11,12 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 
-#include "../dma/dmaengine.h"
-#include "../dma/virt-dma.h"
-
 #include "sdxi.h"
 #include "sq.h"
 
 #ifndef __SDXI_DMA_H
 #define __SDXI_DMA_H
+
+void sdxi_check_trans_status(struct sdxi_dma_chan *chan);
 
 #endif /* __SDXI_DMA_H */

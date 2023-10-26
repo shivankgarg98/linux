@@ -45,30 +45,16 @@ static void sdxi_dma_synchronize(struct dma_chan *c)
 static void sdxi_do_cleanup(struct virt_dma_desc *vd)
 {
 	struct sdxi_dma_desc *desc = to_sdxi_dma_desc(vd);
-	struct sdxi_dev *sdxi = desc->ctxt->sdxi;
+	struct sdxi_dev *sdxi = desc->sdxi;
 
 	kmem_cache_free(sdxi->dma_desc_cache, desc);
 }
 
-static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
+int sdxi_perform_dma(struct sdxi_ctxt *ctxt, struct sdxi_cmd *sdxi_cmd)
 {
-	struct sdxi_dev *sdxi;
-	struct sdxi_cmd *sdxi_cmd;
-	struct sdxi_ctxt *ctxt;
-	struct sdxi_sq *sq;
 	struct sdxi_desc desc;
+	struct sdxi_sq *sq;
 
-
-	dma_desc->issued_to_hw = 1;
-
-	sdxi_cmd = &dma_desc->sdxi_cmd;
-	sdxi = sdxi_cmd->ctxt->sdxi;
-
-
-	sdxi->tdata.cmd = sdxi_cmd;
-
-	/* submit to sdxi context */
-	ctxt = dma_desc->ctxt;
 	memset(ctxt->dummy_buffer, 0, 4096);
 	((int *)ctxt->dummy_buffer)[0] = 1;
 	sq = ctxt->sq;
@@ -83,6 +69,36 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	sdxi_cmd->index = sdxi_sq_submit_desc(sq, &desc, true, 0xFF);
 	sdxi_cmd->ret = 0; // TODO: get desc submit status & update ret value
 
+	build_intr_op(&desc, 0x2);
+	sdxi_sq_submit_desc(sq, &desc, true, 0xFF);
+
+	init_completion(&ctxt->tdata.completion);
+	wait_event_interruptible(ctxt->int_queue, ctxt->int_rcvd);
+	ctxt->int_rcvd = 0;
+	tasklet_schedule(&ctxt->irq_tasklet);
+	wait_for_completion(&ctxt->tdata.completion);
+
+	return 0;
+}
+
+static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
+{
+	struct sdxi_dev *sdxi;
+	struct sdxi_cmd *sdxi_cmd;
+	struct sdxi_ctxt *ctxt;
+
+	dma_desc->issued_to_hw = 1;
+	list_del(&dma_desc->vd.node);
+
+	sdxi_cmd = &dma_desc->sdxi_cmd;
+	sdxi = sdxi_cmd->sdxi;
+
+	/* submit to sdxi context */
+	ctxt = sdxi->dma_ctxt;
+	ctxt->tdata.cmd = sdxi_cmd;
+
+	sdxi_cmd->ret = sdxi_perform_dma(ctxt, sdxi_cmd);
+
 	return 0;
 }
 
@@ -92,6 +108,47 @@ static struct sdxi_dma_desc *sdxi_next_dma_desc(struct sdxi_dma_chan *chan)
 	struct virt_dma_desc *vd = vchan_next_desc(&chan->vc);
 
 	return vd ? to_sdxi_dma_desc(vd) : NULL;
+}
+
+static void sdxi_cmd_callback_tasklet(void *data, int err)
+{
+	struct sdxi_dma_desc *desc = data;
+	struct dma_chan *dma_chan;
+	struct sdxi_dma_chan *chan;
+	struct dma_async_tx_descriptor *tx_desc;
+	struct virt_dma_desc *vd;
+	unsigned long flags;
+
+        if (err == -EINPROGRESS)
+                return;
+
+        dma_chan = desc->vd.tx.chan;
+        chan = to_sdxi_dma_chan(dma_chan);
+
+        tx_desc = &desc->vd.tx;
+        vd = &desc->vd;
+
+        if (err)
+                desc->status = DMA_ERROR;
+
+        spin_lock_irqsave(&chan->vc.lock, flags);
+        if (desc) {
+                if (desc->status != DMA_COMPLETE) {
+                        if (desc->status != DMA_ERROR)
+                                desc->status = DMA_COMPLETE;
+
+			vchan_cookie_complete(vd);
+                } else {
+                        /* Don't handle it twice */
+                        tx_desc = NULL;
+                }
+        }
+        spin_unlock_irqrestore(&chan->vc.lock, flags);
+
+        if (tx_desc) {
+                dmaengine_desc_get_callback_invoke(tx_desc, NULL);
+                dma_run_dependencies(tx_desc);
+        }
 }
 
 static struct sdxi_dma_desc *sdxi_handle_active_desc(struct sdxi_dma_chan *chan,
@@ -117,31 +174,8 @@ static struct sdxi_dma_desc *sdxi_handle_active_desc(struct sdxi_dma_chan *chan,
 		}
 
 		spin_lock_irqsave(&chan->vc.lock, flags);
-
-		if (desc) {
-
-			if (desc->status != DMA_COMPLETE) {
-				if (desc->status != DMA_ERROR)
-					desc->status = DMA_COMPLETE;
-
-				dma_cookie_complete(tx_desc);
-				dma_descriptor_unmap(tx_desc);
-				list_del(&desc->vd.node);
-			} else {
-				/* Don't handle it twice */
-				tx_desc = NULL;
-			}
-		}
-
 		desc = sdxi_next_dma_desc(chan);
-
 		spin_unlock_irqrestore(&chan->vc.lock, flags);
-
-		if (tx_desc) {
-			dmaengine_desc_get_callback_invoke(tx_desc, NULL);
-			dma_run_dependencies(tx_desc);
-			vchan_vdesc_fini(vd);
-		}
 	} while (desc);
 
 	return NULL;
@@ -152,6 +186,7 @@ static void sdxi_cmd_callback(void *data, int err)
 	struct sdxi_dma_desc *desc = data;
 	struct dma_chan *dma_chan;
 	struct sdxi_dma_chan *chan;
+	struct sdxi_dev *sdxi;
 	int ret;
 
 	if (err == -EINPROGRESS)
@@ -159,6 +194,7 @@ static void sdxi_cmd_callback(void *data, int err)
 
 	dma_chan = desc->vd.tx.chan;
 	chan = to_sdxi_dma_chan(dma_chan);
+	sdxi = chan->sdxi;
 
 	if (err)
 		desc->status = DMA_ERROR;
@@ -171,6 +207,7 @@ static void sdxi_cmd_callback(void *data, int err)
 		if (!desc)
 			break;
 
+		/* NB: Check if ctxt is full or not */
 		ret = sdxi_dma_start_desc(desc);
 		if (!ret)
 			break;
@@ -184,15 +221,13 @@ static struct sdxi_dma_desc *sdxi_dma_alloc_dma_desc(struct sdxi_dma_chan *chan,
 {
 	struct sdxi_dma_desc *desc;
 
-	desc = kmem_cache_zalloc(chan->ctxt->sdxi->dma_desc_cache, GFP_NOWAIT);
+	desc = kmem_cache_zalloc(chan->sdxi->dma_desc_cache, GFP_NOWAIT);
 	if (!desc)
 		return NULL;
 
-	desc->ctxt = chan->ctxt;
-
 	vchan_tx_prep(&chan->vc, &desc->vd, flags);
 
-	desc->ctxt->sdxi = chan->ctxt->sdxi;
+	desc->sdxi = chan->sdxi;
 	desc->issued_to_hw = 0;
 	desc->status = DMA_IN_PROGRESS;
 
@@ -200,10 +235,10 @@ static struct sdxi_dma_desc *sdxi_dma_alloc_dma_desc(struct sdxi_dma_chan *chan,
 }
 
 static struct sdxi_dma_desc *sdxi_dma_create_desc(struct dma_chan *dma_chan,
-					  dma_addr_t dst,
-					  dma_addr_t src,
-					  unsigned int len,
-					  unsigned long flags)
+						  dma_addr_t dst,
+						  dma_addr_t src,
+						  unsigned int len,
+						  unsigned long flags)
 {
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
 	struct sdxi_dma_desc *desc;
@@ -214,12 +249,11 @@ static struct sdxi_dma_desc *sdxi_dma_create_desc(struct dma_chan *dma_chan,
 		return NULL;
 
 	sdxi_cmd = &desc->sdxi_cmd;
-	sdxi_cmd->ctxt = chan->ctxt;
-	sdxi_cmd->ctxt->sdxi = chan->ctxt->sdxi;
+	sdxi_cmd->sdxi = chan->sdxi;
 	sdxi_cmd->src_addr = src;
 	sdxi_cmd->dst_addr = dst;
 	sdxi_cmd->len = len;
-	sdxi_cmd->sdxi_cmd_callback = sdxi_cmd_callback;
+	sdxi_cmd->sdxi_cmd_callback = sdxi_cmd_callback_tasklet;
 	sdxi_cmd->data = desc;
 
 	return desc;
@@ -273,13 +307,15 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 	/* If there was nothing active, start processing */
 	if (engine_is_idle)
 		sdxi_cmd_callback(desc, 0);
+	else
+		sdxi_cmd_callback(desc, 0);
 }
 
-static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
+void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 {
 	struct sdxi_ctxt *ctxt = chan->ctxt;
 	struct sdxi_sq *sq = ctxt->sq;
-	struct sdxi_cmd *cmd = ctxt->sdxi->tdata.cmd;
+	struct sdxi_cmd *cmd = ctxt->tdata.cmd;
 
 	if (sq->csb[cmd->index].signal == 0xFE)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
@@ -288,13 +324,10 @@ static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 static enum dma_status sdxi_tx_status(struct dma_chan *dma_chan, dma_cookie_t cookie,
 				      struct dma_tx_state *tx_state)
 {
-	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
-
-	sdxi_check_trans_status(chan);
-
 	return dma_cookie_status(dma_chan, cookie, tx_state);
 }
 
+/* NB: Neends revisit on how to test it? */
 static int sdxi_dma_pause(struct dma_chan *dma_chan)
 {
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
@@ -341,28 +374,20 @@ static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 	return 0;
 }
 
-int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
+int sdxi_dma_register(struct sdxi_dev *sdxi)
 {
 	struct sdxi_dma_chan *chan;
-	struct sdxi_dev *sdxi = dma_ctxt->sdxi;
-	struct device *dev;
 	struct dma_device *dma_dev = &sdxi->dma_dev;
 	char *cmd_cache_name;
 	char *desc_cache_name;
+	struct device *dev = &sdxi->pdev->dev;
 	int ret = 0;
 
-	if (!dma_ctxt)
-		return 0;
-
-	sdxi = dma_ctxt->sdxi;
-	dev = &sdxi->pdev->dev;
-
+	/* NB: Each device has one DMA context, so it is OK here */
 	sdxi->sdxi_dma_chan = devm_kzalloc(dev, sizeof(*sdxi->sdxi_dma_chan),
 					   GFP_KERNEL);
 	if (!sdxi->sdxi_dma_chan)
 		return -ENOMEM;
-
-	sdxi->sdxi_dma_chan->ctxt = dma_ctxt;
 
 	cmd_cache_name = devm_kasprintf(dev, GFP_KERNEL,
 					"%s-dmaengine-cmd-cache",
@@ -379,8 +404,8 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	}
 
 	sdxi->dma_desc_cache = kmem_cache_create(desc_cache_name,
-					       sizeof(struct sdxi_dma_desc), 0,
-					       SLAB_HWCACHE_ALIGN, NULL);
+						 sizeof(struct sdxi_dma_desc), 0,
+						 SLAB_HWCACHE_ALIGN, NULL);
 	if (!sdxi->dma_desc_cache) {
 		ret = -ENOMEM;
 		goto err_cache;
@@ -394,12 +419,8 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
 	dma_cap_set(DMA_INTERRUPT, dma_dev->cap_mask);
 
+	/* can be used with NTD devices, so marking it as DMA_PRIVATE */
 	dma_cap_set(DMA_PRIVATE, dma_dev->cap_mask);
-
-	INIT_LIST_HEAD(&dma_dev->channels);
-
-	chan = sdxi->sdxi_dma_chan;
-	chan->ctxt->sdxi = sdxi;
 
 	/* Set base and prep routines */
 	dma_dev->device_free_chan_resources = sdxi_dma_free_chan_resources;
@@ -412,6 +433,11 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	dma_dev->device_terminate_all = sdxi_dma_terminate_all;
 	dma_dev->device_synchronize = sdxi_dma_synchronize;
 
+	INIT_LIST_HEAD(&dma_dev->channels);
+
+	chan = sdxi->sdxi_dma_chan;
+	chan->sdxi = sdxi;
+	chan->ctxt = sdxi->dma_ctxt;
 	chan->vc.desc_free = sdxi_do_cleanup;
 	vchan_init(&chan->vc, dma_dev);
 
@@ -427,15 +453,11 @@ err_reg:
 	kmem_cache_destroy(sdxi->dma_desc_cache);
 
 err_cache:
-	kmem_cache_destroy(sdxi->dma_cmd_cache);
-
 	return ret;
 }
 
-void sdxi_dma_unregister(struct sdxi_ctxt *dma_ctxt)
+void sdxi_dma_unregister(struct sdxi_dev *sdxi)
 {
-	dma_async_device_unregister(&dma_ctxt->sdxi->dma_dev);
-
-	kmem_cache_destroy(dma_ctxt->sdxi->dma_desc_cache);
-	kmem_cache_destroy(dma_ctxt->sdxi->dma_cmd_cache);
+	dma_async_device_unregister(&sdxi->dma_dev);
+	kmem_cache_destroy(sdxi->dma_desc_cache);
 }
