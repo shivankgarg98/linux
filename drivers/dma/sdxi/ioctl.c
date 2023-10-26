@@ -48,13 +48,14 @@ static int sdxi_ctxt_doorbell_mmap(struct sdxi_process *process,
 
 	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
 
-	pr_debug("pasid 0x%x mapping mmio page\n"
+	pr_debug("pasid 0x%x mapping mmio page (dev=%s)\n"
 		 "     target user address == 0x%08llX\n"
 		 "     physical address    == 0x%08llX\n"
 		 "     vm_flags            == 0x%04lX\n"
 		 "     size                == 0x%04lX\n",
-		 process->pasid, (unsigned long long) vma->vm_start,
-		 address, vma->vm_flags, PAGE_SIZE);
+		 process->pasid, dev_name(&sdxi->pdev->dev),
+		 (unsigned long long) vma->vm_start, address,
+		 vma->vm_flags, PAGE_SIZE);
 
 	ret = io_remap_pfn_range(vma,
 				 vma->vm_start,
