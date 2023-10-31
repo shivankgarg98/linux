@@ -175,7 +175,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 	struct device *dev = &pdev->dev;
 	int bars, ret;
 
-	bars = pci_select_bars(pdev, IORESOURCE_MEM);
+	bars = 1 << MMIO_CTRL_REGS_BAR | 1 << MMIO_DOORBELL_BAR;
 	ret = pcim_iomap_regions(pdev, bars, SDXI_DRV_NAME);
 	if (ret) {
 		dev_err(dev, "pcim_iomap_regions failed (%d)\n", ret);
