@@ -151,7 +151,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 
 	/* CAP1 */
 	max_buff_sz = cap1 & CAP1_MAX_BUFF_MASK;
-	sdxi->max_buffer = 2 << (max_buff_sz + 21);
+	sdxi->max_buffer = 2ULL << (max_buff_sz + 21);
 
 	sdxi->has_rkey = (cap1 >> CAP1_RKEY_CAP_SHIFT) & CAP1_RKEY_CAP_MASK;
 
