@@ -143,22 +143,22 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	db_stride = (cap0 >> CAP0_DB_STRIDE_SHIFT) & CAP0_DB_STRIDE_MASK;
 	sdxi->db_stride = 1 << (db_stride + 12);
 
-	max_ring_sz = (cap0 >> CAP0_MAX_RING_SZ_SHIFT) & CAP0_MAX_RING_SZ_MASK;
+	max_ring_sz = (cap0 >> CAP0_MAX_DS_RING_SZ_SHIFT) & CAP0_MAX_DS_RING_SZ_MASK;
 	sdxi->max_ring_entries = 1ULL << (max_ring_sz + 10);
 
 	max_rkey_sz = (cap0 >> CAP0_MAX_RKEY_SZ_SHIFT) & CAP0_MAX_RKEY_SZ_MASK;
 	sdxi->max_rkeys = 1 << (max_rkey_sz + 8);
 
 	/* CAP1 */
-	max_buff_sz = cap1 & CAP1_MAX_BUFF_MASK;
+	max_buff_sz = cap1 & CAP1_MAX_BUFFER_MASK;
 	sdxi->max_buffer = 2ULL << (max_buff_sz + 21);
 
 	sdxi->has_rkey = (cap1 >> CAP1_RKEY_CAP_SHIFT) & CAP1_RKEY_CAP_MASK;
 
-	max_errlog_sz = (cap1 >> CAP1_MAX_ERR_LOG_SZ_SHIFT) & CAP1_MAX_ERR_LOG_SZ_MASK;
+	max_errlog_sz = (cap1 >> CAP1_MAX_ERRLOG_SZ_SHIFT) & CAP1_MAX_ERRLOG_SZ_MASK;
 	sdxi->max_err_logs = 2 << (max_errlog_sz + 7);
 
-	max_akey_sz = (cap1 >> CAP1_MAX_AKT_SIZE_SHIFT) & CAP1_MAX_AKT_SIZE_MASK;
+	max_akey_sz = (cap1 >> CAP1_MAX_AKEY_SZ_SHIFT) & CAP1_MAX_AKEY_SZ_MASK;
 	sdxi->max_akeys = 1 << (max_akey_sz + 8);
 
 	sdxi->max_cxts = ((cap1 >> CAP1_MAX_CXT_SHIFT) & CAP1_MAX_CXT_MASK) + 1;
@@ -175,7 +175,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 	struct device *dev = &pdev->dev;
 	int bars, ret;
 
-	bars = 1 << MMIO_CTRL_REGS_BAR | 1 << MMIO_DOORBELL_BAR;
+	bars = 1 << MMIO_CTL_REGS_BAR | 1 << MMIO_DOORBELL_BAR;
 	ret = pcim_iomap_regions(pdev, bars, SDXI_DRV_NAME);
 	if (ret) {
 		dev_err(dev, "pcim_iomap_regions failed (%d)\n", ret);
@@ -184,7 +184,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 
 	sdxi->dbs_bar = pci_resource_start(pdev, MMIO_DOORBELL_BAR);
 
-	sdxi->ctrl_regs = pcim_iomap_table(pdev)[MMIO_CTRL_REGS_BAR];
+	sdxi->ctrl_regs = pcim_iomap_table(pdev)[MMIO_CTL_REGS_BAR];
 	sdxi->dbs = pcim_iomap_table(pdev)[MMIO_DOORBELL_BAR];
 	if (!sdxi->ctrl_regs || !sdxi->dbs) {
 		dev_err(dev, "pcim_iomap_table failed\n");
@@ -253,7 +253,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	u64 ctrl0, ctrl2, status;
 
 	/* l2 table */
-	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE, DMA_TO_DEVICE);
+	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
+				 DMA_TO_DEVICE);
 	l2_addr &= CXT_L2_PTR_MASK;
 	reg_write64(sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET, l2_addr);
 
@@ -277,17 +278,17 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	reg_write64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET, ERR_CTL_INTR_EN_MASK);
 
 	/* enable device */
-	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET);
-	ctrl0 |= GSRV_ACTIVE & CTRL0_FN_GSR_MASK;
-	ctrl0 |= (CTRL0_FN_ERR_INTR_EN_MASK << CTRL0_FN_ERR_INTR_EN_SHIFT);
-	reg_write64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET, ctrl0);
+	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctrl0 |= GSRV_ACTIVE & CTL0_FN_GSR_MASK;
+	ctrl0 |= (CTL0_FN_ERR_INTR_EN_MASK << CTL0_FN_ERR_INTR_EN_SHIFT);
+	reg_write64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET, ctrl0);
 
-	ctrl2 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET);
+	ctrl2 = reg_read64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
 	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
 	ctrl2 &= 0x00000000FFFFFFFFULL;
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
-	reg_write64(sdxi->ctrl_regs + MMIO_CTRL2_OFFSET, ctrl2);
+	reg_write64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET, ctrl2);
 
 	status = reg_read64(sdxi->ctrl_regs + MMIO_STS0_OFFSET);
 
@@ -319,10 +320,10 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 
 	sdxi_dump_errlog(sdxi);
 	/* disable device */
-	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET);
-	ctrl0 &= ~CTRL0_FN_GSR_MASK;
-	ctrl0 |= (GSRV_STOP_SF & CTRL0_FN_GSR_MASK);
-	reg_write64(sdxi->ctrl_regs + MMIO_CTRL0_OFFSET, ctrl0);
+	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctrl0 &= ~CTL0_FN_GSR_MASK;
+	ctrl0 |= (GSRV_STOP_SF & CTL0_FN_GSR_MASK);
+	reg_write64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET, ctrl0);
 }
 
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
