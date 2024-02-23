@@ -106,28 +106,22 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 {
-	u64 cap0, cap1;
-	u32 db_stride, max_ring_sz, max_rkey_sz;
+	union mmio_cap0_reg cap0;
+	u64 cap1;
 	u32 max_buff_sz, max_errlog_sz, max_akey_sz;
 
 	/* generic properties */
 	sdxi->max_pasids = pci_max_pasids(sdxi->pdev);
 
 	/* CAP0 */
-	cap0 = ioread64(sdxi->ctrl_regs + MMIO_CAP0_OFFSET);
+	cap0.data = ioread64(sdxi->ctrl_regs + MMIO_CAP0_OFFSET);
 	cap1 = ioread64(sdxi->ctrl_regs + MMIO_CAP1_OFFSET);
 
-	sdxi->sfunc = cap0 & CAP0_SFUNC_MASK;
-	sdxi->is_vf = (cap0 >> CAP0_VF_SHIFT) & CAP0_VF_MASK;
-
-	db_stride = (cap0 >> CAP0_DB_STRIDE_SHIFT) & CAP0_DB_STRIDE_MASK;
-	sdxi->db_stride = 1 << (db_stride + 12);
-
-	max_ring_sz = (cap0 >> CAP0_MAX_DS_RING_SZ_SHIFT) & CAP0_MAX_DS_RING_SZ_MASK;
-	sdxi->max_ring_entries = 1ULL << (max_ring_sz + 10);
-
-	max_rkey_sz = (cap0 >> CAP0_MAX_RKEY_SZ_SHIFT) & CAP0_MAX_RKEY_SZ_MASK;
-	sdxi->max_rkeys = 1 << (max_rkey_sz + 8);
+	sdxi->sfunc = cap0.sfunc;
+	sdxi->is_vf = cap0.vf;
+	sdxi->db_stride = 1 << (cap0.db_stride + 12);
+	sdxi->max_ring_entries = 1ULL << (cap0.max_ds_ring_sz + 10);
+	sdxi->max_rkeys = 1 << (cap0.max_rkey_sz + 8);
 
 	/* CAP1 */
 	max_buff_sz = cap1 & CAP1_MAX_BUFFER_MASK;
@@ -146,7 +140,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	sdxi->op_grp_cap = (cap1 >> CAP1_OPB_000_CAP_SHIFT) & CAP1_OPB_000_CAP_MASK;
 
 	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
-		sdxi->sfunc, cap0, cap1);
+		sdxi->sfunc, cap0.data, cap1);
 }
 
 static int sdxi_pci_map(struct sdxi_dev *sdxi)

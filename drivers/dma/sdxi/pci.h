@@ -86,23 +86,27 @@ union mmio_sts0_reg {
 #define GSV_STOPG_HD			0x4
 #define GSV_ERROR			0x5
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Capability 0 Register */
 #define MMIO_CAP0_OFFSET		0x000200
+
+union mmio_cap0_reg {
+	struct {
+		u64 sfunc		:16;
+		u64 vf			:1;
+		u64 cs_cap		:2;
+		u64 rsvd0		:1;
+		u64 db_stride		:3;
+		u64 rsvd1		:1;
+		u64 max_ds_ring_sz	:8;
+		u64 max_rkey_sz		:8;
+		u64 rsvd2		:24;
+	};
+	u64 data;
+} __packed __aligned(8);
+
+/* MMIO control/status/cap register offsets */
 #define MMIO_CAP1_OFFSET		0x000208
 #define MMIO_VER_OFFSET			0x000210
-
-/* capability register 0 (CAP0) */
-#define CAP0_SFUNC_MASK			0xFFFF
-#define CAP0_VF_SHIFT			16
-#define CAP0_VF_MASK			0x1
-#define CAP0_CS_CAP_SHIFT		17
-#define CAP0_CS_CAP_MASK		0x3
-#define CAP0_DB_STRIDE_SHIFT		20
-#define CAP0_DB_STRIDE_MASK		0x7
-#define CAP0_MAX_DS_RING_SZ_SHIFT	24
-#define CAP0_MAX_DS_RING_SZ_MASK	0x1F
-#define CAP0_MAX_RKEY_SZ_SHIFT		32
-#define CAP0_MAX_RKEY_SZ_MASK		0xF
 
 /* capability register 1 (CAP1) */
 #define CAP1_MAX_BUFFER_MASK		0xF
