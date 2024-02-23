@@ -16,31 +16,36 @@
 #define MMIO_CTL_REGS_BAR		0x0
 #define MMIO_DOORBELL_BAR		0x2
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Control 0 Register */
 #define MMIO_CTL0_OFFSET		0x000000
+
+union mmio_ctl0_reg {
+	struct {
+		u64 fn_gsr		:2;
+		u64 fn_pasid_vl		:1;
+		u64 rsvd0		:1;
+		u64 fn_err_intr_en	:1;
+		u64 rsvd1		:3;
+		u64 fn_pasid		:20;
+		u64 rsvd2		:4;
+		u64 fn_grp_id		:32;
+	};
+	u64 data;
+} __packed __aligned(8);
+
+/* function state control (ctl0.fn_gsr) constants */
+#define GSRV_RESET			0x0
+#define GSRV_STOP_SF			0x1
+#define GSRV_STOP_HD			0x2
+#define GSRV_ACTIVE			0x3
+
+/* MMIO control/status/cap register offsets */
 #define MMIO_GRP_ENUM_OFFSET		0x000008
 #define MMIO_CTL2_OFFSET		0x000010
 #define MMIO_STS0_OFFSET		0x000100
 #define MMIO_CAP0_OFFSET		0x000200
 #define MMIO_CAP1_OFFSET		0x000208
 #define MMIO_VER_OFFSET			0x000210
-
-/* control register 0 (CTL0) */
-#define CTL0_FN_GSR_MASK		0x3
-#define CTL0_FN_PASID_VL_SHIFT		2
-#define CTL0_FN_PASID_VL_MASK		0x1
-#define CTL0_FN_ERR_INTR_EN_SHIFT	4
-#define CTL0_FN_ERR_INTR_EN_MASK	0x1
-#define CTL0_FN_PASID_SHIFT		8
-#define CTL0_FN_PASID_MASK		0xFFFFF
-#define CTL0_FN_GRP_ID_SHIFT		32
-#define CTL0_FN_GRP_ID_MASK		0xFFFFFFFF
-
-/* function state control (FN_GSR) constants */
-#define GSRV_RESET			0x0
-#define GSRV_STOP_SF			0x1
-#define GSRV_STOP_HD			0x2
-#define GSRV_ACTIVE			0x3
 
 /* group enum (GRP_ENUM) */
 #define GRP_ENUM_BUSY_MASK		0x1

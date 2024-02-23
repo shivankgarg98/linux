@@ -230,7 +230,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	dma_addr_t l2_addr, rkey_addr, err_log_addr;
-	u64 ctrl0, ctrl2, status;
+	u64 ctrl2, status;
+	union mmio_ctl0_reg ctl0_reg;
 
 	/* l2 table */
 	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
@@ -258,10 +259,10 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	iowrite64(ERR_CTL_INTR_EN_MASK, sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
 
 	/* enable device */
-	ctrl0 = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
-	ctrl0 |= GSRV_ACTIVE & CTL0_FN_GSR_MASK;
-	ctrl0 |= (CTL0_FN_ERR_INTR_EN_MASK << CTL0_FN_ERR_INTR_EN_SHIFT);
-	iowrite64(ctrl0, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.data = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.fn_gsr = GSRV_ACTIVE;
+	ctl0_reg.fn_err_intr_en = 1;
+	iowrite64(ctl0_reg.data, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 
 	ctrl2 = ioread64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
@@ -296,14 +297,14 @@ static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 {
-	u64 ctrl0;
+	union mmio_ctl0_reg ctl0_reg;
 
 	sdxi_dump_errlog(sdxi);
+
 	/* disable device */
-	ctrl0 = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
-	ctrl0 &= ~CTL0_FN_GSR_MASK;
-	ctrl0 |= (GSRV_STOP_SF & CTL0_FN_GSR_MASK);
-	iowrite64(ctrl0, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.data = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.fn_gsr = GSRV_STOP_SF;
+	iowrite64(ctl0_reg.data, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 }
 
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
