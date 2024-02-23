@@ -138,7 +138,4 @@
 #define ERR_CFG_SZ_MASK			0x1F
 #define ERR_CFG_PTR_MASK		0xFFFFFFFFFFFFF000
 
-u64 reg_read64(void __iomem *addr);
-void reg_write64(void __iomem *addr, u64 val);
-
 #endif /* __SDXI_PCI_H */

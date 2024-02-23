@@ -11,6 +11,7 @@
 
 #include <linux/module.h>
 #include <linux/device.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/pci.h>
 #include <linux/pci-ats.h>
 #include <linux/io.h>
@@ -21,27 +22,6 @@
 #include "process.h"
 
 LIST_HEAD(sdxi_device_list);
-
-u64 reg_read64(void __iomem *addr)
-{
-        u64 low, high;
-
-        low = ioread32(addr);
-        high = ioread32(addr + sizeof(u32));
-
-        return low | (high << 32);
-}
-
-void reg_write64(void __iomem *addr, u64 value)
-{
-        u32 low, high;
-
-        high = value >> 32;
-        low = value & 0xFFFFFFFF;
-
-        iowrite32(low, addr);
-        iowrite32(high, addr + sizeof(u32));
-}
 
 /* NB: Just print out for now. Need to expand to handle the errors */
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
@@ -56,8 +36,8 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	u64 read_ptr, write_ptr, offset;
 	struct sdxi_err *err_entry;
 
-	read_ptr = reg_read64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
-	write_ptr = reg_read64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
+	read_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	write_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 
 	while (read_ptr != write_ptr) {
 		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
@@ -67,19 +47,19 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 		read_ptr++;
 	}
 
-	reg_write64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET, read_ptr);
-	reg_write64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET, 0xB);
+	iowrite64(read_ptr, sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	iowrite64(0xB, sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 }
 
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = (struct sdxi_dev *)data;
-	u64 status = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+	u64 status = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 
 	while (status & ERR_STS_REC_MASK) {
 		printk(KERN_ERR "read status\n");
 		sdxi_handle_err(sdxi);
-		status = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+		status = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 	}
 
 	return IRQ_HANDLED;
@@ -134,8 +114,8 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	sdxi->max_pasids = pci_max_pasids(sdxi->pdev);
 
 	/* CAP0 */
-	cap0 = reg_read64(sdxi->ctrl_regs + MMIO_CAP0_OFFSET);
-	cap1 = reg_read64(sdxi->ctrl_regs + MMIO_CAP1_OFFSET);
+	cap0 = ioread64(sdxi->ctrl_regs + MMIO_CAP0_OFFSET);
+	cap1 = ioread64(sdxi->ctrl_regs + MMIO_CAP1_OFFSET);
 
 	sdxi->sfunc = cap0 & CAP0_SFUNC_MASK;
 	sdxi->is_vf = (cap0 >> CAP0_VF_SHIFT) & CAP0_VF_MASK;
@@ -256,7 +236,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
 				 DMA_TO_DEVICE);
 	l2_addr &= CXT_L2_PTR_MASK;
-	reg_write64(sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET, l2_addr);
+	iowrite64(l2_addr, sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET);
 
 	/* rkey */
 	rkey_addr = dma_map_single(dev, sdxi->rkey,
@@ -265,7 +245,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	rkey_addr &= RKEY_PTR_MASK;
 	rkey_addr |= RKEY_EN_MASK;
 	rkey_addr |= (((sdxi->rkey_num >> 8) & RKEY_SZ_MASK) << RKEY_SZ_SHIFT);
-	reg_write64(sdxi->ctrl_regs + MMIO_RKEY_OFFSET, rkey_addr);
+	iowrite64(rkey_addr, sdxi->ctrl_regs + MMIO_RKEY_OFFSET);
 
 	/* err log */
 	err_log_addr = dma_map_single(dev, sdxi->err_log,
@@ -274,23 +254,23 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	err_log_addr &= ERR_CFG_PTR_MASK;
 	err_log_addr |= ERR_CFG_EN_MASK;
 	err_log_addr |= (((sdxi->err_log_num >> 6) & ERR_CFG_SZ_MASK) << ERR_CFG_SZ_SHIFT);
-	reg_write64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET, err_log_addr);
-	reg_write64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET, ERR_CTL_INTR_EN_MASK);
+	iowrite64(err_log_addr, sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
+	iowrite64(ERR_CTL_INTR_EN_MASK, sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
 
 	/* enable device */
-	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctrl0 = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 	ctrl0 |= GSRV_ACTIVE & CTL0_FN_GSR_MASK;
 	ctrl0 |= (CTL0_FN_ERR_INTR_EN_MASK << CTL0_FN_ERR_INTR_EN_SHIFT);
-	reg_write64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET, ctrl0);
+	iowrite64(ctrl0, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 
-	ctrl2 = reg_read64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
+	ctrl2 = ioread64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
 	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
 	ctrl2 &= 0x00000000FFFFFFFFULL;
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
-	reg_write64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET, ctrl2);
+	iowrite64(ctrl2, sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
 
-	status = reg_read64(sdxi->ctrl_regs + MMIO_STS0_OFFSET);
+	status = ioread64(sdxi->ctrl_regs + MMIO_STS0_OFFSET);
 
 	pr_debug("function info:\n"
 		 "  err log addr: v=0x%p:d=0x%llx\n"
@@ -307,11 +287,11 @@ static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 {
 	u64 err_ctl, err_sts, err_cfg, err_wrt, err_rd;
 
-	err_ctl = reg_read64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
-	err_sts = reg_read64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
-	err_cfg = reg_read64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
-	err_wrt = reg_read64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
-	err_rd = reg_read64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	err_ctl = ioread64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
+	err_sts = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+	err_cfg = ioread64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
+	err_wrt = ioread64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
+	err_rd = ioread64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
 }
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
@@ -320,10 +300,10 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 
 	sdxi_dump_errlog(sdxi);
 	/* disable device */
-	ctrl0 = reg_read64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctrl0 = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 	ctrl0 &= ~CTL0_FN_GSR_MASK;
 	ctrl0 |= (GSRV_STOP_SF & CTL0_FN_GSR_MASK);
-	reg_write64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET, ctrl0);
+	iowrite64(ctrl0, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 }
 
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)

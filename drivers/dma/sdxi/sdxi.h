@@ -23,7 +23,7 @@
 #define SDXI_DRV_DESC		"SDXI driver"
 
 /***************************/
-/*        DEFAULTSS        */
+/*        DEFAULTS         */
 /***************************/
 #define DEFAULT_ERR_LOG_NUM	64
 #define DEFAULT_RKEY_NUM	256

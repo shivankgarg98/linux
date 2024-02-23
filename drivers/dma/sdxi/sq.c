@@ -10,6 +10,9 @@
 #define pr_fmt(fmt)     "SDXI: " fmt
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
+#include <linux/types.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
+
 #include "sdxi.h"
 #include "pci.h"
 #include "sq.h"
@@ -144,7 +147,7 @@ static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 {
 	struct sdxi_ctxt *ctxt = sq->ctxt;
 
-	reg_write64(ctxt->db, value);
+	iowrite64(value, ctxt->db);
 }
 
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
