@@ -51,21 +51,25 @@ union mmio_grp_enum_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Control 2 Register */
 #define MMIO_CTL2_OFFSET		0x000010
+
+union mmio_ctl2_reg {
+	struct {
+		u64 max_buffer		:4;
+		u64 rsvd0		:8;
+		u64 max_akey_sz		:4;
+		u64 max_cxt		:16;
+		u64 opb_000_avl		:32;
+	};
+	u64 data;
+} __packed __aligned(8);
+
+/* MMIO control/status/cap register offsets */
 #define MMIO_STS0_OFFSET		0x000100
 #define MMIO_CAP0_OFFSET		0x000200
 #define MMIO_CAP1_OFFSET		0x000208
 #define MMIO_VER_OFFSET			0x000210
-
-/* control register 2 (CTL2) */
-#define CTL2_MAX_BUFFER_MASK		0xF
-#define CTL2_MAX_AKEY_SZ_SHIFT		12
-#define CTL2_MAX_AKEY_SZ_MASK		0xF
-#define CTL2_MAX_CXT_SHIFT		16
-#define CTL2_MAX_CXT_MASK		0xFFFF
-#define CTL2_OPB_000_AVL_SHIFT		32
-#define CTL2_OPB_000_AVL_MASK		0xFFFFFFFF
 
 /* state register 0 (STS0) */
 #define STS0_FN_GSV_MASK		0x7
