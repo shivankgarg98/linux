@@ -46,7 +46,8 @@ union mmio_grp_enum_reg {
 	struct {
 		u64 busy		:1;
 		u64 probe		:1;
-		u64 rsvd0		:62;
+		u64 rsvd0		:6;
+		u64 rsvd1		:56;
 	};
 	u64 data;
 } __packed __aligned(8);
@@ -65,22 +66,30 @@ union mmio_ctl2_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Status 0 Register */
 #define MMIO_STS0_OFFSET		0x000100
-#define MMIO_CAP0_OFFSET		0x000200
-#define MMIO_CAP1_OFFSET		0x000208
-#define MMIO_VER_OFFSET			0x000210
 
-/* state register 0 (STS0) */
-#define STS0_FN_GSV_MASK		0x7
+union mmio_sts0_reg {
+	struct {
+		u64 fn_gsv		:3;
+		u64 rsvd0		:5;
+		u64 rsvd1		:56;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* function state (FN_GSV) constants */
+/* function state (sts0.fn_gsv) constants */
 #define GSV_STOP			0x0
 #define GSV_INIT			0x1
 #define GSV_ACTIVE			0x2
 #define GSV_STOPG_SF			0x3
 #define GSV_STOPG_HD			0x4
 #define GSV_ERROR			0x5
+
+/* MMIO control/status/cap register offsets */
+#define MMIO_CAP0_OFFSET		0x000200
+#define MMIO_CAP1_OFFSET		0x000208
+#define MMIO_VER_OFFSET			0x000210
 
 /* capability register 0 (CAP0) */
 #define CAP0_SFUNC_MASK			0xFFFF
