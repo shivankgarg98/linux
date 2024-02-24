@@ -18,7 +18,6 @@
 
 /* MMIO Control 0 Register */
 #define MMIO_CTL0_OFFSET		0x000000
-
 union mmio_ctl0_reg {
 	struct {
 		u64 fn_gsr		:2;
@@ -41,7 +40,6 @@ union mmio_ctl0_reg {
 
 /* MMIO Group Enum Register */
 #define MMIO_GRP_ENUM_OFFSET		0x000008
-
 union mmio_grp_enum_reg {
 	struct {
 		u64 busy		:1;
@@ -54,7 +52,6 @@ union mmio_grp_enum_reg {
 
 /* MMIO Control 2 Register */
 #define MMIO_CTL2_OFFSET		0x000010
-
 union mmio_ctl2_reg {
 	struct {
 		u64 max_buffer		:4;
@@ -68,7 +65,6 @@ union mmio_ctl2_reg {
 
 /* MMIO Status 0 Register */
 #define MMIO_STS0_OFFSET		0x000100
-
 union mmio_sts0_reg {
 	struct {
 		u64 fn_gsv		:3;
@@ -88,7 +84,6 @@ union mmio_sts0_reg {
 
 /* MMIO Capability 0 Register */
 #define MMIO_CAP0_OFFSET		0x000200
-
 union mmio_cap0_reg {
 	struct {
 		u64 sfunc		:16;
@@ -104,26 +99,25 @@ union mmio_cap0_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Capability 1 Register */
 #define MMIO_CAP1_OFFSET		0x000208
-#define MMIO_VER_OFFSET			0x000210
+union mmio_cap1_reg {
+	struct {
+		u64 max_buffer		:4;
+		u64 rkey_cap		:1;
+		u64 rm			:1;
+		u64 mmio64		:1;
+		u64 rsvd0		:1;
+		u64 max_errlog_sz	:4;
+		u64 max_akey_sz		:4;
+		u64 max_cxt		:16;
+		u64 opb_000_cap		:32;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* capability register 1 (CAP1) */
-#define CAP1_MAX_BUFFER_MASK		0xF
-#define CAP1_RKEY_CAP_SHIFT		4
-#define CAP1_RKEY_CAP_MASK		0x1
-#define CAP1_RM_SHIFT			5
-#define CAP1_RM_MASK			0x1
-#define CAP1_MMIO64_SHIFT		6
-#define CAP1_MMIO64_MASK		0x1
-#define CAP1_MAX_ERRLOG_SZ_SHIFT	8
-#define CAP1_MAX_ERRLOG_SZ_MASK		0xF
-#define CAP1_MAX_AKEY_SZ_SHIFT		12
-#define CAP1_MAX_AKEY_SZ_MASK		0xF
-#define CAP1_MAX_CXT_SHIFT		16
-#define CAP1_MAX_CXT_MASK		0xFFFF
-#define CAP1_OPB_000_CAP_SHIFT		32
-#define CAP1_OPB_000_CAP_MASK		0xFFFFFFFF
+/* MMIO control/status/cap register offsets */
+#define MMIO_VER_OFFSET			0x000210
 
 /* version register (VER) */
 #define VER_MINOR_MASK			0xFF
