@@ -116,13 +116,17 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO control/status/cap register offsets */
+/* MMIO Version Register */
 #define MMIO_VER_OFFSET			0x000210
-
-/* version register (VER) */
-#define VER_MINOR_MASK			0xFF
-#define VER_MAJOR_SHIFT			16
-#define VER_MAJOR_MASK			0xFF
+union mmio_ver_reg {
+	struct {
+		u64 minor		:8;
+		u64 rsvd0		:8;
+		u64 major		:8;
+		u64 rsvd1		:40;
+	};
+	u64 data;
+} __packed __aligned(8);
 
 /* MMIO L2 and rkey table register offsets */
 #define MMIO_CXT_L2_OFFSET		0x10000
