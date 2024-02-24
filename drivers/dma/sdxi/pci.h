@@ -16,8 +16,23 @@
 #define MMIO_CTL_REGS_BAR		0x0
 #define MMIO_DOORBELL_BAR		0x2
 
-/* MMIO Control 0 Register */
+/* MMIO Register Offsets */
 #define MMIO_CTL0_OFFSET		0x000000
+#define MMIO_GRP_ENUM_OFFSET		0x000008
+#define MMIO_CTL2_OFFSET		0x000010
+#define MMIO_STS0_OFFSET		0x000100
+#define MMIO_CAP0_OFFSET		0x000200
+#define MMIO_CAP1_OFFSET		0x000208
+#define MMIO_VER_OFFSET			0x000210
+#define MMIO_CXT_L2_OFFSET		0x010000
+#define MMIO_RKEY_OFFSET		0x010100
+#define MMIO_ERR_CTL_OFFSET		0x020000
+#define MMIO_ERR_STS_OFFSET		0x020008
+#define MMIO_ERR_CFG_OFFSET		0x020010
+#define MMIO_ERR_WRT_OFFSET		0x020020
+#define MMIO_ERR_RD_OFFSET		0x020028
+
+/* Control 0 Register */
 union mmio_ctl0_reg {
 	struct {
 		u64 fn_gsr		:2;
@@ -38,8 +53,7 @@ union mmio_ctl0_reg {
 #define GSRV_STOP_HD			0x2
 #define GSRV_ACTIVE			0x3
 
-/* MMIO Group Enum Register */
-#define MMIO_GRP_ENUM_OFFSET		0x000008
+/* Group Enum Register */
 union mmio_grp_enum_reg {
 	struct {
 		u64 busy		:1;
@@ -50,8 +64,7 @@ union mmio_grp_enum_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO Control 2 Register */
-#define MMIO_CTL2_OFFSET		0x000010
+/* Control 2 Register */
 union mmio_ctl2_reg {
 	struct {
 		u64 max_buffer		:4;
@@ -63,8 +76,7 @@ union mmio_ctl2_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO Status 0 Register */
-#define MMIO_STS0_OFFSET		0x000100
+/* Status 0 Register */
 union mmio_sts0_reg {
 	struct {
 		u64 fn_gsv		:3;
@@ -82,8 +94,7 @@ union mmio_sts0_reg {
 #define GSV_STOPG_HD			0x4
 #define GSV_ERROR			0x5
 
-/* MMIO Capability 0 Register */
-#define MMIO_CAP0_OFFSET		0x000200
+/* Capability 0 Register */
 union mmio_cap0_reg {
 	struct {
 		u64 sfunc		:16;
@@ -99,8 +110,7 @@ union mmio_cap0_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO Capability 1 Register */
-#define MMIO_CAP1_OFFSET		0x000208
+/* Capability 1 Register */
 union mmio_cap1_reg {
 	struct {
 		u64 max_buffer		:4;
@@ -116,8 +126,7 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO Version Register */
-#define MMIO_VER_OFFSET			0x000210
+/* Version Register */
 union mmio_ver_reg {
 	struct {
 		u64 minor		:8;
@@ -128,40 +137,72 @@ union mmio_ver_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* MMIO L2 and rkey table register offsets */
-#define MMIO_CXT_L2_OFFSET		0x10000
-#define MMIO_RKEY_OFFSET		0x10100
+/* L2 Table Pointer Register */
+union mmio_cxt_l2_reg {
+	struct {
+		u64 rsvd0		:12;
+		u64 ptr			:52;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* context table register (CXT_L2) */
-#define CXT_L2_PTR_MASK			0xFFFFFFFFFFFFF000
+/* RKEY Table Pointer Register */
+union mmio_rkey_reg {
+	struct {
+		u64 en			:1;
+		u64 sz			:4;
+		u64 rsvd0		:7;
+		u64 ptr			:52;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* rkey table register (RKEY) */
-#define RKEY_EN_MASK			0x1
-#define RKEY_SZ_SHIFT			0x1
-#define RKEY_SZ_MASK			0xF
-#define RKEY_PTR_MASK			0xFFFFFFFFFFFFF000
+/* Error Control Register */
+union mmio_err_ctl_reg {
+	struct {
+		u64 en			:1;
+		u64 rsvd0		:63;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* MMIO error log control and status register offsets */
-#define MMIO_ERR_CTL_OFFSET		0x20000
-#define MMIO_ERR_STS_OFFSET		0x20008
-#define MMIO_ERR_CFG_OFFSET		0x20010
-#define MMIO_ERR_WRT_OFFSET		0x20020
-#define MMIO_ERR_RD_OFFSET		0x20028
+/* Error Status Register */
+union mmio_err_sts_reg {
+	struct {
+		u64 sts			:1;
+		u64 ovf			:1;
+		u64 rsvd0		:1;
+		u64 err			:1;
+		u64 rsvd1		:60;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* error log control register (ERR_CTL) */
-#define ERR_CTL_INTR_EN_MASK		0x1
+/* Error Config Register */
+union mmio_err_cfg_reg {
+	struct {
+		u64 en			:1;
+		u64 sz			:5;
+		u64 rsvd0		:6;
+		u64 ptr			:52;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* error log status register (ERR_STS) */
-#define ERR_STS_REC_MASK		0x1
-#define ERR_STS_OVF_SHIFT		1
-#define ERR_STS_OVF_MASK		0x1
-#define ERR_STS_ERR_SHIFT		3
-#define ERR_STS_ERR_MASK		0x1
+/* Error Write Index Register */
+union mmio_err_wrt_reg {
+	struct {
+		u64 index		:64;
+	};
+	u64 data;
+} __packed __aligned(8);
 
-/* error log config register (ERR_CFG) */
-#define ERR_CFG_EN_MASK			0x1
-#define ERR_CFG_SZ_SHIFT		1
-#define ERR_CFG_SZ_MASK			0x1F
-#define ERR_CFG_PTR_MASK		0xFFFFFFFFFFFFF000
+/* Error Read Index Register */
+union mmio_err_rd_reg {
+	struct {
+		u64 index		:64;
+	};
+	u64 data;
+} __packed __aligned(8);
 
 #endif /* __SDXI_PCI_H */
