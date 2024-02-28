@@ -314,8 +314,14 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 {
 	struct sdxi_ctxt *ctxt = chan->ctxt;
-	struct sdxi_sq *sq = ctxt->sq;
-	struct sdxi_cmd *cmd = ctxt->tdata.cmd;
+	struct sdxi_sq *sq;
+	struct sdxi_cmd *cmd;
+
+	if (!ctxt)
+		return;
+
+	sq = ctxt->sq;
+	cmd = ctxt->tdata.cmd;
 
 	if (sq->csb[cmd->index].signal == 0xFE)
 		sdxi_cmd_callback(cmd->data, cmd->ret);

@@ -305,11 +305,14 @@ static irqreturn_t sdxi_akey_irq_thread(int irq, void *data)
 	struct sdxi_ctxt *ctxt = (struct sdxi_ctxt *)data;
 	struct sdxi_dma_chan *chan = ctxt->sdxi->sdxi_dma_chan;
 
-	sdxi_check_trans_status(chan);
+	if (chan == NULL || &ctxt->int_queue == NULL)
+		goto out;
 
+	sdxi_check_trans_status(chan);
 	ctxt->int_rcvd = 1;
 	wake_up_interruptible(&ctxt->int_queue);
 
+out:
 	return IRQ_HANDLED;
 }
 
