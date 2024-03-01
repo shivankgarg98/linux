@@ -16,23 +16,55 @@
 #include <linux/pci-ats.h>
 #include <linux/io.h>
 #include <linux/iomap.h>
+#include <linux/math64.h>
 
 #include "sdxi.h"
 #include "pci.h"
 #include "process.h"
 
-static bool enabled = enabled;
+static bool enabled = true;
 module_param(enabled, bool, 0644);
 MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
 LIST_HEAD(sdxi_device_list);
 
-/* NB: Just print out for now. Need to expand to handle the errors */
+
+#define MIN(a, b)	(a > b ? b : a)
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 {
 	struct device *dev = &sdxi->pdev->dev;
+	int index;
+	const char *sub_steps[] = {
+		"Other or Internal Error",
+		"Address Translation Failure",
+		"Data Access Failure",
+		"Data Validation Failure",
+		"Unknown/Reserved Type",
+	};
+	const char *reactions[] = {
+		"Informative Entry (nothing stopped)",
+		"SDXI Context Stopped",
+		"SDXI Function Stopped",
+		"Unknown/Reserved Reaction",
+	};
 
-	dev_err(dev, "error found\n");
+	if (err->vl) {
+		dev_err(dev, "error log entry:");
+		dev_err(dev, "  step: 0x%x\n", err->step);
+		dev_err(dev, "  type: 0x%x\n", err->type);
+		dev_err(dev, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
+		dev_err(dev, "  buff: 0x%x\n", err->buf);
+		index = MIN(ARRAY_SIZE(sub_steps) - 1, err->sub_step);
+		dev_err(dev, "  sub_step: %s\n", sub_steps[index]);
+		index = MIN(ARRAY_SIZE(reactions) - 1, err->re);
+		dev_err(dev, "  re: %s\n", reactions[index]);
+		dev_err(dev, "  buff: 0x%x\n", err->buf);
+		dev_err(dev, "  ctxt_num: 0x%x\n", err->ctxt_num);
+		dev_err(dev, "  desc_idx: 0x%llx\n", err->desc_idx);
+		dev_err(dev, "  err_class: 0x%x\n", err->err_class);
+	} else {
+		dev_err(dev, "Not a valid error log entry!\n");
+	}
 }
 
 static void sdxi_handle_err(struct sdxi_dev *sdxi)
