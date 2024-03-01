@@ -21,7 +21,7 @@
 #include "pci.h"
 #include "process.h"
 
-static bool enabled = false;
+static bool enabled = enabled;
 module_param(enabled, bool, 0644);
 MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
@@ -513,7 +513,7 @@ static void __exit sdxi_module_exit(void)
 
 MODULE_AUTHOR("Wei Huang <wei.huang2@amd.com>");
 MODULE_DESCRIPTION(SDXI_DRV_DESC);
-MODULE_LICENSE("Dual BSD/GPL");
+MODULE_LICENSE("GPL v2");
 module_init(sdxi_module_init);
 module_exit(sdxi_module_exit);
 MODULE_SOFTDEP("pre: iommu_v2");
