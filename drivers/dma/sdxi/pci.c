@@ -55,6 +55,15 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	iowrite64(0xB, sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 }
 
+static void sdxi_do_cmd_complete(unsigned long data)
+{
+	struct sdxi_tasklet_data *tdata = (void *)data;
+	struct sdxi_cmd *cmd = tdata->cmd;
+
+	if (cmd && cmd->sdxi_cmd_callback)
+		cmd->sdxi_cmd_callback(cmd->data, cmd->ret);
+}
+
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = (struct sdxi_dev *)data;
@@ -68,35 +77,49 @@ static irqreturn_t sdxi_irq_thread(int irq, void *data)
 		err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 	}
 
+	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
+
 	return IRQ_HANDLED;
+}
+
+static irqreturn_t sdxi_irq_handler(int irq, void *data)
+{
+	return IRQ_WAKE_THREAD;
 }
 
 static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi->pdev;
 	struct device *dev = &pdev->dev;
-	int i, ret;
+	int msi_count;
+	int ret;
 
-	for (i = 0; i < ARRAY_SIZE(sdxi->msix_entry); i++)
-		sdxi->msix_entry[i].entry = i;
-	ret = pci_enable_msix_range(pdev, sdxi->msix_entry, 1, i);
-	pr_debug("enable_msix_range i=%d, ret = %d, vector[0]=%d\n", i, ret,
-		 sdxi->msix_entry[0].vector);
+	/* 1st irq for error + 1 for each context */
+	msi_count = sdxi->max_cxts + 1;
 
-        /* setup err log interrupt handler */
-        sdxi->err_irq.vector = sdxi->msix_entry[0].vector;
-	ret = request_irq(sdxi->err_irq.vector, sdxi_irq_thread, 0,
-			  SDXI_DRV_NAME, sdxi);
+	ret = pci_alloc_irq_vectors(pdev, 1, msi_count,
+				    PCI_IRQ_MSI | PCI_IRQ_MSIX);
+	if (ret < 0) {
+		dev_info(dev, "alloc MSI/MSI-X vectors failed\n");
+		return ret;
+	}
 
+	sdxi->irq_count = ret;
+	sdxi->err_irq.vector = pci_irq_vector(pdev, 0);
+	/* setup err log interrupt handler */
+	ret = request_threaded_irq(sdxi->err_irq.vector,
+				   sdxi_irq_handler, sdxi_irq_thread, 0,
+				   SDXI_DRV_NAME, sdxi);
 	if (ret) {
 		dev_err(dev, "cannot alloc irq handler for error irq\n");
 		goto err_irq0_alloc;
 	}
 
+	/* NB: alloc and setup ctxt_irqs here */
 	return 0;
 
 err_irq0_alloc:
-	pci_disable_msix(pdev);
+	pci_free_irq_vectors(pdev);
 	return ret;
 }
 
@@ -106,8 +129,7 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 
 	free_irq(sdxi->err_irq.vector, sdxi);
 	/* NB: free context IRQs */
-	//pci_free_irq_vectors(pdev);
-	pci_disable_msix(pdev);
+	pci_free_irq_vectors(pdev);
 }
 
 static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)

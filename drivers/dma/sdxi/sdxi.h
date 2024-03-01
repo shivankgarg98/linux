@@ -184,7 +184,7 @@ struct sdxi_tasklet_data {
 struct sdxi_cmd {
 	struct list_head entry;
 	struct work_struct work;
-	struct sdxi_dev *sdxi;
+	struct sdxi_ctxt *ctxt;
 	int ret;
 	size_t len;
 	u64 src_addr;
@@ -197,7 +197,7 @@ struct sdxi_cmd {
 
 struct sdxi_dma_desc {
 	struct virt_dma_desc vd;
-	struct sdxi_dev *sdxi;
+	struct sdxi_ctxt *ctxt;
 	enum dma_status status;
 	bool issued_to_hw;
 	struct sdxi_cmd sdxi_cmd;
@@ -205,7 +205,6 @@ struct sdxi_dma_desc {
 
 struct sdxi_dma_chan {
 	struct virt_dma_chan vc;
-	struct sdxi_dev *sdxi;
 	struct sdxi_ctxt *ctxt;
 };
 
@@ -244,18 +243,14 @@ struct sdxi_ctxt {
 
 	struct sdxi_sq *sq;
 
+	/* NB: might need to move to sdxi_device? */
+	struct sdxi_dma_chan sdxi_dma_chan;
+
 	struct sdxi_process *process;	/* process reprsentation */
 
 	/* FOR DEBUG */
 	unsigned long *dummy_buffer;
 	dma_addr_t dummy_buffer_addr;
-
-	/* irq tasklet */
-	struct sdxi_tasklet_data tdata;
-	struct tasklet_struct irq_tasklet;
-
-	wait_queue_head_t int_queue;
-	unsigned int int_rcvd;
 };
 
 /* RKey Table Entry */
@@ -328,8 +323,6 @@ struct irq_entry {
 	int vector;
 };
 
-/* NB: make it dynamic */
-#define MAX_DEVICE_CTXTS 65
 struct sdxi_dev {
 	struct list_head list;
 
@@ -363,8 +356,7 @@ struct sdxi_dev {
 	/* MSI */
 	unsigned int irq_count;
 	struct irq_entry err_irq;
-	struct irq_entry ctxt_irqs[MAX_DEVICE_CTXTS];   /* NB: convert to a struct */
-	struct msix_entry msix_entry[MAX_DEVICE_CTXTS];
+	struct irq_entry *ctxt_irqs;	/* NB: convert to a struct */
 
 	/* context management */
 	spinlock_t ctxt_lock;		/* context protection */
@@ -388,7 +380,9 @@ struct sdxi_dev {
 	/* DMA engine */
 	struct dma_device dma_dev;
 	struct sdxi_dma_chan *sdxi_dma_chan;
+	struct kmem_cache *dma_cmd_cache;
 	struct kmem_cache *dma_desc_cache;
+	struct sdxi_tasklet_data tdata;
 
 	/* special contexts */
 	struct sdxi_ctxt *admin_ctxt;	/* admin context */
@@ -419,8 +413,8 @@ void sdxi_sq_free(struct sdxi_sq *sq);
 int sdxi_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc);
 
 /* DMA Engine */
-int sdxi_dma_register(struct sdxi_dev *sdxi);
-void sdxi_dma_unregister(struct sdxi_dev *sdxi);
+int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt);
+void sdxi_dma_unregister(struct sdxi_ctxt *dma_ctxt);
 
 /* Chardev (IOCTL) */
 int sdxi_chardev_init(void);

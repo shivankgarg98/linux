@@ -19,7 +19,6 @@
 #include "pci.h"
 #include "sq.h"
 #include "process.h"
-#include "dma.h"
 
 #define CREATE_TRACE_POINTS
 #include "trace.h"
@@ -300,51 +299,18 @@ void sdxi_ctxt_free(struct sdxi_ctxt *ctxt)
 	spin_unlock_irqrestore(&sdxi->ctxt_lock, flags);
 }
 
-static irqreturn_t sdxi_akey_irq_thread(int irq, void *data)
-{
-	struct sdxi_ctxt *ctxt = (struct sdxi_ctxt *)data;
-	struct sdxi_dma_chan *chan = ctxt->sdxi->sdxi_dma_chan;
-
-	if (chan == NULL || &ctxt->int_queue == NULL)
-		goto out;
-
-	sdxi_check_trans_status(chan);
-	ctxt->int_rcvd = 1;
-	wake_up_interruptible(&ctxt->int_queue);
-
-out:
-	return IRQ_HANDLED;
-}
-
-static void sdxi_do_cmd_complete(unsigned long data)
-{
-	struct sdxi_tasklet_data *tdata = (struct sdxi_tasklet_data *)data;
-	struct sdxi_cmd *cmd = tdata->cmd;
-
-	cmd->sdxi_cmd_callback(cmd->data, cmd->ret);
-	complete(&tdata->completion);
-}
-
 struct sdxi_ctxt *sdxi_working_ctxt_init(struct sdxi_dev *sdxi,
 					 enum sdxi_ctxt_id id)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	struct sdxi_ctxt *ctxt;
 	struct sdxi_sq *sq;
-	int ret;
 
 	ctxt = sdxi_ctxt_alloc(sdxi);
 	if (!ctxt) {
 		dev_err(dev, "failed to alloc a new context\n");
 		return NULL;
 	}
-
-	if (id == SDXI_DMA_CTXT_ID)
-		init_waitqueue_head(&ctxt->int_queue);
-
-	/* NB: To be fixed */
-	ctxt->akey[2].vl = 1;
-	ctxt->akey[2].intr_num = ctxt->id+1;
 
 	/* check if context ID matches */
 	if (id < SDXI_ANY_CTXT_ID && ctxt->id != id) {
@@ -358,14 +324,6 @@ struct sdxi_ctxt *sdxi_working_ctxt_init(struct sdxi_dev *sdxi,
 		goto err_sq_alloc;
 	}
 
-	/* NB: just for testing */
-	sdxi->ctxt_irqs[ctxt->id].vector = sdxi->msix_entry[ctxt->id+1].vector;
-	ret = request_irq(sdxi->ctxt_irqs[ctxt->id].vector,
-			  sdxi_akey_irq_thread, 0, SDXI_DRV_NAME, ctxt);
-
-        /* NB: tasklet, to be moved */
-        tasklet_init(&ctxt->irq_tasklet, sdxi_do_cmd_complete, (unsigned long)&ctxt->tdata);
-
 	return ctxt;
 
 err_sq_alloc:
@@ -378,12 +336,9 @@ err_ctxt_id:
 void sdxi_working_ctxt_exit(struct sdxi_ctxt *ctxt)
 {
 	struct sdxi_sq *sq;
-	struct sdxi_dev *sdxi = ctxt->sdxi;
 
 	if (!ctxt)
 		return;
-
-	free_irq(sdxi->ctxt_irqs[ctxt->id].vector, ctxt);
 
 	sq = ctxt->sq;
 	if (!sq)
@@ -451,7 +406,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi)
 
 	/* register with DMA engine */
 	if (dma_engine)
-		sdxi_dma_register(sdxi);
+		sdxi_dma_register(sdxi->dma_ctxt);
 
 	return 0;
 err_kern_ctxt:
@@ -465,7 +420,7 @@ err_dma_ctxt:
 void sdxi_device_exit(struct sdxi_dev *sdxi)
 {
 	if (dma_engine)
-		sdxi_dma_unregister(sdxi);
+		sdxi_dma_unregister(sdxi->dma_ctxt);
 
 	sdxi_working_ctxt_exit(sdxi->kern_ctxt);
 	sdxi_working_ctxt_exit(sdxi->dma_ctxt);
