@@ -16,6 +16,7 @@
 #include <asm/mmu.h>
 
 #include "process.h"
+#include "trace.h"
 
 #define SDXI_PROCESS_LIST_SIZE	16
 static DEFINE_MUTEX(process_list_mutex);
@@ -115,17 +116,25 @@ int sdxi_bind_process_to_device(struct sdxi_process *process)
 		return -EINVAL;
 	}
 
+	trace_sdxi_bind_process(sdxi, process->pasid);
+
 	return 0;
 }
 
 void sdxi_unbind_process_to_device(struct sdxi_process *process)
 {
 	struct sdxi_ctxt *ctxt = process->ctxt;
+	struct sdxi_dev *sdxi;
 
 	if (!ctxt)
 		return;
+
+	sdxi = ctxt->sdxi;
+
 	amd_iommu_unbind_pasid(ctxt->sdxi->pdev, process->pasid);
 	pasid_free(ctxt->sdxi, process->pasid);
+
+	trace_sdxi_bind_process(sdxi, process->pasid);
 }
 
 struct sdxi_process *sdxi_create_process(struct file *filep)

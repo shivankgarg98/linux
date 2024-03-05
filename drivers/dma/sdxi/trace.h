@@ -106,6 +106,38 @@ TRACE_EVENT(sdxi_free_sq,
 		      __entry->ctxt_id, __entry->sfunc)
 );
 
+TRACE_EVENT(sdxi_bind_process,
+        TP_PROTO(const struct sdxi_dev *sdxi, u32 pasid),
+        TP_ARGS(sdxi, pasid),
+        TP_STRUCT__entry(
+                __string(devname, dev_name(&sdxi->pdev->dev))
+                __field(u32, pasid)
+        ),
+        TP_fast_assign(
+                __assign_str(devname, dev_name(&sdxi->pdev->dev));
+                __entry->pasid = pasid;
+        ),
+        TP_printk("bind process (pasid=%d) to device=%s",
+		  __entry->pasid, __get_str(devname)
+        )
+);
+
+TRACE_EVENT(sdxi_unbind_process,
+        TP_PROTO(const struct sdxi_dev *sdxi, u32 pasid),
+        TP_ARGS(sdxi, pasid),
+        TP_STRUCT__entry(
+                __string(devname, dev_name(&sdxi->pdev->dev))
+                __field(u32, pasid)
+        ),
+        TP_fast_assign(
+                __assign_str(devname, dev_name(&sdxi->pdev->dev));
+                __entry->pasid = pasid;
+        ),
+        TP_printk("unbind process (pasid=%d) to device=%s",
+		  __entry->pasid, __get_str(devname)
+        )
+);
+
 #endif /* _TRACE_SDXI_H */
 
 /* This part must be outside protection */
