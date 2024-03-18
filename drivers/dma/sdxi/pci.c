@@ -75,16 +75,14 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	read_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
 	write_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 
-	while (read_ptr != write_ptr) {
+	while (read_ptr < write_ptr) {
 		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
 		err_entry = (struct sdxi_err *)sdxi->err_log + offset;
-
 		sdxi_print_err(sdxi, err_entry);
 		read_ptr++;
 	}
 
 	iowrite64(read_ptr, sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
-	iowrite64(0xB, sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
 }
 
 static void sdxi_do_cmd_complete(unsigned long data)
@@ -104,8 +102,12 @@ static irqreturn_t sdxi_irq_thread(int irq, void *data)
 	err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 
 	while (err_sts.sts) {
-		printk(KERN_ERR "read status\n");
 		sdxi_handle_err(sdxi);
+
+		/* clear status bit */
+		err_sts.data |= 0x1;
+		iowrite64(err_sts.data, sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+
 		err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
 	}
 
