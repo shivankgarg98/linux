@@ -148,7 +148,7 @@ struct sdxi_desc {
 } __packed;
 
 struct csb {
-	u64 signal;			/* QW0 */
+	volatile u64 signal;		/* QW0 */
 	u32 rsvd1		: 31;	/* QW1 */
 	u32 er			: 1;
 	u32 rsvd2[5];			/* DW3+ */
