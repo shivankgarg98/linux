@@ -360,6 +360,7 @@ struct sdxi_ctxt *sdxi_working_ctxt_alloc(void)
 	struct list_head *curr;
 	struct sdxi_dev *sdxi;
 	struct sdxi_ctxt *ctxt;
+	struct sdxi_desc desc;
 
 	if (list_empty(&sdxi_device_list))
 		return NULL;
@@ -367,10 +368,15 @@ struct sdxi_ctxt *sdxi_working_ctxt_alloc(void)
 	list_for_each(curr, &sdxi_device_list) {
 		sdxi = list_entry(curr, struct sdxi_dev, list);
 
-		//ctxt = sdxi_working_ctxt_init(sdxi, SDXI_ANY_CTXT_ID);
-		ctxt = sdxi->kern_ctxt;
-		if (ctxt)
-			return ctxt;
+		ctxt = sdxi_working_ctxt_init(sdxi, SDXI_ANY_CTXT_ID);
+		if (!ctxt)
+			return NULL;
+
+		build_admin_start_new(&desc, 0, 0, ctxt->id, ctxt->id, 0);
+		mb();
+		sdxi_sq_submit_desc(sdxi->admin_ctxt->sq, &desc, false, 0);
+
+		return ctxt;
 	}
 
 	return NULL;
