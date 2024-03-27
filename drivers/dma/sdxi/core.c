@@ -86,6 +86,7 @@ static void set_ctxt_l1_entry(struct sdxi_dev *sdxi,
 		l1_entry->opb_000_enb = sdxi->op_grp_cap;
 		l1_entry->vl = 1;
 		l1_entry->ka = 1;
+		l1_entry->max_buf = 11;
 
 		ctxt->akey[0].vl = 1;
 	} else {
