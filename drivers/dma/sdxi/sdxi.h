@@ -33,7 +33,7 @@
 /*          MACROS         */
 /***************************/
 extern struct list_head sdxi_device_list;
-#define for_each_sdxi(sdxi)						\
+#define for_each_sdxi(sdxi)					\
 	list_for_each_entry((sdxi), &sdxi_device_list, list)
 #define for_each_sdxi_safe(sdxi, next)					\
 	list_for_each_entry_safe((sdxi), (next), &sdxi_device_list, list)
@@ -60,7 +60,7 @@ extern struct list_head sdxi_device_list;
 #define OP_DMA_COPY		0x03
 #define OP_DMA_REP_COPY		0x04
 #define OP_ADMIN_UPDATE_FUNC	0x00
-#define OP_ADMIN_UPDATE_CTXT	0x01
+#define OP_ADMIN_UPDATE_CXT	0x01
 #define OP_ADMIN_UPDATE_AKEY	0x02
 #define OP_ADMIN_START		0x03
 #define OP_ADMIN_STOP		0x04
@@ -81,34 +81,34 @@ extern struct list_head sdxi_device_list;
 #define OP_ATOMIC_CMPSWAP	0x0E
 #define OP_INTR_INTERRUPT	0x00
 
-#define CTXT_STATE_STOPPED	0x0
-#define CTXT_STATE_RUNNING	0x1
-#define CTXT_STATE_STOPPING	0x2
-#define CTXT_STATE_ERR		0xF
+#define CXT_STATE_STOPPED	0x0
+#define CXT_STATE_RUNNING	0x1
+#define CXT_STATE_STOPPING	0x2
+#define CXT_STATE_ERR		0xF
 
 #define DESC_RING_BASE_PTR_SHIFT	6
-#define CTXT_STATUS_PTR_SHIFT		4
+#define CXT_STATUS_PTR_SHIFT		4
 #define WRT_INDEX_PTR_SHIFT		3
 
-#define L2_CTXT_L1_BASE_SHIFT		12
+#define L2_CXT_L1_BASE_SHIFT		12
 
-#define L1_CTXT_CTRL_PTR_SHIFT		6
-#define L1_CTXT_AKEY_PTR_SHIFT		12
+#define L1_CXT_CTRL_PTR_SHIFT		6
+#define L1_CXT_AKEY_PTR_SHIFT		12
 
 #define MAX_DMA_COPY_BYTES		(1ULL << 32)
 
 /***************************/
 /*         STRUCTS         */
 /***************************/
-enum sdxi_ctxt_id {
-	SDXI_ADMIN_CTXT_ID = 0,
-	SDXI_DMA_CTXT_ID = 1,
-	SDXI_KERNEL_CTXT_ID = 2,
-	SDXI_ANY_CTXT_ID,
+enum sdxi_cxt_id {
+	SDXI_ADMIN_CXT_ID = 0,
+	SDXI_DMA_CXT_ID = 1,
+	SDXI_KERNEL_CXT_ID = 2,
+	SDXI_ANY_CXT_ID,
 };
 
 /* context status entry */
-struct sdxi_ctxt_status {
+struct sdxi_cxt_status {
 	u64 state		: 4;	/* QW0 */
 	u64 rsvd1		: 4;
 	u64 rsh			: 1;
@@ -117,7 +117,7 @@ struct sdxi_ctxt_status {
 } __packed __aligned(16);
 
 /* Context Control Entry */
-struct ctxt_ctrl_entry {
+struct cxt_ctrl_entry {
 	u64 vl			: 1;	/* QW0 */
 	u64 rsvd1		: 1;
 	u64 qos			: 2;
@@ -127,7 +127,7 @@ struct ctxt_ctrl_entry {
 	u64 desc_ring_size	: 32;	/* QW1 */
 	u64 rsvd3		: 32;
 	u64 rsvd4		: 4;	/* QW2 */
-	u64 ctxt_status_ptr	: 60;
+	u64 cxt_status_ptr	: 60;
 	u64 rsvd5		: 3;	/* QW3 */
 	u64 wrt_index_ptr	: 61;
 	u32 rsvd6[8];			/* QW4+ */
@@ -156,7 +156,7 @@ struct csb {
 
 /* Submission Queue */
 struct sdxi_sq {
-	struct sdxi_ctxt *ctxt;		/* owner */
+	struct sdxi_cxt *cxt;		/* owner */
 
 	u32 ring_entries;
 	u32 ring_size;
@@ -169,9 +169,9 @@ struct sdxi_sq {
 	u64 *write_index;
 	dma_addr_t write_index_dma;
 
-	u32 ctxt_status_size;
-	struct sdxi_ctxt_status *ctxt_status;
-	dma_addr_t ctxt_status_dma;
+	u32 cxt_status_size;
+	struct sdxi_cxt_status *cxt_status;
+	dma_addr_t cxt_status_dma;
 
 	/* NB: define doorbell here */
 };
@@ -184,7 +184,7 @@ struct sdxi_tasklet_data {
 struct sdxi_cmd {
 	struct list_head entry;
 	struct work_struct work;
-	struct sdxi_ctxt *ctxt;
+	struct sdxi_cxt *cxt;
 	int ret;
 	size_t len;
 	u64 src_addr;
@@ -197,7 +197,7 @@ struct sdxi_cmd {
 
 struct sdxi_dma_desc {
 	struct virt_dma_desc vd;
-	struct sdxi_ctxt *ctxt;
+	struct sdxi_cxt *cxt;
 	enum dma_status status;
 	bool issued_to_hw;
 	struct sdxi_cmd sdxi_cmd;
@@ -205,7 +205,7 @@ struct sdxi_dma_desc {
 
 struct sdxi_dma_chan {
 	struct virt_dma_chan vc;
-	struct sdxi_ctxt *ctxt;
+	struct sdxi_cxt *cxt;
 };
 
 struct akey_entry {
@@ -226,7 +226,7 @@ struct akey_entry {
 } __packed;
 
 /* Context */
-struct sdxi_ctxt {
+struct sdxi_cxt {
 	struct list_head list;
 	struct sdxi_dev *sdxi;	/* owner */
 	unsigned int id;
@@ -234,7 +234,7 @@ struct sdxi_ctxt {
 	resource_size_t db_base;	/* doorbell MMIO base addr */
 	void __iomem *db;		/* doorbell virt addr */
 
-	struct ctxt_ctrl_entry cce;
+	struct cxt_ctrl_entry cce;
 	dma_addr_t cce_addr;		/* cce dma addr */
 
 	int akey_entries;
@@ -287,7 +287,7 @@ struct sdxi_err {
 	u32 sub_step		: 4;
 	u32 re			: 3;
 	u32 rsvd6		: 1;
-	u32 ctxt_num		: 16;
+	u32 cxt_num		: 16;
 	u64 desc_idx;
 	u32 rsvd7[7];
 	u32 err_class		: 16;
@@ -296,16 +296,16 @@ struct sdxi_err {
 } __packed;
 
 /* L1 Table Entry */
-struct ctxt_l1_entry {
+struct cxt_l1_entry {
 	u64 vl			: 1;	/* QW0 */
 	u64 ka			: 1;
 	u64 pv			: 1;
 	u64 rsvd1		: 3;
-	u64 ctxt_ctrl_ptr	: 58;
+	u64 cxt_ctrl_ptr	: 58;
 	u64 akey_tbl_size	: 4;	/* QW1 */
 	u64 rsvd2		: 8;
 	u64 akey_tbl_ptr	: 52;
-	u64 ctxt_pasid		: 20;	/* QW2 */
+	u64 cxt_pasid		: 20;	/* QW2 */
 	u64 max_buf		: 4;
 	u64 rsvd3		: 8;
 	u64 opb_000_enb		: 32;
@@ -313,7 +313,7 @@ struct ctxt_l1_entry {
 } __packed;
 
 /* L2 Table Entry */
-struct ctxt_l2_entry {
+struct cxt_l2_entry {
 	u64 vl			: 1;	/* QW0 */
 	u64 rsvd		: 11;
 	u64 l1_ptr		: 52;
@@ -356,18 +356,18 @@ struct sdxi_dev {
 	/* MSI */
 	unsigned int irq_count;
 	struct irq_entry err_irq;
-	struct irq_entry *ctxt_irqs;	/* NB: convert to a struct */
+	struct irq_entry *cxt_irqs;	/* NB: convert to a struct */
 
 	/* context management */
-	spinlock_t ctxt_lock;		/* context protection */
-	struct list_head ctxt_list;
-	int ctxt_count;
+	spinlock_t cxt_lock;		/* context protection */
+	struct list_head cxt_list;
+	int cxt_count;
 	/* l2 table, pre-allocated with sdxi_device */
-	struct ctxt_l2_entry *l2_table;
+	struct cxt_l2_entry *l2_table;
 	/* list of context l1 tables, on-demand, access with [l2_idx] */
-	struct ctxt_l1_entry *l1_table_array[L2_TABLE_ENTRIES];
+	struct cxt_l1_entry *l1_table_array[L2_TABLE_ENTRIES];
 	/* all contexts, on-demand, access with [l2_idx][l1_idx] */
-	struct sdxi_ctxt **ctxt_array[L2_TABLE_ENTRIES];
+	struct sdxi_cxt **cxt_array[L2_TABLE_ENTRIES];
 
 	/* rkey table */
 	int rkey_num;
@@ -385,9 +385,9 @@ struct sdxi_dev {
 	struct sdxi_tasklet_data tdata;
 
 	/* special contexts */
-	struct sdxi_ctxt *admin_ctxt;	/* admin context */
-	struct sdxi_ctxt *dma_ctxt;	/* DMA engine context */
-	struct sdxi_ctxt *kern_ctxt;	/* kernel space context */
+	struct sdxi_cxt *admin_cxt;	/* admin context */
+	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
+	struct sdxi_cxt *kern_cxt;	/* kernel space context */
 };
 
 /***************************/
@@ -398,23 +398,23 @@ int sdxi_device_init(struct sdxi_dev *sdxi);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
 
 /* Context Control */
-struct sdxi_ctxt *sdxi_ctxt_alloc(struct sdxi_dev *sdxi);
-struct sdxi_ctxt *sdxi_working_ctxt_random_alloc(void);
-void sdxi_ctxt_free(struct sdxi_ctxt *ctxt);
-struct sdxi_ctxt *sdxi_working_ctxt_init(struct sdxi_dev *sdxi,
-					 enum sdxi_ctxt_id);
-void sdxi_working_ctxt_exit(struct sdxi_ctxt *ctxt);
-struct sdxi_ctxt *sdxi_working_ctxt_alloc(void);
+struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi);
+struct sdxi_cxt *sdxi_working_cxt_random_alloc(void);
+void sdxi_cxt_free(struct sdxi_cxt *cxt);
+struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
+				       enum sdxi_cxt_id);
+void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
+struct sdxi_cxt *sdxi_working_cxt_alloc(void);
 
 /* Submission Queue */
-struct sdxi_sq *sdxi_sq_alloc(struct sdxi_ctxt *ctxt, int ring_size);
-struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_ctxt *ctxt);
+struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_size);
+struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt);
 void sdxi_sq_free(struct sdxi_sq *sq);
 int sdxi_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc);
 
 /* DMA Engine */
-int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt);
-void sdxi_dma_unregister(struct sdxi_ctxt *dma_ctxt);
+int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
+void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
 
 /* Chardev (IOCTL) */
 int sdxi_chardev_init(void);

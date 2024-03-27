@@ -32,7 +32,7 @@ static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
 
 	vchan_free_chan_resources(&chan->vc);
-	/* NB: more configure with sdxi_ctxt? */
+	/* NB: more configure with sdxi_cxt? */
 }
 
 static void sdxi_dma_synchronize(struct dma_chan *c)
@@ -45,7 +45,7 @@ static void sdxi_dma_synchronize(struct dma_chan *c)
 static void sdxi_do_cleanup(struct virt_dma_desc *vd)
 {
 	struct sdxi_dma_desc *desc = to_sdxi_dma_desc(vd);
-	struct sdxi_dev *sdxi = desc->ctxt->sdxi;
+	struct sdxi_dev *sdxi = desc->cxt->sdxi;
 
 	kmem_cache_free(sdxi->dma_desc_cache, desc);
 }
@@ -54,7 +54,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 {
 	struct sdxi_dev *sdxi;
 	struct sdxi_cmd *sdxi_cmd;
-	struct sdxi_ctxt *ctxt;
+	struct sdxi_cxt *cxt;
 	struct sdxi_sq *sq;
 	struct sdxi_desc desc;
 
@@ -62,22 +62,22 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	dma_desc->issued_to_hw = 1;
 
 	sdxi_cmd = &dma_desc->sdxi_cmd;
-	sdxi = sdxi_cmd->ctxt->sdxi;
+	sdxi = sdxi_cmd->cxt->sdxi;
 
 
 	sdxi->tdata.cmd = sdxi_cmd;
 
 	/* submit to sdxi context */
-	ctxt = dma_desc->ctxt;
-	memset(ctxt->dummy_buffer, 0, 4096);
-	((int *)ctxt->dummy_buffer)[0] = 1;
-	sq = ctxt->sq;
+	cxt = dma_desc->cxt;
+	memset(cxt->dummy_buffer, 0, 4096);
+	((int *)cxt->dummy_buffer)[0] = 1;
+	sq = cxt->sq;
 
 	if (sdxi_cmd->len > MAX_DMA_COPY_BYTES)
 		return 1;
 
 	build_dma_copy(&desc, sdxi_cmd->len, 0, 0, 0, 0, sdxi_cmd->src_addr,
-		       sdxi_cmd->dst_addr, ctxt->dummy_buffer_addr);
+		       sdxi_cmd->dst_addr, cxt->dummy_buffer_addr);
 
 	/* Submit the command */
 	sdxi_cmd->index = sdxi_sq_submit_desc(sq, &desc, true, 0xFF);
@@ -180,19 +180,19 @@ static void sdxi_cmd_callback(void *data, int err)
 }
 
 static struct sdxi_dma_desc *sdxi_dma_alloc_dma_desc(struct sdxi_dma_chan *chan,
-					     unsigned long flags)
+						     unsigned long flags)
 {
 	struct sdxi_dma_desc *desc;
 
-	desc = kmem_cache_zalloc(chan->ctxt->sdxi->dma_desc_cache, GFP_NOWAIT);
+	desc = kmem_cache_zalloc(chan->cxt->sdxi->dma_desc_cache, GFP_NOWAIT);
 	if (!desc)
 		return NULL;
 
-	desc->ctxt = chan->ctxt;
+	desc->cxt = chan->cxt;
 
 	vchan_tx_prep(&chan->vc, &desc->vd, flags);
 
-	desc->ctxt->sdxi = chan->ctxt->sdxi;
+	desc->cxt->sdxi = chan->cxt->sdxi;
 	desc->issued_to_hw = 0;
 	desc->status = DMA_IN_PROGRESS;
 
@@ -200,10 +200,10 @@ static struct sdxi_dma_desc *sdxi_dma_alloc_dma_desc(struct sdxi_dma_chan *chan,
 }
 
 static struct sdxi_dma_desc *sdxi_dma_create_desc(struct dma_chan *dma_chan,
-					  dma_addr_t dst,
-					  dma_addr_t src,
-					  unsigned int len,
-					  unsigned long flags)
+						  dma_addr_t dst,
+						  dma_addr_t src,
+						  unsigned int len,
+						  unsigned long flags)
 {
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
 	struct sdxi_dma_desc *desc;
@@ -214,8 +214,8 @@ static struct sdxi_dma_desc *sdxi_dma_create_desc(struct dma_chan *dma_chan,
 		return NULL;
 
 	sdxi_cmd = &desc->sdxi_cmd;
-	sdxi_cmd->ctxt = chan->ctxt;
-	sdxi_cmd->ctxt->sdxi = chan->ctxt->sdxi;
+	sdxi_cmd->cxt = chan->cxt;
+	sdxi_cmd->cxt->sdxi = chan->cxt->sdxi;
 	sdxi_cmd->src_addr = src;
 	sdxi_cmd->dst_addr = dst;
 	sdxi_cmd->len = len;
@@ -227,7 +227,7 @@ static struct sdxi_dma_desc *sdxi_dma_create_desc(struct dma_chan *dma_chan,
 
 static struct dma_async_tx_descriptor *
 sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
-		   dma_addr_t src, size_t len, unsigned long flags)
+		     dma_addr_t src, size_t len, unsigned long flags)
 {
 	struct sdxi_dma_desc *desc;
 
@@ -277,15 +277,15 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 
 static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 {
-	struct sdxi_ctxt *ctxt = chan->ctxt;
+	struct sdxi_cxt *cxt = chan->cxt;
 	struct sdxi_sq *sq;
 	struct sdxi_cmd *cmd;
 
-	if (!ctxt)
+	if (!cxt)
 		return;
 
-	sq = ctxt->sq;
-	cmd = ctxt->sdxi->tdata.cmd;
+	sq = cxt->sq;
+	cmd = cxt->sdxi->tdata.cmd;
 
 	if (sq->csb[cmd->index].signal == 0xFE)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
@@ -347,20 +347,20 @@ static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 	return 0;
 }
 
-int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
+int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 {
 	struct sdxi_dma_chan *chan;
-	struct sdxi_dev *sdxi = dma_ctxt->sdxi;
+	struct sdxi_dev *sdxi = dma_cxt->sdxi;
 	struct device *dev;
 	struct dma_device *dma_dev = &sdxi->dma_dev;
 	char *cmd_cache_name;
 	char *desc_cache_name;
 	int ret = 0;
 
-	if (!dma_ctxt)
+	if (!dma_cxt)
 		return 0;
 
-	sdxi = dma_ctxt->sdxi;
+	sdxi = dma_cxt->sdxi;
 	dev = &sdxi->pdev->dev;
 
 	sdxi->sdxi_dma_chan = devm_kzalloc(dev, sizeof(*sdxi->sdxi_dma_chan),
@@ -368,7 +368,7 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	if (!sdxi->sdxi_dma_chan)
 		return -ENOMEM;
 
-	sdxi->sdxi_dma_chan->ctxt = dma_ctxt;
+	sdxi->sdxi_dma_chan->cxt = dma_cxt;
 
 	cmd_cache_name = devm_kasprintf(dev, GFP_KERNEL,
 					"%s-dmaengine-cmd-cache",
@@ -385,8 +385,8 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	}
 
 	sdxi->dma_desc_cache = kmem_cache_create(desc_cache_name,
-					       sizeof(struct sdxi_dma_desc), 0,
-					       SLAB_HWCACHE_ALIGN, NULL);
+						 sizeof(struct sdxi_dma_desc), 0,
+						 SLAB_HWCACHE_ALIGN, NULL);
 	if (!sdxi->dma_desc_cache) {
 		ret = -ENOMEM;
 		goto err_cache;
@@ -405,7 +405,7 @@ int sdxi_dma_register(struct sdxi_ctxt *dma_ctxt)
 	INIT_LIST_HEAD(&dma_dev->channels);
 
 	chan = sdxi->sdxi_dma_chan;
-	chan->ctxt->sdxi = sdxi;
+	chan->cxt->sdxi = sdxi;
 
 	/* Set base and prep routines */
 	dma_dev->device_free_chan_resources = sdxi_dma_free_chan_resources;
@@ -438,10 +438,10 @@ err_cache:
 	return ret;
 }
 
-void sdxi_dma_unregister(struct sdxi_ctxt *dma_ctxt)
+void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt)
 {
-	dma_async_device_unregister(&dma_ctxt->sdxi->dma_dev);
+	dma_async_device_unregister(&dma_cxt->sdxi->dma_dev);
 
-	kmem_cache_destroy(dma_ctxt->sdxi->dma_desc_cache);
-	kmem_cache_destroy(dma_ctxt->sdxi->dma_cmd_cache);
+	kmem_cache_destroy(dma_cxt->sdxi->dma_desc_cache);
+	kmem_cache_destroy(dma_cxt->sdxi->dma_cmd_cache);
 }

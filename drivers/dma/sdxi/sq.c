@@ -27,9 +27,9 @@ void build_admin_update_func(struct sdxi_desc *desc, bool vf, u16 vf_num)
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_UPDATE_FUNC);
 }
 
-void build_admin_update_ctxt(struct sdxi_desc *desc, bool vf, u16 vf_num,
-			     bool v2, bool v1, bool ct, u16 ctxt_num,
-			     u16 ctxt_mask)
+void build_admin_update_cxt(struct sdxi_desc *desc, bool vf, u16 vf_num,
+			    bool v2, bool v1, bool ct, u16 cxt_num,
+			    u16 cxt_mask)
 {
 	memset(desc, 0, sizeof(*desc));
 
@@ -37,12 +37,12 @@ void build_admin_update_ctxt(struct sdxi_desc *desc, bool vf, u16 vf_num,
 	desc->body[0] |= (v1 << 1);
 	desc->body[0] |= (ct << 2);
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CTXT(desc, ctxt_num, ctxt_mask);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_UPDATE_CTXT);
+	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
+	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_UPDATE_CXT);
 }
 
 void build_admin_start(struct sdxi_desc *desc, bool dr, bool vf,
-		       u16 vf_num, u16 ctxt_num, u16 ctxt_mask,
+		       u16 vf_num, u16 cxt_num, u16 cxt_mask,
 		       u64 doorbell)
 {
 	memset(desc, 0, sizeof(*desc));
@@ -50,20 +50,20 @@ void build_admin_start(struct sdxi_desc *desc, bool dr, bool vf,
 	desc->fe = 1;
 	desc->body[0] |= (dr << 14);
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CTXT(desc, ctxt_num, ctxt_mask);
+	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
 	desc->body[3] |= (doorbell & 0xFFFFFFFF);
 	desc->body[4] |= ((doorbell >> 32) & 0xFFFFFFFF);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
 }
 
 void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
-			   u16 ctxt_start, u16 ctxt_end, u64 doorbell)
+			   u16 cxt_start, u16 cxt_end, u64 doorbell)
 {
 	memset(desc, 0, sizeof(*desc));
 
 	desc->fe = 1;
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CTXT(desc, ctxt_start, ctxt_end);
+	DESC_ADM_BUILD_CXT(desc, cxt_start, cxt_end);
 	desc->body[3] |= (doorbell & 0xFFFFFFFF);
 	desc->body[4] |= ((doorbell >> 32) & 0xFFFFFFFF);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
@@ -71,26 +71,26 @@ void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 }
 
 void build_admin_stop(struct sdxi_desc *desc, bool hs, bool vf,
-		      u16 vf_num, u16 ctxt_num, u16 ctxt_mask)
+		      u16 vf_num, u16 cxt_num, u16 cxt_mask)
 {
 	memset(desc, 0, sizeof(*desc));
 
 	desc->fe = 1;
 	desc->body[0] |= (hs << 13);
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CTXT(desc, ctxt_num, ctxt_mask);
+	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_STOP);
 }
 
 void build_admin_sync(struct sdxi_desc *desc, bool vf, u16 vf_num,
-		      u16 ctxt_num, u16 ctxt_mask, u16 akey_num,
+		      u16 cxt_num, u16 cxt_mask, u16 akey_num,
 		      u16 akey_mask)
 {
 	memset(desc, 0, sizeof(*desc));
 
 	desc->fe = 1;
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CTXT(desc, ctxt_num, ctxt_mask);
+	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
 	DESC_ADM_BUILD_AKEY(desc, akey_num, akey_mask);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_SYNC);
 }
@@ -123,7 +123,7 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 }
 
 void build_dma_write_imm(struct sdxi_desc *desc, u32 size, u64 dst_addr,
-			u32 data)
+			 u32 data)
 {
 	memset(desc, 0, sizeof(*desc));
 
@@ -145,25 +145,25 @@ void build_intr_op(struct sdxi_desc *desc, u16 akey)
 
 static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 {
-	struct sdxi_ctxt *ctxt = sq->ctxt;
+	struct sdxi_cxt *cxt = sq->cxt;
 
-	iowrite64(value, ctxt->db);
+	iowrite64(value, cxt->db);
 }
 
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 			bool csb, u64 init_signal)
 {
-	struct device *dev = &sq->ctxt->sdxi->pdev->dev;
+	struct device *dev = &sq->cxt->sdxi->pdev->dev;
 	u64 dest;
 
 	/* check context status */
-	if (sq->ctxt_status->state != CTXT_STATE_RUNNING) {
+	if (sq->cxt_status->state != CXT_STATE_RUNNING) {
 		dev_err(dev, "Context is not running\n");
 		return -EINVAL;
 	}
 
 	/* no more room for any descriptor */
-	if (*sq->write_index + 1 - sq->ctxt_status->read_idx > sq->ring_entries) {
+	if (*sq->write_index + 1 - sq->cxt_status->read_idx > sq->ring_entries) {
 		dev_err(dev, "desc ring is full\n");
 		return -EINVAL;
 	}
@@ -190,9 +190,9 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 }
 
 /* Alloc sdxi_sq in kernel space */
-struct sdxi_sq *sdxi_sq_alloc(struct sdxi_ctxt *ctxt, int ring_entries)
+struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
-	struct sdxi_dev *sdxi = ctxt->sdxi;
+	struct sdxi_dev *sdxi = cxt->sdxi;
 	struct device *dev = &sdxi->pdev->dev;
 	struct sdxi_sq *sq;
 
@@ -219,15 +219,15 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_ctxt *ctxt, int ring_entries)
 	if (!sq->csb)
 		goto err_csb;
 	sq->csb_dma = dma_map_single(dev, sq->csb, ring_entries * sizeof(struct csb),
-					 DMA_FROM_DEVICE);
+				     DMA_FROM_DEVICE);
 
-	/* alloc ctxt status (NB: use page size) */
-	sq->ctxt_status_size = PAGE_SIZE;
-	sq->ctxt_status = kzalloc(sq->ctxt_status_size, GFP_KERNEL);
-	if (!sq->ctxt_status)
-		goto err_ctxt_status;
-	sq->ctxt_status_dma = dma_map_single(dev, sq->ctxt_status, sq->ctxt_status_size,
-					     DMA_FROM_DEVICE);
+	/* alloc cxt status (NB: use page size) */
+	sq->cxt_status_size = PAGE_SIZE;
+	sq->cxt_status = kzalloc(sq->cxt_status_size, GFP_KERNEL);
+	if (!sq->cxt_status)
+		goto err_cxt_status;
+	sq->cxt_status_dma = dma_map_single(dev, sq->cxt_status, sq->cxt_status_size,
+					    DMA_FROM_DEVICE);
 
 	/* alloc write index (NB: use page size) */
 	sq->write_index_size = PAGE_SIZE;
@@ -238,38 +238,38 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_ctxt *ctxt, int ring_entries)
 					     DMA_TO_DEVICE);
 
 	/* final setup */
-	if (ctxt->id == SDXI_ADMIN_CTXT_ID)
-		sq->ctxt_status->state = CTXT_STATE_RUNNING;
-	else if (ctxt->id == SDXI_DMA_CTXT_ID)
-		sq->ctxt_status->state = CTXT_STATE_RUNNING;
+	if (cxt->id == SDXI_ADMIN_CXT_ID)
+		sq->cxt_status->state = CXT_STATE_RUNNING;
+	else if (cxt->id == SDXI_DMA_CXT_ID)
+		sq->cxt_status->state = CXT_STATE_RUNNING;
 
-	ctxt->cce.desc_ring_size = sq->ring_size >> 6;
-	ctxt->cce.desc_ring_base = sq->ring_dma >> DESC_RING_BASE_PTR_SHIFT;
-	ctxt->cce.ctxt_status_ptr = sq->ctxt_status_dma >> CTXT_STATUS_PTR_SHIFT;
-	ctxt->cce.wrt_index_ptr = sq->write_index_dma >> WRT_INDEX_PTR_SHIFT;
+	cxt->cce.desc_ring_size = sq->ring_size >> 6;
+	cxt->cce.desc_ring_base = sq->ring_dma >> DESC_RING_BASE_PTR_SHIFT;
+	cxt->cce.cxt_status_ptr = sq->cxt_status_dma >> CXT_STATUS_PTR_SHIFT;
+	cxt->cce.wrt_index_ptr = sq->write_index_dma >> WRT_INDEX_PTR_SHIFT;
 
 	/* turn it on now */
-	sq->ctxt = ctxt;
-	ctxt->sq = sq;
-	ctxt->cce.vl = 1;
+	sq->cxt = cxt;
+	cxt->sq = sq;
+	cxt->cce.vl = 1;
 
 	pr_debug("sq created, id=%d, cce=%p\n"
 		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
 		 "  write index addr: v=0x%p:d=0x%llx\n"
-		 "  ctxt status addr: v=0x%p:d=0x%llx\n",
-		 ctxt->id, &(ctxt->cce),
+		 "  cxt status addr: v=0x%p:d=0x%llx\n",
+		 cxt->id, &(cxt->cce),
 		 sq->desc_ring, virt_to_phys(sq->desc_ring),
 		 sq->write_index, virt_to_phys(sq->write_index),
-		 sq->ctxt_status, virt_to_phys(sq->ctxt_status));
+		 sq->cxt_status, virt_to_phys(sq->cxt_status));
 
 	/* dump SQ info */
-	trace_sdxi_create_sq(ctxt, sq);
+	trace_sdxi_create_sq(cxt, sq);
 
 	return sq;
 
 err_write_index:
-	kfree(sq->ctxt_status);
-err_ctxt_status:
+	kfree(sq->cxt_status);
+err_cxt_status:
 	kfree(sq->csb);
 err_csb:
 	kfree(sq->desc_ring);
@@ -281,29 +281,29 @@ err_ring_entries:
 
 void sdxi_sq_free(struct sdxi_sq *sq)
 {
-	struct sdxi_ctxt *ctxt = sq->ctxt;
+	struct sdxi_cxt *cxt = sq->cxt;
 	struct device *dev;
 
-	if (!ctxt)
+	if (!cxt)
 		return;
 
-	trace_sdxi_free_sq(ctxt, sq);
+	trace_sdxi_free_sq(cxt, sq);
 
-	dev = &ctxt->sdxi->pdev->dev;
-	memset(&ctxt->cce, 0, sizeof(ctxt->cce));
+	dev = &cxt->sdxi->pdev->dev;
+	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
 	kfree(sq->write_index);
-	kfree(sq->ctxt_status);
+	kfree(sq->cxt_status);
 	kfree(sq->csb);
 	kfree(sq->desc_ring);
 
-	ctxt->sq = NULL;
+	cxt->sq = NULL;
 	kfree(sq);
 }
 
 /* Default size 1024 ==> 64KB descriptor ring, guaranteed */
 #define DEFAULT_DESC_RING_ENTRIES	1024
-struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_ctxt *ctxt)
+struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt)
 {
-	return sdxi_sq_alloc(ctxt, DEFAULT_DESC_RING_ENTRIES);
+	return sdxi_sq_alloc(cxt, DEFAULT_DESC_RING_ENTRIES);
 }

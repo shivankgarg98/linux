@@ -24,28 +24,28 @@ struct sdxi_get_version_args {
 struct sdxi_get_dev_info_args {
 	__u32 dev_max_buff_size;	/* from SDXI */
 	__u64 dev_supported_op_grps;	/* from SDXI */
-	__u32 ctxt_max_ring_entries;	/* from SDXI */
-	__u32 ctxt_max_akey_entries;	/* from SDXI */
+	__u32 cxt_max_ring_entries;	/* from SDXI */
+	__u32 cxt_max_akey_entries;	/* from SDXI */
 };
 
-/* For sdxi_create_ctxt_args.ctxt_type */
-#define SDXI_CTXT_TYPE_USER	0x0
-#define SDXI_CTXT_TYPE_KERNEL	0x1
+/* For sdxi_create_cxt_args.cxt_type */
+#define SDXI_CXT_TYPE_USER	0x0
+#define SDXI_CXT_TYPE_KERNEL	0x1
 
-struct sdxi_create_ctxt_args {
-	__u32 ctxt_type;		/* to SDXI */
+struct sdxi_create_cxt_args {
+	__u32 cxt_type;		/* to SDXI */
 	__u32 ring_entries;		/* to/from SDXI */
 
-	__u32 ctxt_id;			/* from SDXI */
+	__u32 cxt_id;			/* from SDXI */
 	__u32 pasid;			/* from SDXI */
-	__u64 ctxt_status_mmap_base;	/* from SDXI */
+	__u64 cxt_status_mmap_base;	/* from SDXI */
 	__u64 desc_ring_mmap_base;	/* from SDXI */
 	__u64 write_index_mmap_base;	/* from SDXI */
 	__u64 doorbell_mmap_base;	/* from SDXI */
 };
 
-struct sdxi_close_ctxt_args {
-	__u32 ctxt_id;			/* to SDXI */
+struct sdxi_close_cxt_args {
+	__u32 cxt_id;			/* to SDXI */
 	__u32 pad;
 };
 
@@ -61,10 +61,10 @@ struct sdxi_close_ctxt_args {
 #define SDXI_GET_DEV_INFO			\
 		SDXI_IOR(0x02, struct sdxi_get_dev_info_args)
 
-#define SDXI_CREATE_CTXT			\
-		SDXI_IOWR(0x03, struct sdxi_create_ctxt_args)
+#define SDXI_CREATE_CXT			\
+		SDXI_IOWR(0x03, struct sdxi_create_cxt_args)
 
-#define SDXI_CLOSE_CTXT				\
-		SDXI_IOWR(0x04, struct sdxi_close_ctxt_args)
+#define SDXI_CLOSE_CXT				\
+		SDXI_IOWR(0x04, struct sdxi_close_cxt_args)
 
 #endif /* __LINUX_SDXI_H */

@@ -59,7 +59,7 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 		index = MIN(ARRAY_SIZE(reactions) - 1, err->re);
 		dev_err(dev, "  re: %s\n", reactions[index]);
 		dev_err(dev, "  buff: 0x%x\n", err->buf);
-		dev_err(dev, "  ctxt_num: 0x%x\n", err->ctxt_num);
+		dev_err(dev, "  cxt_num: 0x%x\n", err->cxt_num);
 		dev_err(dev, "  desc_idx: 0x%llx\n", err->desc_idx);
 		dev_err(dev, "  err_class: 0x%x\n", err->err_class);
 	} else {
@@ -147,7 +147,7 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 		goto err_irq0_alloc;
 	}
 
-	/* NB: alloc and setup ctxt_irqs here */
+	/* NB: alloc and setup cxt_irqs here */
 	return 0;
 
 err_irq0_alloc:
@@ -300,8 +300,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 
 	/* err log */
 	err_log_addr = dma_map_single(dev, sdxi->err_log,
-				 sdxi->err_log_num * sizeof(struct sdxi_err),
-				 DMA_FROM_DEVICE);
+				      sdxi->err_log_num * sizeof(struct sdxi_err),
+				      DMA_FROM_DEVICE);
 	err_cfg_reg.ptr = err_log_addr >> 12;
 	err_cfg_reg.sz = sdxi->err_log_num >> 6;
 	err_cfg_reg.en = 1;
@@ -395,8 +395,8 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 		goto err_log_fail;
 	sdxi->err_log_num = entries;
 
-	spin_lock_init(&sdxi->ctxt_lock);
-	INIT_LIST_HEAD(&sdxi->ctxt_list);
+	spin_lock_init(&sdxi->cxt_lock);
+	INIT_LIST_HEAD(&sdxi->cxt_list);
 	list_add_tail(&sdxi->list, &sdxi_device_list);
 
 	return sdxi;

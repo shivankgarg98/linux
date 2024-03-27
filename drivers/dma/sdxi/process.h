@@ -27,8 +27,8 @@ struct sdxi_process {
 	void *mm;				/* pointer to mm_struct */
 	struct mmu_notifier mmu_notifier;	/* mm_struct notifier */
 
-	struct sdxi_ctxt *ctxt;
-	u32 pasid;				/* no meaning if !ctxt */
+	struct sdxi_cxt *cxt;
+	u32 pasid;				/* no meaning if !cxt */
 };
 
 /* SDXI Device IOMMU Management */

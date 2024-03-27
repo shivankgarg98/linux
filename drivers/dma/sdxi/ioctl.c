@@ -30,18 +30,18 @@ struct device *sdxi_device;
 /*********************/
 /* SUPPORT FUNCTIONS */
 /*********************/
-static int sdxi_ctxt_doorbell_mmap(struct sdxi_process *process,
-				   struct vm_area_struct *vma)
+static int sdxi_cxt_doorbell_mmap(struct sdxi_process *process,
+				  struct vm_area_struct *vma)
 {
-	struct sdxi_ctxt *ctxt = process->ctxt;
-	struct sdxi_dev *sdxi = ctxt->sdxi;
+	struct sdxi_cxt *cxt = process->cxt;
+	struct sdxi_dev *sdxi = cxt->sdxi;
 	phys_addr_t address;
 	int ret;
 
 	if (vma->vm_end - vma->vm_start != sdxi->db_stride)
 		return -EINVAL;
 
-	address = ctxt->db_base;
+	address = cxt->db_base;
 
 	vm_flags_set(vma, VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
 		     VM_DONTDUMP | VM_PFNMAP);
@@ -66,9 +66,9 @@ static int sdxi_ctxt_doorbell_mmap(struct sdxi_process *process,
 	return ret;
 }
 
-static int sdxi_ctxt_struct_mmap(struct sdxi_process *process,
-				 struct vm_area_struct *vma,
-				 unsigned int size, void *ptr)
+static int sdxi_cxt_struct_mmap(struct sdxi_process *process,
+				struct vm_area_struct *vma,
+				unsigned int size, void *ptr)
 {
 	unsigned long pfn;
 	int ret;
@@ -129,17 +129,17 @@ static int sdxi_ioctl_get_dev_info(struct file *filep, struct sdxi_process *p,
 
 		if (!first) {
 			min_value = min_t(u32, sdxi->max_ring_entries,
-					  args->ctxt_max_ring_entries);
-			args->ctxt_max_ring_entries = min_value;
+					  args->cxt_max_ring_entries);
+			args->cxt_max_ring_entries = min_value;
 
 			min_value = min_t(u32, sdxi->max_akeys,
-					  args->ctxt_max_akey_entries);
-			args->ctxt_max_akey_entries = min_value;
+					  args->cxt_max_akey_entries);
+			args->cxt_max_akey_entries = min_value;
 
 			/* NB: handle dev_supported_op_grps */
 		} else {
-			args->ctxt_max_ring_entries = sdxi->max_ring_entries;
-			args->ctxt_max_akey_entries = sdxi->max_akeys;
+			args->cxt_max_ring_entries = sdxi->max_ring_entries;
+			args->cxt_max_akey_entries = sdxi->max_akeys;
 			args->dev_supported_op_grps = SDXI_DMA_OP_GROUP |
 				SDXI_ADMIN_OP_GROUP |
 				SDXI_ATOMIC_OP_GROUP |
@@ -152,21 +152,21 @@ static int sdxi_ioctl_get_dev_info(struct file *filep, struct sdxi_process *p,
 	return 0;
 }
 
-static int sdxi_ioctl_create_ctxt(struct file *filep, struct sdxi_process *p,
-				  void *data)
+static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
+				 void *data)
 {
-	struct sdxi_create_ctxt_args *args = data;
-	struct sdxi_ctxt *ctxt;
+	struct sdxi_create_cxt_args *args = data;
+	struct sdxi_cxt *cxt;
 	int err = 0;
 
 	/* We actually skip the configuration from user. Need to be used */
-	ctxt = sdxi_working_ctxt_alloc();
-	if (IS_ERR(ctxt))
+	cxt = sdxi_working_cxt_alloc();
+	if (IS_ERR(cxt))
 		return -EINVAL;
 
 	mutex_lock(&p->mutex);
 
-	p->ctxt = ctxt;
+	p->cxt = cxt;
 	err = sdxi_bind_process_to_device(p);
 	if (err) {
 		err = -ESRCH;
@@ -175,20 +175,20 @@ static int sdxi_ioctl_create_ctxt(struct file *filep, struct sdxi_process *p,
 
 	/* return values to caller */
 	args->pasid = p->pasid;
-	args->ctxt_id = p->ctxt->id;
-	args->ctxt_status_mmap_base = SDXI_MMAP_TYPE_CTXT_STATUS;
+	args->cxt_id = p->cxt->id;
+	args->cxt_status_mmap_base = SDXI_MMAP_TYPE_CXT_STATUS;
 	args->desc_ring_mmap_base = SDXI_MMAP_TYPE_DESC_RING;
 	args->write_index_mmap_base = SDXI_MMAP_TYPE_WRITE_INDEX;
 	args->doorbell_mmap_base = SDXI_MMAP_TYPE_DOORBELL;
 
 	/* setup akey */
-	ctxt->akey[1].vl = 1;
-	ctxt->akey[1].pv = 1;
-	ctxt->akey[1].pasid = p->pasid;
+	cxt->akey[1].vl = 1;
+	cxt->akey[1].pv = 1;
+	cxt->akey[1].pasid = p->pasid;
 
 	mutex_unlock(&p->mutex);
 
-	pr_debug("Context id %d was created successfully\n", args->ctxt_id);
+	pr_debug("Context id %d was created successfully\n", args->cxt_id);
 	return 0;
 
 err_bind_process:
@@ -196,16 +196,16 @@ err_bind_process:
 	return err;
 }
 
-static int sdxi_ioctl_close_ctxt(struct file *filep, struct sdxi_process *p,
-				 void *data)
+static int sdxi_ioctl_close_cxt(struct file *filep, struct sdxi_process *p,
+				void *data)
 {
-	struct sdxi_close_ctxt_args *args = data;
+	struct sdxi_close_cxt_args *args = data;
 
 	mutex_lock(&p->mutex);
 
-	if (args->ctxt_id == p->ctxt->id) {
+	if (args->cxt_id == p->cxt->id) {
 		sdxi_unbind_process_to_device(p);
-		sdxi_working_ctxt_exit(p->ctxt);
+		sdxi_working_cxt_exit(p->cxt);
 	}
 
 	mutex_unlock(&p->mutex);
@@ -227,10 +227,10 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 	if (IS_ERR(process))
 		return PTR_ERR(process);
 
-	if (!process->ctxt)
+	if (!process->cxt)
 		return -EINVAL;
 
-	sq = process->ctxt->sq;
+	sq = process->cxt->sq;
 	if (!sq)
 		return -EINVAL;
 
@@ -238,16 +238,16 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	switch (offset & SDXI_MMAP_TYPE_MASK) {
 	case SDXI_MMAP_TYPE_DOORBELL:
-		return sdxi_ctxt_doorbell_mmap(process, vma);
-	case SDXI_MMAP_TYPE_CTXT_STATUS:
-		size = sq->ctxt_status_size;
-		return sdxi_ctxt_struct_mmap(process, vma, size, sq->ctxt_status);
+		return sdxi_cxt_doorbell_mmap(process, vma);
+	case SDXI_MMAP_TYPE_CXT_STATUS:
+		size = sq->cxt_status_size;
+		return sdxi_cxt_struct_mmap(process, vma, size, sq->cxt_status);
 	case SDXI_MMAP_TYPE_WRITE_INDEX:
 		size = sq->write_index_size;
-		return sdxi_ctxt_struct_mmap(process, vma, size, sq->write_index);
+		return sdxi_cxt_struct_mmap(process, vma, size, sq->write_index);
 	case SDXI_MMAP_TYPE_DESC_RING:
 		size = sq->ring_size;
-		return sdxi_ctxt_struct_mmap(process, vma, size, sq->desc_ring);
+		return sdxi_cxt_struct_mmap(process, vma, size, sq->desc_ring);
 	default:
 		break;
 	}
@@ -261,16 +261,16 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static struct sdxi_ioctl_desc sdxi_ioctls[] = {
 	SDXI_IOCTL_DEF(SDXI_GET_VERSION,
-			sdxi_ioctl_get_version, 0),
+		       sdxi_ioctl_get_version, 0),
 
 	SDXI_IOCTL_DEF(SDXI_GET_DEV_INFO,
-		      sdxi_ioctl_get_dev_info, 0),
+		       sdxi_ioctl_get_dev_info, 0),
 
-	SDXI_IOCTL_DEF(SDXI_CREATE_CTXT,
-		      sdxi_ioctl_create_ctxt, 0),
+	SDXI_IOCTL_DEF(SDXI_CREATE_CXT,
+		       sdxi_ioctl_create_cxt, 0),
 
-	SDXI_IOCTL_DEF(SDXI_CLOSE_CTXT,
-		      sdxi_ioctl_close_ctxt, 0),
+	SDXI_IOCTL_DEF(SDXI_CLOSE_CXT,
+		       sdxi_ioctl_close_cxt, 0),
 };
 #define SDXI_IOCTL_COUNT ARRAY_SIZE(sdxi_ioctls)
 

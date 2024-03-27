@@ -94,14 +94,14 @@ struct sdxi_process *sdxi_get_process(struct task_struct *thread)
 
 int sdxi_bind_process_to_device(struct sdxi_process *process)
 {
-	struct sdxi_ctxt *ctxt = process->ctxt;
+	struct sdxi_cxt *cxt = process->cxt;
 	struct sdxi_dev *sdxi;
 	int err;
 
-	if (!ctxt)
+	if (!cxt)
 		return -EINVAL;
 
-	sdxi = ctxt->sdxi;
+	sdxi = cxt->sdxi;
 	/* alloc pasid */
 	process->pasid = pasid_alloc(sdxi);
 	if (process->pasid == 0)
@@ -123,16 +123,16 @@ int sdxi_bind_process_to_device(struct sdxi_process *process)
 
 void sdxi_unbind_process_to_device(struct sdxi_process *process)
 {
-	struct sdxi_ctxt *ctxt = process->ctxt;
+	struct sdxi_cxt *cxt = process->cxt;
 	struct sdxi_dev *sdxi;
 
-	if (!ctxt)
+	if (!cxt)
 		return;
 
-	sdxi = ctxt->sdxi;
+	sdxi = cxt->sdxi;
 
-	amd_iommu_unbind_pasid(ctxt->sdxi->pdev, process->pasid);
-	pasid_free(ctxt->sdxi, process->pasid);
+	amd_iommu_unbind_pasid(cxt->sdxi->pdev, process->pasid);
+	pasid_free(cxt->sdxi, process->pasid);
 
 	trace_sdxi_bind_process(sdxi, process->pasid);
 }
@@ -179,8 +179,8 @@ void sdxi_destroy_process(struct sdxi_process *process)
 /***************************/
 #if IS_REACHABLE(CONFIG_AMD_IOMMU_V2)
 static const u32 required_flags = AMD_IOMMU_DEVICE_FLAG_ATS_SUP |
-				  AMD_IOMMU_DEVICE_FLAG_PRI_SUP |
-				  AMD_IOMMU_DEVICE_FLAG_PASID_SUP;
+	AMD_IOMMU_DEVICE_FLAG_PRI_SUP |
+	AMD_IOMMU_DEVICE_FLAG_PASID_SUP;
 
 static void iommu_pasid_shutdown_cb(struct pci_dev *pdev, u32 pasid)
 {
