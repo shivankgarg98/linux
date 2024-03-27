@@ -205,7 +205,7 @@ static int sdxi_ioctl_close_ctxt(struct file *filep, struct sdxi_process *p,
 
 	if (args->ctxt_id == p->ctxt->id) {
 		sdxi_unbind_process_to_device(p);
-		//sdxi_working_ctxt_exit(p->ctxt);
+		sdxi_working_ctxt_exit(p->ctxt);
 	}
 
 	mutex_unlock(&p->mutex);
