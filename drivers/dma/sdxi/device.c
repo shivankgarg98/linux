@@ -241,6 +241,7 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi)
 static void free_cxt(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
+	u16 l2_idx, l1_idx;
 
 	trace_sdxi_free_cxt(sdxi, cxt);
 
@@ -248,6 +249,10 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	list_del(&cxt->list);
 	kfree(cxt->akey);
 	kfree(cxt);
+
+	l2_idx = ID_TO_L2_INDEX(cxt->id);
+	l1_idx = ID_TO_L1_INDEX(cxt->id);
+	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
 }
 
 /* alloc context resources and populate context table */
