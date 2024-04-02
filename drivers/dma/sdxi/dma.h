@@ -15,7 +15,7 @@
 #include "../dma/virt-dma.h"
 
 #include "sdxi.h"
-#include "sq.h"
+#include "context.h"
 
 #ifndef __SDXI_DMA_H
 #define __SDXI_DMA_H

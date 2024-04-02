@@ -20,7 +20,7 @@
 #include "ioctl.h"
 #include "process.h"
 #include "sdxi.h"
-#include "sq.h"
+#include "context.h"
 
 static const char sdxi_dev_name[] = "sdxi";
 static int sdxi_char_dev_major = -1;

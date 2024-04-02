@@ -17,7 +17,7 @@
 
 #include "sdxi.h"
 #include "pci.h"
-#include "sq.h"
+#include "context.h"
 #include "process.h"
 
 #define CREATE_TRACE_POINTS

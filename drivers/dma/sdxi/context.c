@@ -15,7 +15,7 @@
 
 #include "sdxi.h"
 #include "pci.h"
-#include "sq.h"
+#include "context.h"
 #include "trace.h"
 
 /* NB: take care of completion pointer */
