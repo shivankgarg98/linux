@@ -8,7 +8,7 @@
  */
 
 #ifndef __SDXI_SQ_H
-#define _SDXI_SQ_H
+#define __SDXI_SQ_H
 
 #include "sdxi.h"
 
