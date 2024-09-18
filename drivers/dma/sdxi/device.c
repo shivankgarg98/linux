@@ -9,6 +9,7 @@
 #define dev_fmt(fmt)    "SDXI: " fmt
 
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/pci.h>
 #include <linux/dma-mapping.h>
@@ -259,12 +260,11 @@ static void free_cxt(struct sdxi_cxt *cxt)
 struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi)
 {
 	struct sdxi_cxt *cxt = NULL;
-	unsigned long flags;
 	gfp_t gfp_flags;
 	struct device *dev = &sdxi->pdev->dev;
 	int ret;
 
-	spin_lock_irqsave(&sdxi->cxt_lock, flags);
+	mutex_lock(&sdxi->cxt_lock);
 
 	cxt = alloc_cxt(sdxi);
 	if (!cxt)
@@ -284,7 +284,7 @@ struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi)
 	trace_sdxi_create_cxt(sdxi, cxt);
 
 err_out:
-	spin_unlock_irqrestore(&sdxi->cxt_lock, flags);
+	mutex_unlock(&sdxi->cxt_lock);
 	return cxt;
 }
 
@@ -292,17 +292,16 @@ err_out:
 void sdxi_cxt_free(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
-	unsigned long flags;
 
 	trace_sdxi_free_cxt(sdxi, cxt);
 
-	spin_lock_irqsave(&sdxi->cxt_lock, flags);
+	mutex_lock(&sdxi->cxt_lock);
 
 	cleanup_cxt_tables(sdxi, cxt);
 	free_pages((unsigned long)cxt->dummy_buffer, 0);
 	free_cxt(cxt);
 
-	spin_unlock_irqrestore(&sdxi->cxt_lock, flags);
+	mutex_unlock(&sdxi->cxt_lock);
 }
 
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,

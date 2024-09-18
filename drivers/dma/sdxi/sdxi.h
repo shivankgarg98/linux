@@ -11,6 +11,7 @@
 
 #include <linux/types.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/device.h>
 #include <linux/pci.h>
 #include <linux/dma-mapping.h>
@@ -359,7 +360,7 @@ struct sdxi_dev {
 	struct irq_entry *cxt_irqs;	/* NB: convert to a struct */
 
 	/* context management */
-	spinlock_t cxt_lock;		/* context protection */
+	struct mutex cxt_lock;		/* context protection */
 	struct list_head cxt_list;
 	int cxt_count;
 	/* l2 table, pre-allocated with sdxi_device */

@@ -12,6 +12,7 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
+#include <linux/mutex.h>
 #include <linux/pci.h>
 #include <linux/pci-ats.h>
 #include <linux/io.h>
@@ -397,7 +398,7 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 		goto err_log_fail;
 	sdxi->err_log_num = entries;
 
-	spin_lock_init(&sdxi->cxt_lock);
+	mutex_init(&sdxi->cxt_lock);
 	INIT_LIST_HEAD(&sdxi->cxt_list);
 	list_add_tail(&sdxi->list, &sdxi_device_list);
 
