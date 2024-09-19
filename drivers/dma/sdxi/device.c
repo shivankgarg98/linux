@@ -244,6 +244,9 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	struct sdxi_dev *sdxi = cxt->sdxi;
 	u16 l2_idx, l1_idx;
 
+	l2_idx = ID_TO_L2_INDEX(cxt->id);
+	l1_idx = ID_TO_L1_INDEX(cxt->id);
+
 	trace_sdxi_free_cxt(sdxi, cxt);
 
 	sdxi->cxt_count--;
@@ -251,8 +254,6 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	kfree(cxt->akey);
 	kfree(cxt);
 
-	l2_idx = ID_TO_L2_INDEX(cxt->id);
-	l1_idx = ID_TO_L1_INDEX(cxt->id);
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
 }
 
