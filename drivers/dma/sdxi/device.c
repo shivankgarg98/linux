@@ -257,6 +257,28 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
 }
 
+static int sdxi_cxt_setup_dummy_buffer(struct sdxi_cxt *cxt, struct device *dev)
+{
+	unsigned long *buf;
+	dma_addr_t addr;
+
+	buf = (unsigned long *)get_zeroed_page(GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	addr = dma_map_single(dev, buf, PAGE_SIZE, DMA_FROM_DEVICE);
+	if (dma_mapping_error(dev, addr))
+		goto free_buf;
+
+	cxt->dummy_buffer = buf;
+	cxt->dummy_buffer_addr = addr;
+	return 0;
+
+free_buf:
+	free_page((unsigned long)buf);
+	return -ENOMEM;
+}
+
 static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *dev)
 {
 	dma_unmap_single(dev, cxt->dummy_buffer_addr, PAGE_SIZE, DMA_FROM_DEVICE);
@@ -266,33 +288,32 @@ static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *d
 /* alloc context resources and populate context table */
 struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi)
 {
-	struct sdxi_cxt *cxt = NULL;
-	gfp_t gfp_flags;
 	struct device *dev = &sdxi->pdev->dev;
-	int ret;
+	struct sdxi_cxt *cxt;
 
 	mutex_lock(&sdxi->cxt_lock);
 
 	cxt = alloc_cxt(sdxi);
 	if (!cxt)
-		goto err_out;
+		goto drop_cxt_lock;
 
-	gfp_flags = GFP_KERNEL | __GFP_ZERO;
-	cxt->dummy_buffer = (void *)__get_free_pages(gfp_flags, 0);
-	cxt->dummy_buffer_addr = dma_map_single(dev, cxt->dummy_buffer, 4096,
-                                                DMA_FROM_DEVICE);
+	if (sdxi_cxt_setup_dummy_buffer(cxt, dev))
+		goto release_cxt;
 
-	ret = config_cxt_tables(sdxi, cxt);
-	if (ret) {
-		free_cxt(cxt);
-		cxt = NULL;
-	}
+	if (config_cxt_tables(sdxi, cxt))
+		goto release_dummy;
 
 	trace_sdxi_create_cxt(sdxi, cxt);
-
-err_out:
 	mutex_unlock(&sdxi->cxt_lock);
 	return cxt;
+
+release_dummy:
+	sdxi_cxt_release_dummy_buffer(cxt, dev);
+release_cxt:
+	free_cxt(cxt);
+drop_cxt_lock:
+	mutex_unlock(&sdxi->cxt_lock);
+	return NULL;
 }
 
 /* clear context table and free context resources */
