@@ -257,6 +257,12 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
 }
 
+static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *dev)
+{
+	dma_unmap_single(dev, cxt->dummy_buffer_addr, PAGE_SIZE, DMA_FROM_DEVICE);
+	free_page((unsigned long)cxt->dummy_buffer);
+}
+
 /* alloc context resources and populate context table */
 struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi)
 {
@@ -299,7 +305,7 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 	mutex_lock(&sdxi->cxt_lock);
 
 	cleanup_cxt_tables(sdxi, cxt);
-	free_pages((unsigned long)cxt->dummy_buffer, 0);
+	sdxi_cxt_release_dummy_buffer(cxt, &sdxi->pdev->dev);
 	free_cxt(cxt);
 
 	mutex_unlock(&sdxi->cxt_lock);
