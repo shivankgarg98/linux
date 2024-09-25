@@ -481,4 +481,18 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 	sdxi_working_cxt_exit(sdxi->kern_cxt);
 	sdxi_working_cxt_exit(sdxi->dma_cxt);
 	sdxi_working_cxt_exit(sdxi->admin_cxt);
+
+	// Walk sdxi->cxt_array freeing any allocated rows.
+	for (size_t i = 0; i < L2_TABLE_ENTRIES; ++i) {
+		if (!sdxi->cxt_array[i])
+			continue;
+		// When a context is released its entry in the table should be NULL.
+		for (size_t j = 0; j < L1_TABLE_ENTRIES; ++j) {
+			struct sdxi_cxt *cxt = sdxi->cxt_array[i][j];
+			WARN(cxt,
+		"Possible context object leak %p at [%zu][%zu]; cxt_count=%d\n",
+			     cxt, i, j, sdxi->cxt_count);
+		}
+		kfree(sdxi->cxt_array[i]);
+	}
 }
