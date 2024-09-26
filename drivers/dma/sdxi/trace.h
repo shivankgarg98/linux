@@ -114,7 +114,7 @@ TRACE_EVENT(sdxi_bind_process,
 		    __field(u32, pasid)
 		    ),
 	    TP_fast_assign(
-		    __assign_str(devname, dev_name(&sdxi->pdev->dev));
+		    __assign_str(devname);
 		    __entry->pasid = pasid;
 		    ),
 	    TP_printk("bind process (pasid=%d) to device=%s",
@@ -130,7 +130,7 @@ TRACE_EVENT(sdxi_unbind_process,
 		    __field(u32, pasid)
 		    ),
 	    TP_fast_assign(
-		    __assign_str(devname, dev_name(&sdxi->pdev->dev));
+		    __assign_str(devname);
 		    __entry->pasid = pasid;
 		    ),
 	    TP_printk("unbind process (pasid=%d) to device=%s",
