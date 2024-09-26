@@ -117,7 +117,7 @@ void sdxi_unbind_process_to_device(struct sdxi_process *process)
 
 	iommu_sva_unbind_device(process->sva);
 
-	trace_sdxi_bind_process(cxt->sdxi, process->pasid);
+	trace_sdxi_unbind_process(cxt->sdxi, process->pasid);
 }
 
 struct sdxi_process *sdxi_create_process(struct file *filep)
