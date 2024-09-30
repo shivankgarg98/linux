@@ -211,14 +211,14 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	sq->ring_size = sizeof(struct sdxi_desc) * sq->ring_entries;
 	sq->desc_ring = kzalloc(sq->ring_size, GFP_KERNEL);
 	if (!sq->desc_ring)
-		goto err_desc_ring;
+		goto free_sq;
 	sq->ring_dma = dma_map_single(dev, sq->desc_ring, sq->ring_size,
 				      DMA_BIDIRECTIONAL);
 
 	/* alloc completion status block */
 	sq->csb = kzalloc(ring_entries * sizeof(struct csb), GFP_KERNEL);
 	if (!sq->csb)
-		goto err_csb;
+		goto free_desc_ring;
 	sq->csb_dma = dma_map_single(dev, sq->csb, ring_entries * sizeof(struct csb),
 				     DMA_FROM_DEVICE);
 
@@ -226,7 +226,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	sq->cxt_status_size = PAGE_SIZE;
 	sq->cxt_status = kzalloc(sq->cxt_status_size, GFP_KERNEL);
 	if (!sq->cxt_status)
-		goto err_cxt_status;
+		goto free_csb;
 	sq->cxt_status_dma = dma_map_single(dev, sq->cxt_status, sq->cxt_status_size,
 					    DMA_FROM_DEVICE);
 
@@ -234,7 +234,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	sq->write_index_size = PAGE_SIZE;
 	sq->write_index = kzalloc(sq->write_index_size, GFP_KERNEL);
 	if (!sq->write_index)
-		goto err_write_index;
+		goto free_cxt_status;
 	sq->write_index_dma = dma_map_single(dev, sq->write_index, sq->write_index_size,
 					     DMA_TO_DEVICE);
 
@@ -268,13 +268,13 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 	return sq;
 
-err_write_index:
+free_cxt_status:
 	kfree(sq->cxt_status);
-err_cxt_status:
+free_csb:
 	kfree(sq->csb);
-err_csb:
+free_desc_ring:
 	kfree(sq->desc_ring);
-err_desc_ring:
+free_sq:
 	kfree(sq);
 	return NULL;
 }
