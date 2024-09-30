@@ -8,6 +8,8 @@
 
 #define dev_fmt(fmt)    "SDXI: " fmt
 
+#include <linux/dma-direction.h>
+#include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/device.h>
@@ -320,6 +322,7 @@ drop_cxt_lock:
 void sdxi_cxt_free(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
+	struct device *dev = &sdxi->pdev->dev;
 
 	trace_sdxi_free_cxt(sdxi, cxt);
 
@@ -327,6 +330,10 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 
 	cleanup_cxt_tables(sdxi, cxt);
 	sdxi_cxt_release_dummy_buffer(cxt, &sdxi->pdev->dev);
+	dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce), DMA_TO_DEVICE);
+	dma_unmap_single(dev, cxt->akey_addr,
+			 cxt->akey_entries * sizeof(struct akey_entry),
+			 DMA_TO_DEVICE);
 	free_cxt(cxt);
 
 	mutex_unlock(&sdxi->cxt_lock);
