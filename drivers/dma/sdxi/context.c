@@ -196,15 +196,16 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	struct device *dev = &sdxi->pdev->dev;
 	struct sdxi_sq *sq;
 
+	/* alloc desc_ring */
+	if (ring_entries > sdxi->max_ring_entries) {
+		dev_err(dev, "%d ring entries requested, max is %llu\n",
+			ring_entries, sdxi->max_ring_entries);
+		return NULL;
+	}
+
 	sq = kzalloc(sizeof(*sq), GFP_KERNEL);
 	if (!sq)
 		return NULL;
-
-	/* alloc desc_ring */
-	if (ring_entries > sdxi->max_ring_entries) {
-		dev_err(dev, "Invalid descriptor ring entries\n");
-		goto err_ring_entries;
-	}
 
 	sq->ring_entries = ring_entries;
 	sq->ring_size = sizeof(struct sdxi_desc) * sq->ring_entries;
@@ -274,7 +275,6 @@ err_cxt_status:
 err_csb:
 	kfree(sq->desc_ring);
 err_desc_ring:
-err_ring_entries:
 	kfree(sq);
 	return NULL;
 }
