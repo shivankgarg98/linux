@@ -10,6 +10,8 @@
 #define pr_fmt(fmt)     "SDXI: " fmt
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
+#include <linux/dma-direction.h>
+#include <linux/dma-mapping.h>
 #include <linux/types.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 
@@ -214,11 +216,13 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto free_sq;
 	sq->ring_dma = dma_map_single(dev, sq->desc_ring, sq->ring_size,
 				      DMA_BIDIRECTIONAL);
+	if (dma_mapping_error(dev, sq->ring_dma))
+		goto free_desc_ring;
 
 	/* alloc completion status block */
 	sq->csb = kzalloc(ring_entries * sizeof(struct csb), GFP_KERNEL);
 	if (!sq->csb)
-		goto free_desc_ring;
+		goto unmap_desc_ring;
 	sq->csb_dma = dma_map_single(dev, sq->csb, ring_entries * sizeof(struct csb),
 				     DMA_FROM_DEVICE);
 
@@ -272,6 +276,8 @@ free_cxt_status:
 	kfree(sq->cxt_status);
 free_csb:
 	kfree(sq->csb);
+unmap_desc_ring:
+	dma_unmap_single(dev, sq->ring_dma, sq->ring_size, DMA_BIDIRECTIONAL);
 free_desc_ring:
 	kfree(sq->desc_ring);
 free_sq:
