@@ -242,7 +242,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	sq->write_index_size = PAGE_SIZE;
 	sq->write_index = kzalloc(sq->write_index_size, GFP_KERNEL);
 	if (!sq->write_index)
-		goto free_cxt_status;
+		goto unmap_cxt_status;
 	sq->write_index_dma = dma_map_single(dev, sq->write_index, sq->write_index_size,
 					     DMA_TO_DEVICE);
 
@@ -276,6 +276,9 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 	return sq;
 
+unmap_cxt_status:
+	dma_unmap_single(dev, sq->cxt_status_dma,
+			 sq->cxt_status_size, DMA_FROM_DEVICE);
 free_cxt_status:
 	kfree(sq->cxt_status);
 unmap_csb:
