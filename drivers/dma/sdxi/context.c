@@ -235,6 +235,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto unmap_csb;
 	sq->cxt_status_dma = dma_map_single(dev, sq->cxt_status, sq->cxt_status_size,
 					    DMA_FROM_DEVICE);
+	if (dma_mapping_error(dev, sq->cxt_status_dma))
+		goto free_cxt_status;
 
 	/* alloc write index (NB: use page size) */
 	sq->write_index_size = PAGE_SIZE;
