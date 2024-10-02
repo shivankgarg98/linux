@@ -11,6 +11,7 @@
 
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
+#include <linux/errno.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
@@ -290,6 +291,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	/* l2 table */
 	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
 				      DMA_TO_DEVICE);
+	if (dma_mapping_error(dev, sdxi->l2_dma))
+		return -ENOMEM;
 	cxt_l2_reg.ptr = sdxi->l2_dma >> 12;
 	iowrite64(cxt_l2_reg.data, sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET);
 
@@ -297,6 +300,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	sdxi->rkey_dma = dma_map_single(dev, sdxi->rkey,
 					sdxi->rkey_num * sizeof(struct rkey_ent),
 					DMA_FROM_DEVICE);
+	if (dma_mapping_error(dev, sdxi->rkey_dma))
+		goto unmap_l2;
 	rkey_reg.ptr = sdxi->rkey_dma >> 12;
 	rkey_reg.sz = sdxi->rkey_num >> 8;
 	rkey_reg.en = 1;
@@ -306,6 +311,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
 					   sdxi->err_log_num * sizeof(struct sdxi_err),
 					   DMA_FROM_DEVICE);
+	if (dma_mapping_error(dev, sdxi->err_log_dma))
+		goto unmap_rkey;
 	err_cfg_reg.ptr = sdxi->err_log_dma >> 12;
 	err_cfg_reg.sz = sdxi->err_log_num >> 6;
 	err_cfg_reg.en = 1;
@@ -339,6 +346,14 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 		 (unsigned long)status, (unsigned long long)ctrl2);
 
 	return 0;
+
+unmap_rkey:
+	dma_unmap_single(dev, sdxi->rkey_dma,
+			 sdxi->rkey_num * sizeof(struct rkey_ent),
+			 DMA_FROM_DEVICE);
+unmap_l2:
+	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
+	return -ENOMEM;
 }
 
 static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
