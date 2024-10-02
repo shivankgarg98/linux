@@ -282,30 +282,29 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	union mmio_rkey_reg rkey_reg;
 	union mmio_err_cfg_reg err_cfg_reg;
 	union mmio_err_ctl_reg err_ctl_reg;
-	dma_addr_t l2_addr, rkey_addr, err_log_addr;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
 
 	/* l2 table */
-	l2_addr = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
-				 DMA_TO_DEVICE);
-	cxt_l2_reg.ptr = l2_addr >> 12;
+	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
+				      DMA_TO_DEVICE);
+	cxt_l2_reg.ptr = sdxi->l2_dma >> 12;
 	iowrite64(cxt_l2_reg.data, sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET);
 
 	/* rkey */
-	rkey_addr = dma_map_single(dev, sdxi->rkey,
-				   sdxi->rkey_num * sizeof(struct rkey_ent),
-				   DMA_FROM_DEVICE);
-	rkey_reg.ptr = rkey_addr >> 12;
+	sdxi->rkey_dma = dma_map_single(dev, sdxi->rkey,
+					sdxi->rkey_num * sizeof(struct rkey_ent),
+					DMA_FROM_DEVICE);
+	rkey_reg.ptr = sdxi->rkey_dma >> 12;
 	rkey_reg.sz = sdxi->rkey_num >> 8;
 	rkey_reg.en = 1;
 	iowrite64(rkey_reg.data, sdxi->ctrl_regs + MMIO_RKEY_OFFSET);
 
 	/* err log */
-	err_log_addr = dma_map_single(dev, sdxi->err_log,
-				      sdxi->err_log_num * sizeof(struct sdxi_err),
-				      DMA_FROM_DEVICE);
-	err_cfg_reg.ptr = err_log_addr >> 12;
+	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
+					   sdxi->err_log_num * sizeof(struct sdxi_err),
+					   DMA_FROM_DEVICE);
+	err_cfg_reg.ptr = sdxi->err_log_dma >> 12;
 	err_cfg_reg.sz = sdxi->err_log_num >> 6;
 	err_cfg_reg.en = 1;
 	iowrite64(err_cfg_reg.data, sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
@@ -334,7 +333,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 		 "  rkey addr:    v=0x%p:d=0x%llx\n"
 		 "  func status:  0x%lx\n"
 		 "  ctrl2:        0x%llx\n",
-		 sdxi->err_log, err_log_addr & ~0x1, sdxi->rkey, rkey_addr,
+		 sdxi->err_log, sdxi->err_log_dma & ~0x1, sdxi->rkey, sdxi->rkey_dma,
 		 (unsigned long)status, (unsigned long long)ctrl2);
 
 	return 0;

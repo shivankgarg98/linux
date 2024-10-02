@@ -367,6 +367,7 @@ struct sdxi_dev {
 	int cxt_count;
 	/* l2 table, pre-allocated with sdxi_device */
 	struct cxt_l2_entry *l2_table;
+	dma_addr_t l2_dma;
 	/* list of context l1 tables, on-demand, access with [l2_idx] */
 	struct cxt_l1_entry *l1_table_array[L2_TABLE_ENTRIES];
 	/* all contexts, on-demand, access with [l2_idx][l1_idx] */
@@ -375,10 +376,12 @@ struct sdxi_dev {
 	/* rkey table */
 	int rkey_num;
 	struct rkey_ent *rkey;
+	dma_addr_t rkey_dma;
 
 	/* error log */
 	u32 err_log_num;
 	struct sdxi_err *err_log;
+	dma_addr_t err_log_dma;
 
 	/* DMA engine */
 	struct dma_device dma_dev;
