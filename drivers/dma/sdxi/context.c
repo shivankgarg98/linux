@@ -311,9 +311,15 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 	dev = &cxt->sdxi->pdev->dev;
 	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
+	dma_unmap_single(dev, sq->write_index_dma,
+			 sq->write_index_size, DMA_TO_DEVICE);
 	kfree(sq->write_index);
+	dma_unmap_single(dev, sq->cxt_status_dma,
+			 sq->cxt_status_size, DMA_FROM_DEVICE);
 	kfree(sq->cxt_status);
+	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
 	kfree(sq->csb);
+	dma_unmap_single(dev, sq->ring_dma, sq->ring_size, DMA_BIDIRECTIONAL);
 	kfree(sq->desc_ring);
 
 	cxt->sq = NULL;
