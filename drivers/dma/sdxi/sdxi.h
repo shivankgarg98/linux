@@ -163,7 +163,9 @@ struct sdxi_sq {
 	u32 ring_size;
 	struct sdxi_desc *desc_ring;
 	dma_addr_t ring_dma;
+
 	struct csb *csb;
+	size_t csb_size;
 	dma_addr_t csb_dma;
 
 	u32 write_index_size;

@@ -220,17 +220,19 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto free_desc_ring;
 
 	/* alloc completion status block */
-	sq->csb = kzalloc(ring_entries * sizeof(struct csb), GFP_KERNEL);
+	sq->csb_size = ring_entries * sizeof(struct csb);
+	sq->csb = kzalloc(sq->csb_size, GFP_KERNEL);
 	if (!sq->csb)
 		goto unmap_desc_ring;
-	sq->csb_dma = dma_map_single(dev, sq->csb, ring_entries * sizeof(struct csb),
-				     DMA_FROM_DEVICE);
+	sq->csb_dma = dma_map_single(dev, sq->csb, sq->csb_size, DMA_FROM_DEVICE);
+	if (dma_mapping_error(dev, sq->csb_dma))
+		goto free_csb;
 
 	/* alloc cxt status (NB: use page size) */
 	sq->cxt_status_size = PAGE_SIZE;
 	sq->cxt_status = kzalloc(sq->cxt_status_size, GFP_KERNEL);
 	if (!sq->cxt_status)
-		goto free_csb;
+		goto unmap_csb;
 	sq->cxt_status_dma = dma_map_single(dev, sq->cxt_status, sq->cxt_status_size,
 					    DMA_FROM_DEVICE);
 
@@ -274,6 +276,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 free_cxt_status:
 	kfree(sq->cxt_status);
+unmap_csb:
+	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
 free_csb:
 	kfree(sq->csb);
 unmap_desc_ring:
