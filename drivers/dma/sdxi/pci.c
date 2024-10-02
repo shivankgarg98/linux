@@ -9,6 +9,8 @@
 #define pr_fmt(fmt)     "SDXI: " fmt
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
+#include <linux/dma-direction.h>
+#include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
@@ -356,6 +358,7 @@ static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 {
+	struct device *dev = &sdxi->pdev->dev;
 	union mmio_ctl0_reg ctl0_reg;
 
 	sdxi_dump_errlog(sdxi);
@@ -364,6 +367,14 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 	ctl0_reg.data = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
 	ctl0_reg.fn_gsr = GSRV_STOP_SF;
 	iowrite64(ctl0_reg.data, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+
+	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
+	dma_unmap_single(dev, sdxi->rkey_dma,
+			 sdxi->rkey_num * sizeof(struct rkey_ent),
+			 DMA_FROM_DEVICE);
+	dma_unmap_single(dev, sdxi->err_log_dma,
+			 sdxi->err_log_num * sizeof(struct sdxi_err),
+			 DMA_FROM_DEVICE);
 }
 
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
