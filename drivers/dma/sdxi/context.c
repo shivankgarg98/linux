@@ -245,6 +245,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto unmap_cxt_status;
 	sq->write_index_dma = dma_map_single(dev, sq->write_index, sq->write_index_size,
 					     DMA_TO_DEVICE);
+	if (dma_mapping_error(dev, sq->write_index_dma))
+		goto free_write_index;
 
 	/* final setup */
 	if (cxt->id == SDXI_ADMIN_CXT_ID)
@@ -276,6 +278,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 	return sq;
 
+free_write_index:
+	kfree(sq->write_index);
 unmap_cxt_status:
 	dma_unmap_single(dev, sq->cxt_status_dma,
 			 sq->cxt_status_size, DMA_FROM_DEVICE);
