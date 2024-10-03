@@ -119,6 +119,16 @@ static void config_cxt_table_entries(struct cxt_l2_entry *l2_table,
 		set_cxt_l1_entry(sdxi, l1_entry, cxt);
 	} else {
 		memset(l1_entry, 0, sizeof(*l1_entry));
+		// If this table has been completely zeroed then free it and unmap it
+		if (!memchr_inv(l1_table, 0, L1_TABLE_SIZE)) {
+			dma_addr_t l1_dma = l2_entry->l1_ptr << L2_CXT_L1_BASE_SHIFT;
+
+			// assumes we're freeing a single page
+			static_assert(L1_TABLE_SIZE == PAGE_SIZE);
+			dma_unmap_single(&sdxi->pdev->dev, l1_dma,
+					 L1_TABLE_SIZE, DMA_TO_DEVICE);
+			free_page((unsigned long)l1_table);
+		}
 	}
 }
 
