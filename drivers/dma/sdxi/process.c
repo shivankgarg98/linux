@@ -107,9 +107,13 @@ int sdxi_bind_process_to_device(struct sdxi_process *process)
 	if (process->pasid == 0)
 		return -EBUSY;
 
-	/* NB: more code to be added such as power management */
-	err = amd_iommu_bind_pasid(sdxi->pdev, process->pasid,
-				   process->lead_thread);
+	/*
+	 * FIXME: amd_iommu_bind_pasid() is gone
+	 *
+	 * err = amd_iommu_bind_pasid(sdxi->pdev, process->pasid,
+	 *			      process->lead_thread);
+	 */
+	err = -EINVAL;
 
 	if (err) {
 		pasid_free(sdxi, process->pasid);
@@ -131,7 +135,11 @@ void sdxi_unbind_process_to_device(struct sdxi_process *process)
 
 	sdxi = cxt->sdxi;
 
-	amd_iommu_unbind_pasid(cxt->sdxi->pdev, process->pasid);
+	/*
+	 * FIXME: amd_iommu_unbind_pasid() is gone
+	 *
+	 * amd_iommu_unbind_pasid(cxt->sdxi->pdev, process->pasid);
+	 */
 	pasid_free(cxt->sdxi, process->pasid);
 
 	trace_sdxi_bind_process(sdxi, process->pasid);
