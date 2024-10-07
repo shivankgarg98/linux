@@ -99,6 +99,7 @@ struct encoder_unblank_param {
 	struct dc_link_settings link_settings;
 	struct dc_crtc_timing timing;
 	int opp_cnt;
+	uint32_t pix_per_cycle;
 };
 
 struct encoder_set_dp_phy_pattern_param {
@@ -178,10 +179,6 @@ struct stream_encoder_funcs {
 	void (*stop_dp_info_packets)(
 		struct stream_encoder *enc);
 
-	void (*reset_fifo)(
-		struct stream_encoder *enc
-	);
-
 	void (*dp_blank)(
 		struct dc_link *link,
 		struct stream_encoder *enc);
@@ -225,6 +222,11 @@ struct stream_encoder_funcs {
 	void (*dig_connect_to_otg)(
 		struct stream_encoder *enc,
 		int tg_inst);
+
+	void (*enable_stream)(
+		struct stream_encoder *enc,
+		enum signal_type signal,
+		bool enable);
 
 	void (*hdmi_reset_stream_attribute)(
 		struct stream_encoder *enc);
