@@ -32,8 +32,6 @@ MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
 LIST_HEAD(sdxi_device_list);
 
-
-#define MIN(a, b)	(a > b ? b : a)
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 {
 	struct device *dev = &sdxi->pdev->dev;
@@ -58,9 +56,9 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 		dev_err(dev, "  type: 0x%x\n", err->type);
 		dev_err(dev, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
 		dev_err(dev, "  buff: 0x%x\n", err->buf);
-		index = MIN(ARRAY_SIZE(sub_steps) - 1, err->sub_step);
+		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)err->sub_step);
 		dev_err(dev, "  sub_step: %s\n", sub_steps[index]);
-		index = MIN(ARRAY_SIZE(reactions) - 1, err->re);
+		index = min(ARRAY_SIZE(reactions) - 1, (size_t)err->re);
 		dev_err(dev, "  re: %s\n", reactions[index]);
 		dev_err(dev, "  buff: 0x%x\n", err->buf);
 		dev_err(dev, "  cxt_num: 0x%x\n", err->cxt_num);
