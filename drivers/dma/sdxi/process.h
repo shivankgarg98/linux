@@ -18,6 +18,8 @@
 
 #include "sdxi.h"
 
+struct iommu_sva;
+
 /* User Space Process Info */
 struct sdxi_process {
 	struct hlist_node list;
@@ -28,6 +30,7 @@ struct sdxi_process {
 	struct mmu_notifier mmu_notifier;	/* mm_struct notifier */
 
 	struct sdxi_cxt *cxt;
+	struct iommu_sva *sva;
 	u32 pasid;				/* no meaning if !cxt */
 };
 

@@ -354,7 +354,6 @@ struct sdxi_dev {
 	bool use_iommu_v2;		/* bound with iommu for pasid? */
 	u32 max_pasids;
 	u32 pasid_limit;
-	struct ida pasid_ida;
 
 	/* MSI */
 	unsigned int irq_count;

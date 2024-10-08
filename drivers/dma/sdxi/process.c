@@ -7,6 +7,7 @@
  */
 
 #include <linux/device.h>
+#include <linux/iommu.h>
 #include <linux/slab.h>
 #include <linux/pci.h>
 #include <linux/idr.h>
@@ -51,28 +52,6 @@ static struct sdxi_process *find_process(const struct task_struct *thread)
 	return p;
 }
 
-/****************************/
-/* PROCESS PASID MANAGEMENT */
-/****************************/
-static u32 pasid_alloc(struct sdxi_dev *sdxi)
-{
-	u32 ret = 0;
-
-	ret = ida_simple_get(&sdxi->pasid_ida, 1, sdxi->pasid_limit,
-			     GFP_KERNEL);
-
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-static void pasid_free(struct sdxi_dev *sdxi, u32 pasid)
-{
-	if (pasid)
-		ida_simple_remove(&sdxi->pasid_ida, pasid);
-}
-
 void sdxi_unref_process(struct sdxi_process *p)
 {
 	/* NB: more checking to be done here based on kref count */
@@ -95,54 +74,50 @@ struct sdxi_process *sdxi_get_process(struct task_struct *thread)
 int sdxi_bind_process_to_device(struct sdxi_process *process)
 {
 	struct sdxi_cxt *cxt = process->cxt;
+	struct iommu_sva *sva;
 	struct sdxi_dev *sdxi;
+	struct device *dev;
+	u32 pasid;
 	int err;
 
 	if (!cxt)
 		return -EINVAL;
 
 	sdxi = cxt->sdxi;
-	/* alloc pasid */
-	process->pasid = pasid_alloc(sdxi);
-	if (process->pasid == 0)
-		return -EBUSY;
+	dev = &sdxi->pdev->dev;
+	sva = iommu_sva_bind_device(dev, process->mm);
+	if (IS_ERR(sva))
+		return PTR_ERR(sva);
 
-	/*
-	 * FIXME: amd_iommu_bind_pasid() is gone
-	 *
-	 * err = amd_iommu_bind_pasid(sdxi->pdev, process->pasid,
-	 *			      process->lead_thread);
-	 */
-	err = -EINVAL;
-
-	if (err) {
-		pasid_free(sdxi, process->pasid);
-		return -EINVAL;
+	pasid = iommu_sva_get_pasid(sva);
+	if (pasid == IOMMU_PASID_INVALID) {
+		err = -EINVAL;
+		goto unbind;
 	}
+
+	process->pasid = pasid;
+	process->sva = sva;
 
 	trace_sdxi_bind_process(sdxi, process->pasid);
 
 	return 0;
+unbind:
+	iommu_sva_unbind_device(sva);
+	return err;
 }
 
 void sdxi_unbind_process_to_device(struct sdxi_process *process)
 {
 	struct sdxi_cxt *cxt = process->cxt;
-	struct sdxi_dev *sdxi;
 
-	if (!cxt)
+	// FIXME: Can either of these really happen? Are they
+	// WARN_ON()-worthy?
+	if (!cxt || !process->sva)
 		return;
 
-	sdxi = cxt->sdxi;
+	iommu_sva_unbind_device(process->sva);
 
-	/*
-	 * FIXME: amd_iommu_unbind_pasid() is gone
-	 *
-	 * amd_iommu_unbind_pasid(cxt->sdxi->pdev, process->pasid);
-	 */
-	pasid_free(cxt->sdxi, process->pasid);
-
-	trace_sdxi_bind_process(sdxi, process->pasid);
+	trace_sdxi_bind_process(cxt->sdxi, process->pasid);
 }
 
 struct sdxi_process *sdxi_create_process(struct file *filep)
