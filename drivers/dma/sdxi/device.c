@@ -490,8 +490,8 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 		// When a context is released its entry in the table should be NULL.
 		for (size_t j = 0; j < L1_TABLE_ENTRIES; ++j) {
 			struct sdxi_cxt *cxt = sdxi->cxt_array[i][j];
-			WARN(cxt,
-		"Possible context object leak %p at [%zu][%zu]; cxt_count=%d\n",
+
+			WARN(cxt, "Possible context object leak %p at [%zu][%zu]; cxt_count=%d\n",
 			     cxt, i, j, sdxi->cxt_count);
 		}
 		kfree(sdxi->cxt_array[i]);
