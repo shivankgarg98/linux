@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * SDXI DMA engine implementation
  *   Derived from ptdma code
