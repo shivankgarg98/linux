@@ -223,7 +223,7 @@ struct akey_entry {
 	u32 pasid		: 20;
 	u32 rsvd2		: 10;
 	u32 ph			: 2;
-	u32 stag	       	: 16;	/* QW1 */
+	u32 stag		: 16;	/* QW1 */
 	u32 rsvd3		: 16;
 	u32 rkey		: 16;
 	u32 rsvd4		: 16;
