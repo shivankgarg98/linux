@@ -37,14 +37,14 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	int index;
-	const char *sub_steps[] = {
+	static const char * const sub_steps[] = {
 		"Other or Internal Error",
 		"Address Translation Failure",
 		"Data Access Failure",
 		"Data Validation Failure",
 		"Unknown/Reserved Type",
 	};
-	const char *reactions[] = {
+	static const char * const reactions[] = {
 		"Informative Entry (nothing stopped)",
 		"SDXI Context Stopped",
 		"SDXI Function Stopped",
