@@ -410,14 +410,14 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 
 	/* rkey */
 	entries = DEFAULT_RKEY_NUM;
-	sdxi->rkey = kzalloc(entries * sizeof(struct rkey_ent), GFP_KERNEL);
+	sdxi->rkey = kcalloc(entries, sizeof(struct rkey_ent), GFP_KERNEL);
 	if (!sdxi->rkey)
 		goto rkey_fail;
 	sdxi->rkey_num = entries;
 
 	/* error log */
 	entries = DEFAULT_ERR_LOG_NUM;
-	sdxi->err_log = kzalloc(entries * sizeof(struct sdxi_err), GFP_KERNEL);
+	sdxi->err_log = kcalloc(entries, sizeof(struct sdxi_err), GFP_KERNEL);
 	if (!sdxi->err_log)
 		goto err_log_fail;
 	sdxi->err_log_num = entries;

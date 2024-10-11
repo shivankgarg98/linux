@@ -231,7 +231,7 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi)
 	if (!cxt)
 		return NULL;
 
-	akey = kzalloc(entries * sizeof(struct akey_entry), GFP_KERNEL);
+	akey = kcalloc(entries, sizeof(struct akey_entry), GFP_KERNEL);
 	if (!akey) {
 		kfree(cxt);
 		return NULL;
