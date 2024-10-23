@@ -562,4 +562,3 @@ MODULE_DESCRIPTION(SDXI_DRV_DESC);
 MODULE_LICENSE("GPL v2");
 module_init(sdxi_module_init);
 module_exit(sdxi_module_exit);
-MODULE_SOFTDEP("pre: iommu_v2");
