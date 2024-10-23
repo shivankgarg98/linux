@@ -27,10 +27,6 @@
 #define CREATE_TRACE_POINTS
 #include "trace.h"
 
-static bool dma_engine;
-module_param(dma_engine, bool, 0644);
-MODULE_PARM_DESC(dma_engine, "Enable DMA engine interface (default: false)");
-
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct cxt_l2_entry *l2_entry,
 			     struct cxt_l1_entry *l1_table)
@@ -461,9 +457,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi)
 	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_KERNEL_CXT_ID, 0);
 	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
 
-	/* register with DMA engine */
-	if (dma_engine)
-		sdxi_dma_register(sdxi->dma_cxt);
+	sdxi_dma_register(sdxi->dma_cxt);
 
 	return 0;
 err_kern_cxt:
@@ -476,8 +470,7 @@ err_dma_cxt:
 
 void sdxi_device_exit(struct sdxi_dev *sdxi)
 {
-	if (dma_engine)
-		sdxi_dma_unregister(sdxi->dma_cxt);
+	sdxi_dma_unregister(sdxi->dma_cxt);
 
 	sdxi_working_cxt_exit(sdxi->kern_cxt);
 	sdxi_working_cxt_exit(sdxi->dma_cxt);
