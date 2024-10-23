@@ -27,10 +27,6 @@
 #include "pci.h"
 #include "process.h"
 
-static bool enabled = true;
-module_param(enabled, bool, 0644);
-MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
-
 LIST_HEAD(sdxi_device_list);
 
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
@@ -544,13 +540,7 @@ static struct pci_driver sdxi_driver = {
 
 static int __init sdxi_module_init(void)
 {
-	int rc = 0;
-
-	if (!enabled) {
-		pr_info("SDXI support disabled by default - please use "
-			"\"modprobe sdxi enabled=1\" to turn on\n");
-		return rc;
-	}
+	int rc;
 
 	rc = pci_register_driver(&sdxi_driver);
 	if (rc)
@@ -563,9 +553,6 @@ static int __init sdxi_module_init(void)
 
 static void __exit sdxi_module_exit(void)
 {
-	if (!enabled)
-		return;
-
 	sdxi_chardev_exit();
 	pci_unregister_driver(&sdxi_driver);
 }
