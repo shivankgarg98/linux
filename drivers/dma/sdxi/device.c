@@ -256,8 +256,6 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	l2_idx = ID_TO_L2_INDEX(cxt->id);
 	l1_idx = ID_TO_L1_INDEX(cxt->id);
 
-	trace_sdxi_free_cxt(sdxi, cxt);
-
 	sdxi->cxt_count--;
 	list_del(&cxt->list);
 	kfree(cxt->akey);
