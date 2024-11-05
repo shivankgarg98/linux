@@ -33,6 +33,10 @@
 #define MMIO_CTL_REGS_BAR		0x0
 #define MMIO_DOORBELL_BAR		0x2
 
+static bool enabled = false;
+module_param(enabled, bool, 0644);
+MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
+
 LIST_HEAD(sdxi_device_list);
 
 static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
@@ -287,7 +291,13 @@ static struct pci_driver sdxi_driver = {
 
 static int __init sdxi_module_init(void)
 {
-	int rc;
+	int rc = 0;
+
+	if (!enabled) {
+		pr_info("SDXI support disabled by default - please use "
+			"\"modprobe sdxi enabled=1\" to turn on\n");
+		return rc;
+	}
 
 	rc = pci_register_driver(&sdxi_driver);
 	if (rc)
@@ -300,6 +310,9 @@ static int __init sdxi_module_init(void)
 
 static void __exit sdxi_module_exit(void)
 {
+	if (!enabled)
+		return;
+
 	sdxi_chardev_exit();
 	pci_unregister_driver(&sdxi_driver);
 }
