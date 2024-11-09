@@ -116,8 +116,8 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	desc->body[0] |= size;
 	desc->body[1] |= (src_attr & 0xF);
 	desc->body[1] |= ((dst_attr & 0xF) << 4);
-	desc->body[2] |= (src_akey & 0xFFFF);
-	desc->body[2] |= ((dst_akey & 0xFFFF) << 16);
+	desc->body[2] |= lower_16_bits(src_akey);
+	desc->body[2] |= upper_16_bits(dst_akey);
 	desc->body[3] = lower_32_bits(src_addr);
 	desc->body[4] = upper_32_bits(src_addr);
 	desc->body[5] = lower_32_bits(dst_addr);
