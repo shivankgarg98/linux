@@ -14,6 +14,7 @@
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/types.h>
+#include <linux/wordpart.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 
 #include "sdxi.h"
@@ -54,8 +55,8 @@ void build_admin_start(struct sdxi_desc *desc, bool dr, bool vf,
 	desc->body[0] |= (dr << 14);
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
 	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
-	desc->body[3] |= (doorbell & 0xFFFFFFFF);
-	desc->body[4] |= ((doorbell >> 32) & 0xFFFFFFFF);
+	desc->body[3] |= lower_32_bits(doorbell);
+	desc->body[4] |= upper_32_bits(doorbell);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
 }
 
@@ -67,8 +68,8 @@ void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 	desc->fe = 1;
 	DESC_ADM_BUILD_VF(desc, vf, vf_num);
 	DESC_ADM_BUILD_CXT(desc, cxt_start, cxt_end);
-	desc->body[3] |= (doorbell & 0xFFFFFFFF);
-	desc->body[4] |= ((doorbell >> 32) & 0xFFFFFFFF);
+	desc->body[3] |= lower_32_bits(doorbell);
+	desc->body[4] |= upper_32_bits(doorbell);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
 	desc->csb_ptr = 0x1;
 }
@@ -117,10 +118,10 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	desc->body[1] |= ((dst_attr & 0xF) << 4);
 	desc->body[2] |= (src_akey & 0xFFFF);
 	desc->body[2] |= ((dst_akey & 0xFFFF) << 16);
-	desc->body[3] = (src_addr & 0xFFFFFFFF);
-	desc->body[4] = ((src_addr >> 32) & 0xFFFFFFFF);
-	desc->body[5] = (dst_addr & 0xFFFFFFFF);
-	desc->body[6] = ((dst_addr >> 32) & 0xFFFFFFFF);
+	desc->body[3] = lower_32_bits(src_addr);
+	desc->body[4] = upper_32_bits(src_addr);
+	desc->body[5] = lower_32_bits(dst_addr);
+	desc->body[6] = upper_32_bits(dst_addr);
 	desc->csb_ptr = csb_ptr ? csb_ptr : 0x1;
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
 }
@@ -131,8 +132,8 @@ void build_dma_write_imm(struct sdxi_desc *desc, u32 size, u64 dst_addr,
 	memset(desc, 0, sizeof(*desc));
 
 	desc->body[0] |= size-1;
-	desc->body[3] = (dst_addr & 0xFFFFFFFF);
-	desc->body[4] = ((dst_addr >> 32) & 0xFFFFFFFF);
+	desc->body[3] = lower_32_bits(dst_addr);
+	desc->body[4] = upper_32_bits(dst_addr);
 	desc->body[5] |= data;
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_WRT_IMM);
 }
