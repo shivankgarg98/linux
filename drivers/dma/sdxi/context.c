@@ -142,7 +142,7 @@ void build_intr_op(struct sdxi_desc *desc, u16 akey)
 {
 	memset(desc, 0, sizeof(*desc));
 
-	desc->body[2] = akey & 0x0000FFFF;
+	desc->body[2] = akey;
 
 	DESC_BUILD_TYPE(desc, OP_TYPE_INTR, OP_INTR_INTERRUPT);
 }
