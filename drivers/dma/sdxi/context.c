@@ -22,44 +22,6 @@
 #include "context.h"
 #include "trace.h"
 
-/* NB: take care of completion pointer */
-void build_admin_update_func(struct sdxi_desc *desc, bool vf, u16 vf_num)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_UPDATE_FUNC);
-}
-
-void build_admin_update_cxt(struct sdxi_desc *desc, bool vf, u16 vf_num,
-			    bool v2, bool v1, bool ct, u16 cxt_num,
-			    u16 cxt_mask)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->body[0] |= (v2 << 0);
-	desc->body[0] |= (v1 << 1);
-	desc->body[0] |= (ct << 2);
-	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_UPDATE_CXT);
-}
-
-void build_admin_start(struct sdxi_desc *desc, bool dr, bool vf,
-		       u16 vf_num, u16 cxt_num, u16 cxt_mask,
-		       u64 doorbell)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->fe = 1;
-	desc->body[0] |= (dr << 14);
-	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
-	desc->body[3] |= lower_32_bits(doorbell);
-	desc->body[4] |= upper_32_bits(doorbell);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
-}
-
 void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 			   u16 cxt_start, u16 cxt_end, u64 doorbell)
 {
@@ -72,38 +34,6 @@ void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 	desc->body[4] |= upper_32_bits(doorbell);
 	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_START);
 	desc->csb_ptr = 0x1;
-}
-
-void build_admin_stop(struct sdxi_desc *desc, bool hs, bool vf,
-		      u16 vf_num, u16 cxt_num, u16 cxt_mask)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->fe = 1;
-	desc->body[0] |= (hs << 13);
-	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_STOP);
-}
-
-void build_admin_sync(struct sdxi_desc *desc, bool vf, u16 vf_num,
-		      u16 cxt_num, u16 cxt_mask, u16 akey_num,
-		      u16 akey_mask)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->fe = 1;
-	DESC_ADM_BUILD_VF(desc, vf, vf_num);
-	DESC_ADM_BUILD_CXT(desc, cxt_num, cxt_mask);
-	DESC_ADM_BUILD_AKEY(desc, akey_num, akey_mask);
-	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_SYNC);
-}
-
-void build_dma_nop(struct sdxi_desc *desc)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_NOP);
 }
 
 void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
@@ -124,27 +54,6 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	desc->body[6] = upper_32_bits(dst_addr);
 	desc->csb_ptr = csb_ptr ? csb_ptr : 0x1;
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
-}
-
-void build_dma_write_imm(struct sdxi_desc *desc, u32 size, u64 dst_addr,
-			 u32 data)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->body[0] |= size-1;
-	desc->body[3] = lower_32_bits(dst_addr);
-	desc->body[4] = upper_32_bits(dst_addr);
-	desc->body[5] |= data;
-	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_WRT_IMM);
-}
-
-void build_intr_op(struct sdxi_desc *desc, u16 akey)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->body[2] = akey;
-
-	DESC_BUILD_TYPE(desc, OP_TYPE_INTR, OP_INTR_INTERRUPT);
 }
 
 static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
