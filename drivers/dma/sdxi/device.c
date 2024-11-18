@@ -20,6 +20,7 @@
 #include <linux/ptrace.h>
 
 #include "sdxi.h"
+#include "hw.h"
 #include "pci.h"
 #include "context.h"
 #include "process.h"
@@ -28,7 +29,7 @@
 #include "trace.h"
 
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
-			     struct cxt_l2_entry *l2_entry,
+			     struct sdxi_cxt_l2_ent *l2_entry,
 			     struct cxt_l1_entry *l1_table)
 {
 	struct device *dev = &sdxi->pdev->dev;
@@ -36,7 +37,7 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 
 	if (l1_table) {
 		/* already set, nothing to do. NB: maybe do checking */
-		if (l2_entry->vl)
+		if (sdxi_cxt_l2_ent_vl(l2_entry))
 			return;
 
 		l1_addr = dma_map_single(dev, l1_table, L1_TABLE_SIZE,
@@ -46,8 +47,7 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			return;
 		}
 
-		l2_entry->l1_ptr = l1_addr >> L2_CXT_L1_BASE_SHIFT;
-		l2_entry->vl = 1;
+		sdxi_cxt_l2_ent_set(l2_entry, l1_addr, true);
 	} else {
 		memset(l2_entry, 0, sizeof(*l2_entry));
 	}
@@ -94,13 +94,13 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 	}
 }
 
-static void config_cxt_table_entries(struct cxt_l2_entry *l2_table,
+static void config_cxt_table_entries(struct sdxi_cxt_l2_ent *l2_table,
 				     struct cxt_l1_entry *l1_table,
 				     struct sdxi_cxt *cxt,
 				     bool clear)
 {
 	u16 id;
-	struct cxt_l2_entry *l2_entry;
+	struct sdxi_cxt_l2_ent *l2_entry;
 	struct cxt_l1_entry *l1_entry;
 	struct sdxi_dev *sdxi = cxt->sdxi;
 
@@ -118,7 +118,7 @@ static void config_cxt_table_entries(struct cxt_l2_entry *l2_table,
 		memset(l1_entry, 0, sizeof(*l1_entry));
 		// If this table has been completely zeroed then free it and unmap it
 		if (!memchr_inv(l1_table, 0, L1_TABLE_SIZE)) {
-			dma_addr_t l1_dma = l2_entry->l1_ptr << L2_CXT_L1_BASE_SHIFT;
+			dma_addr_t l1_dma = sdxi_cxt_l2_ent_lv01_ptr(l2_entry);
 
 			// assumes we're freeing a single page
 			static_assert(L1_TABLE_SIZE == PAGE_SIZE);
@@ -133,7 +133,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
 	u16 id, l2_idx, l1_idx;
-	struct cxt_l2_entry *l2_table = sdxi->l2_table;
+	struct sdxi_cxt_l2_ent *l2_table = sdxi->l2_table;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)
@@ -170,7 +170,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 			       struct sdxi_cxt *cxt)
 {
 	u16 id, l2_idx, l1_idx;
-	struct cxt_l2_entry *l2_table = sdxi->l2_table;
+	struct sdxi_cxt_l2_ent *l2_table = sdxi->l2_table;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)

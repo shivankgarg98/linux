@@ -20,6 +20,7 @@
 #include <linux/idr.h>
 
 #include "../virt-dma.h"
+#include "hw.h"
 
 #define SDXI_DRV_NAME		"sdxi"
 #define SDXI_DRV_DESC		"SDXI driver"
@@ -316,13 +317,6 @@ struct cxt_l1_entry {
 	u64 rsvd4;			/* QW3 */
 } __packed;
 
-/* L2 Table Entry */
-struct cxt_l2_entry {
-	u64 vl			: 1;	/* QW0 */
-	u64 rsvd		: 11;
-	u64 l1_ptr		: 52;
-} __packed;
-
 struct irq_entry {
 	int vector;
 };
@@ -366,7 +360,7 @@ struct sdxi_dev {
 	struct list_head cxt_list;
 	int cxt_count;
 	/* l2 table, pre-allocated with sdxi_device */
-	struct cxt_l2_entry *l2_table;
+	struct sdxi_cxt_l2_ent *l2_table;
 	dma_addr_t l2_dma;
 	/* list of context l1 tables, on-demand, access with [l2_idx] */
 	struct cxt_l1_entry *l1_table_array[L2_TABLE_ENTRIES];
