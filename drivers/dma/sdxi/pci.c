@@ -390,17 +390,13 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 {
 	struct sdxi_dev *sdxi;
-	gfp_t gfp_flags;
-	unsigned long order;
 	int entries;
 
 	sdxi = kzalloc(sizeof(*sdxi), GFP_KERNEL);
 	if (!sdxi)
 		return NULL;
 
-	gfp_flags = GFP_KERNEL | __GFP_ZERO;
-	order = get_order(L2_TABLE_SIZE);
-	sdxi->l2_table = (void *)__get_free_pages(gfp_flags, order);
+	sdxi->l2_table = kzalloc(sizeof(*sdxi->l2_table), GFP_KERNEL);
 	if (!sdxi->l2_table)
 		goto l2_fail;
 
@@ -427,7 +423,7 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 err_log_fail:
 	kfree(sdxi->rkey);
 rkey_fail:
-	free_pages((unsigned long)sdxi->l2_table, order);
+	kfree(sdxi->l2_table);
 l2_fail:
 	kfree(sdxi);
 	return NULL;
@@ -438,7 +434,7 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 	list_del(&sdxi->list);
 	kfree(sdxi->err_log);
 	kfree(sdxi->rkey);
-	free_pages((unsigned long)sdxi->l2_table, get_order(L2_TABLE_SIZE));
+	kfree(sdxi->l2_table);
 	kfree(sdxi);
 }
 
