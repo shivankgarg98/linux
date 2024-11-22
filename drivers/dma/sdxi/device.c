@@ -94,7 +94,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 	}
 }
 
-static void config_cxt_table_entries(struct sdxi_cxt_l2_ent *l2_table,
+static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 				     struct cxt_l1_entry *l1_table,
 				     struct sdxi_cxt *cxt,
 				     bool clear)
@@ -104,11 +104,11 @@ static void config_cxt_table_entries(struct sdxi_cxt_l2_ent *l2_table,
 	struct cxt_l1_entry *l1_entry;
 	struct sdxi_dev *sdxi = cxt->sdxi;
 
-	if (!cxt || !l1_table || !l2_table)
+	if (!cxt || !l1_table)
 		return;
 
 	id = cxt->id;
-	l2_entry = l2_table + ID_TO_L2_INDEX(id);
+	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(id)];
 	l1_entry = l1_table + ID_TO_L1_INDEX(id);
 
 	if (!clear) {
@@ -133,7 +133,6 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
 	u16 id, l2_idx, l1_idx;
-	struct sdxi_cxt_l2_ent *l2_table = sdxi->l2_table;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)
@@ -161,7 +160,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 	}
 
 	/* configure l2 and l1 entries */
-	config_cxt_table_entries(l2_table, l1_table, cxt, false);
+	config_cxt_table_entries(sdxi->l2_table, l1_table, cxt, false);
 
 	return 0;
 }
@@ -170,7 +169,6 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 			       struct sdxi_cxt *cxt)
 {
 	u16 id, l2_idx, l1_idx;
-	struct sdxi_cxt_l2_ent *l2_table = sdxi->l2_table;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)
@@ -182,7 +180,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 
 	l1_table = sdxi->l1_table_array[l2_idx];
 	/* clear l1 entry */
-	config_cxt_table_entries(l2_table, l1_table, cxt, true);
+	config_cxt_table_entries(sdxi->l2_table, l1_table, cxt, true);
 }
 
 static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi)
