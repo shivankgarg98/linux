@@ -81,6 +81,61 @@ struct sdxi_cxt_l2_table {
 };
 static_assert(sizeof(struct sdxi_cxt_l2_table) == 4096);
 
+/** 
+ * struct sdxi_cxt_l1_ent - Context level 1 table entry (CXT_L1_ENT).
+ */
+struct sdxi_cxt_l1_ent {
+    /**
+     * @cxt_ctl_ptr: context control pointer with associated flags.
+     *
+     * Bit 0:       (vl) Valid.
+     * Bit 1:       (ka) "Keep active" hint.
+     * Bit 2:       (pv) Validity bit for cxt_pasid.
+     * Bits 5-3:    (rsvd) Reserved.
+     * Bits 63-6:   (cxt_ctl_ptr) Pointer to context control block.
+     */
+    __le64 cxt_ctl_ptr;
+
+#define SDXI_CXT_L1_ENT_VL_BIT           BIT_ULL(0)
+#define SDXI_CXT_L1_ENT_KA_BIT           BIT_ULL(1)
+#define SDXI_CXT_L1_ENT_PV_BIT           BIT_ULL(2)
+#define SDXI_CXT_L1_ENT_CXT_CTL_PTR_MASK GENMASK_ULL(63, 6)
+
+    /**
+     * @akey_ptr: AKey table pointer and size.
+     *
+     * Bits 3-0: (akey_sz) AKey table size: 2^(akey_sz + 8) entries.
+     * Bits 11-4: (rsvd) Reserved.
+     * Bits 63-12: (akey_ptr) Pointer to AKey table.
+     */
+    __le64 akey_ptr;
+
+#define SDXI_CXT_L1_ENT_AKEY_SZ_MASK     GENMASK_ULL(3, 0)
+#define SDXI_CXT_L1_ENT_AKEY_PTR_MASK    GENMASK_ULL(63, 12)
+
+    /**
+     * @misc0: Miscellaneous attributes.
+     *
+     * Bits 19-0: (cxt_pasid) When pv=1, the PASID used by the device to access
+     *            the descriptor ring and associated data structures.
+     * Bits 23-20: (max_buffer) Maximum data buffer size supported by this
+     *             context: 2^(max_buffer + 21) bytes.
+     * Bits 31-24: (rsvd) Reserved.
+     */
+    __le32 misc0;
+
+    /**
+     * @opb_000_enb: Bitmask of operation groups enabled for this context.
+     */
+    __le32 opb_000_enb;
+
+    /**
+     * @rsvd_0: Reserved.
+     */
+    __u8 rsvd_0[8];
+} __packed;
+static_assert(sizeof(struct sdxi_cxt_l1_ent) == 32);
+
 /**
  * struct sdxi_cst_blk - Completion status block (CST_BLK).
  */
