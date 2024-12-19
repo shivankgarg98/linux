@@ -17,6 +17,7 @@
 #include <linux/wordpart.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 
+#include "hw.h"
 #include "sdxi.h"
 #include "pci.h"
 #include "context.h"
@@ -87,9 +88,8 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	dest %= sq->ring_entries;
 	memcpy(&sq->desc_ring[dest], desc, sizeof(struct sdxi_desc));
 	if (csb) {
-		memset(&sq->csb[dest], 0, sizeof(struct csb));
-		sq->csb[dest].signal = init_signal;
-		sq->desc_ring[dest].csb_ptr = sq->csb_dma + dest * sizeof(struct csb);
+		sdxi_cst_blk_set(&sq->csb[dest], init_signal);
+		sq->desc_ring[dest].csb_ptr = sq->csb_dma + dest * sizeof(struct sdxi_cst_blk);
 	}
 	sq->desc_ring[dest].vl = 1;
 	/* make sure the update of valid bit is visible */
@@ -131,7 +131,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto free_desc_ring;
 
 	/* alloc completion status block */
-	sq->csb_size = ring_entries * sizeof(struct csb);
+	sq->csb_size = ring_entries * sizeof(*sq->csb);
 	sq->csb = kzalloc(sq->csb_size, GFP_KERNEL);
 	if (!sq->csb)
 		goto unmap_desc_ring;

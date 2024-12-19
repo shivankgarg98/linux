@@ -150,13 +150,6 @@ struct sdxi_desc {
 	u64 csb_ptr;
 } __packed;
 
-struct csb {
-	volatile u64 signal;		/* QW0 */
-	u32 rsvd1		: 31;	/* QW1 */
-	u32 er			: 1;
-	u32 rsvd2[5];			/* DW3+ */
-} __packed;
-
 /* Submission Queue */
 struct sdxi_sq {
 	struct sdxi_cxt *cxt;		/* owner */
@@ -166,7 +159,7 @@ struct sdxi_sq {
 	struct sdxi_desc *desc_ring;
 	dma_addr_t ring_dma;
 
-	struct csb *csb;
+	struct sdxi_cst_blk *csb;
 	size_t csb_size;
 	dma_addr_t csb_dma;
 

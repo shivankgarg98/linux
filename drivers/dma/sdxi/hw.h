@@ -80,4 +80,37 @@ struct sdxi_cxt_l2_table {
 };
 static_assert(sizeof(struct sdxi_cxt_l2_table) == 4096);
 
+/**
+ * struct sdxi_cst_blk - Completion status block (CST_BLK).
+ */
+struct sdxi_cst_blk {
+	/**
+	 * @signal: Completion signal value.
+	 */
+	__le64 signal;
+
+	/**
+	 * @flags: Flags.
+	 *
+	 * Bits 30-0: (rsvd) Reserved.
+	 * Bit 31:    (er) Error recorded.
+	 */
+	__le32 flags;
+
+	/**
+	 * @rsvd_0: Reserved.
+	 */
+	__u8 rsvd_0[20];
+} __packed;
+static_assert(sizeof(struct sdxi_cst_blk) == 32);
+
+#define SDXI_CST_BLK_ER_BIT BIT(0);
+
+static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
+{
+	*cst_blk = (struct sdxi_cst_blk) {
+		.signal = cpu_to_le64(signal),
+	};
+}
+
 #endif /* LINUX_SDXI_HW_H */
