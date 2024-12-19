@@ -8,6 +8,9 @@
  * members) are written to match the spec, generally. E.g. struct
  * sdxi_cxt_l2_ent corresponds to CXT_L2_ENT in the spec.
  *
+ * Note: a member can have a subfield whose name is identical to the
+ * member's name. E.g. CXT_L2_ENT's lv01_ptr.
+ *
  * All reserved fields and bits (usually named "rsvd" or some
  * variation) must be set to zero by the driver unless otherwise
  * specified.
