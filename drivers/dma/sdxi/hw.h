@@ -114,4 +114,63 @@ static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
 	};
 }
 
+/**
+ * struct sdxi_cxt_ctl - Context control entry (CXT_CTL).
+ *
+ * Control information for a single descriptor ring.
+ */
+struct sdxi_cxt_ctl {
+	/**
+	 * @ds_ring_ptr: Descriptor ring pointer and flags.
+	 *
+	 * Bit 0:     (vl) Valid.
+	 * Bit 1:     (rsvd) Reserved.
+	 * Bits 3-2:  (qos) QoS.
+	 * Bit 4:     (se) Sequential consistency hint.
+	 * Bit 5:     (csa) Completion status mode availability.
+	 * Bits 63-6: (ds_ring_ptr) 64B-aligned descriptor ring address.
+	 */
+	__le64 ds_ring_ptr;
+
+#define SDXI_CXT_CTL_VALID_BIT        BIT_ULL(0)
+#define SDXI_CXT_CTL_QOS_MASK         GENMASK_ULL(3, 2)
+#define SDXI_CXT_CTL_SE_BIT           BIT_ULL(4)
+#define SDXI_CXT_CTL_CSA_BIT          BIT_ULL(5)
+#define SDXI_CXT_CTL_DS_RING_PTR_MASK GENMASK_ULL(63, 6)
+
+	/**
+	 * @ds_ring_sz: Number of descriptors in the ring.
+	 */
+	__le32 ds_ring_sz;
+	/**
+	 * @rsvd_0: Reserved.
+	 */
+	__u8 rsvd_0[4];
+	/**
+	 * @cxt_sts_ptr: Context status pointer.
+	 *
+	 * Bits 3-0:  (rsvd) Reserved.
+	 * Bits 63-4: (cxt_sts_ptr) 16B-aligned context status (CXT_STS) address.
+	 */
+	__le64 cxt_sts_ptr;
+
+#define SDXI_CXT_CTL_CXT_STS_PTR_MASK GENMASK_ULL(63, 4)
+
+	/**
+	 * @write_index_ptr: Write index pointer.
+	 *
+	 * Bits 2-0:  (rsvd) Reserved.
+	 * Bits 63-3: (write_index_ptr) 8B-aligned descriptor ring write index.
+	 */
+	__le64 write_index_ptr;
+
+#define SDXI_CXT_CTL_WRITE_INDEX_PTR_MASK GENMASK_ULL(63, 3)
+
+	/**
+	 * @rsvd_1: Reserved.
+	 */
+	__u8 rsvd_1[32];
+} __packed;
+static_assert(sizeof(struct sdxi_cxt_ctl) == 64);
+
 #endif /* LINUX_SDXI_HW_H */
