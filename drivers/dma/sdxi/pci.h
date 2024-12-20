@@ -127,17 +127,6 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* Version Register */
-union mmio_ver_reg {
-	struct {
-		u64 minor		:8;
-		u64 rsvd0		:8;
-		u64 major		:8;
-		u64 rsvd1		:40;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 /* L2 Table Pointer Register */
 union mmio_cxt_l2_reg {
 	struct {
