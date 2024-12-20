@@ -119,23 +119,6 @@ struct sdxi_cxt_status {
 	u64 read_idx;			/* QW1 */
 } __packed __aligned(16);
 
-/* Context Control Entry */
-struct cxt_ctrl_entry {
-	u64 vl			: 1;	/* QW0 */
-	u64 rsvd1		: 1;
-	u64 qos			: 2;
-	u64 se			: 1;
-	u64 csa			: 1;
-	u64 desc_ring_base	: 58;
-	u64 desc_ring_size	: 32;	/* QW1 */
-	u64 rsvd3		: 32;
-	u64 rsvd4		: 4;	/* QW2 */
-	u64 cxt_status_ptr	: 60;
-	u64 rsvd5		: 3;	/* QW3 */
-	u64 wrt_index_ptr	: 61;
-	u32 rsvd6[8];			/* QW4+ */
-} __packed __aligned(64);
-
 struct sdxi_desc {
 	u32 vl			: 1;
 	u32 se			: 1;
@@ -232,7 +215,7 @@ struct sdxi_cxt {
 	resource_size_t db_base;	/* doorbell MMIO base addr */
 	void __iomem *db;		/* doorbell virt addr */
 
-	struct cxt_ctrl_entry cce;
+	struct sdxi_cxt_ctl cce __aligned(64);
 	dma_addr_t cce_addr;		/* cce dma addr */
 
 	int akey_entries;
