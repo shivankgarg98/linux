@@ -61,8 +61,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 
 	if (cxt) {
 		/* NB: More need to be done */
-		cxt->cce_addr = dma_map_single(dev, &cxt->cce,
-					       sizeof(struct cxt_ctrl_entry),
+		cxt->cce_addr = dma_map_single(dev, &cxt->cce, sizeof(cxt->cce),
 					       DMA_TO_DEVICE);
 		if (dma_mapping_error(dev, cxt->cce_addr)) {
 			dev_err(dev, "dma_map for cxt ctrl addr failed\n");
@@ -75,7 +74,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 						DMA_TO_DEVICE);
 		if (dma_mapping_error(dev, cxt->akey_addr))  {
 			dev_err(dev, "dma_map for akey table failed\n");
-			dma_unmap_single(dev, cxt->cce_addr, sizeof(struct cxt_ctrl_entry),
+			dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce),
 					 DMA_TO_DEVICE);
 			return;
 		}
