@@ -97,14 +97,14 @@ struct sdxi_cst_blk {
 	 */
 	__le32 flags;
 
+#define SDXI_CST_BLK_ER_BIT BIT(31);
+
 	/**
 	 * @rsvd_0: Reserved.
 	 */
 	__u8 rsvd_0[20];
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
-
-#define SDXI_CST_BLK_ER_BIT BIT(0);
 
 static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
 {
