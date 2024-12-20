@@ -38,11 +38,12 @@ struct sdxi_cxt_l2_ent {
 	 *             table, 4K-aligned.
 	 */
 	__le64 lv01_ptr;
-} __packed;
-static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
 
 #define SDXI_CXT_L2_ENT_LV01_PTR_MASK GENMASK_ULL(63, 12)
 #define SDXI_CXT_L2_ENT_VL_MASK       BIT_ULL(0)
+
+} __packed;
+static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
 
 static inline void sdxi_cxt_l2_ent_set(struct sdxi_cxt_l2_ent *ent,
 				       dma_addr_t addr, bool valid)
