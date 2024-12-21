@@ -205,7 +205,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	sdxi->max_pasids = pci_max_pasids(sdxi->pdev);
 
 	/* CAP0 */
-	cap0.data = ioread64(sdxi->ctrl_regs + MMIO_CAP0_OFFSET);
+	cap0.data = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
 
 	sdxi->sfunc = cap0.sfunc;
 	sdxi->is_vf = cap0.vf;
@@ -214,7 +214,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	sdxi->max_rkeys = 1 << (cap0.max_rkey_sz + 8);
 
 	/* CAP1 */
-	cap1.data = ioread64(sdxi->ctrl_regs + MMIO_CAP1_OFFSET);
+	cap1.data = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
 
 	sdxi->max_buffer = 2ULL << (cap1.max_buffer + 21);
 	sdxi->has_rkey = cap1.rkey_cap;
