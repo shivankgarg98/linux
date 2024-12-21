@@ -129,16 +129,16 @@ static irqreturn_t sdxi_irq_thread(int irq, void *data)
 	struct sdxi_dev *sdxi = (struct sdxi_dev *)data;
 	union mmio_err_sts_reg err_sts;
 
-	err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+	err_sts.data = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
 
 	while (err_sts.sts) {
 		sdxi_handle_err(sdxi);
 
 		/* clear status bit */
 		err_sts.data |= 0x1;
-		iowrite64(err_sts.data, sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+		sdxi_write64(sdxi, SDXI_MMIO_ERR_STS, err_sts.data);
 
-		err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
+		err_sts.data = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
 	}
 
 	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
