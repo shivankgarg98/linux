@@ -320,7 +320,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	if (dma_mapping_error(dev, sdxi->l2_dma))
 		return -ENOMEM;
 	cxt_l2_reg.ptr = sdxi->l2_dma >> 12;
-	iowrite64(cxt_l2_reg.data, sdxi->ctrl_regs + MMIO_CXT_L2_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2, cxt_l2_reg.data);
 
 	/* rkey */
 	sdxi->rkey_dma = dma_map_single(dev, sdxi->rkey,
@@ -331,7 +331,7 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	rkey_reg.ptr = sdxi->rkey_dma >> 12;
 	rkey_reg.sz = sdxi->rkey_num >> 8;
 	rkey_reg.en = 1;
-	iowrite64(rkey_reg.data, sdxi->ctrl_regs + MMIO_RKEY_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_RKEY, rkey_reg.data);
 
 	/* err log */
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
@@ -342,26 +342,26 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	err_cfg_reg.ptr = sdxi->err_log_dma >> 12;
 	err_cfg_reg.sz = sdxi->err_log_num >> 6;
 	err_cfg_reg.en = 1;
-	iowrite64(err_cfg_reg.data, sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, err_cfg_reg.data);
 
 	/* err log intr */
 	err_ctl_reg.en = 1;
-	iowrite64(err_ctl_reg.data, sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, err_ctl_reg.data);
 
 	/* enable device */
-	ctl0_reg.data = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
 	ctl0_reg.fn_gsr = GSRV_ACTIVE;
 	ctl0_reg.fn_err_intr_en = 1;
-	iowrite64(ctl0_reg.data, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
 
-	ctrl2 = ioread64(sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
+	ctrl2 = sdxi_read64(sdxi, SDXI_MMIO_CTL2);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
 	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
 	ctrl2 &= 0x00000000FFFFFFFFULL;
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
-	iowrite64(ctrl2, sdxi->ctrl_regs + MMIO_CTL2_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctrl2);
 
-	status = ioread64(sdxi->ctrl_regs + MMIO_STS0_OFFSET);
+	status = sdxi_read64(sdxi, SDXI_MMIO_STS0);
 
 	pr_debug("function info:\n"
 		 "  err log addr: v=0x%p:d=0x%llx\n"
