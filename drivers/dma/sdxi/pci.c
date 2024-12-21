@@ -29,6 +29,37 @@
 
 LIST_HEAD(sdxi_device_list);
 
+enum sdxi_reg {
+	SDXI_MMIO_CTL0       = 0x00000,
+	SDXI_MMIO_GRP_ENUM   = 0x00008,
+	SDXI_MMIO_CTL2       = 0x00010,
+	SDXI_MMIO_STS0       = 0x00100,
+	SDXI_MMIO_CAP0       = 0x00200,
+	SDXI_MMIO_CAP1       = 0x00208,
+	SDXI_MMIO_VER        = 0x00210,
+	SDXI_MMIO_CXT_L2     = 0x10000,
+	SDXI_MMIO_RKEY       = 0x10100,
+	SDXI_MMIO_ERR_CTL    = 0x20000,
+	SDXI_MMIO_ERR_STS    = 0x20008,
+	SDXI_MMIO_ERR_CFG    = 0x20010,
+	SDXI_MMIO_ERR_WRT    = 0x20020,
+	SDXI_MMIO_ERR_RD     = 0x20028,
+};
+
+enum {
+	SDXI_MMIO_CXT_L2_PTR_MASK = GENMASK_ULL(63, 12),
+};
+
+static u64 sdxi_read64(struct sdxi_dev *sdxi, enum sdxi_reg reg)
+{
+	return ioread64(sdxi->ctrl_regs + reg);
+}
+
+static void sdxi_write64(struct sdxi_dev *sdxi, enum sdxi_reg reg, u64 val)
+{
+	iowrite64(val, sdxi->ctrl_regs + reg);
+}
+
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 {
 	struct device *dev = &sdxi->pdev->dev;
@@ -71,8 +102,8 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	u64 read_ptr, write_ptr, offset;
 	struct sdxi_err *err_entry;
 
-	read_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
-	write_ptr = ioread64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
+	read_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
+	write_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
 
 	while (read_ptr < write_ptr) {
 		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
@@ -81,7 +112,7 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 		read_ptr++;
 	}
 
-	iowrite64(read_ptr, sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, read_ptr);
 }
 
 static void sdxi_do_cmd_complete(unsigned long data)
