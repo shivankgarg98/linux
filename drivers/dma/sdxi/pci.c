@@ -48,6 +48,19 @@ enum sdxi_reg {
 
 enum {
 	SDXI_MMIO_CXT_L2_PTR_MASK = GENMASK_ULL(63, 12),
+
+	//// SDXI_MMIO_ERR_STS bit definitions.
+
+	// The device has attempted to log an error. Other bits
+	// indicate whether this was successful.
+	SDXI_MMIO_ERR_STS_STS_BIT = BIT_ULL(0),
+
+	// Error log overflowed and some error information was discarded.
+	SDXI_MMIO_ERR_STS_OVF_BIT = BIT_ULL(1),
+
+	// The device has encountered an error while attempting to log
+	// an error; some error information has been discarded.
+	SDXI_MMIO_ERR_STS_ERR_BIT = BIT_ULL(3),
 };
 
 static u64 sdxi_read64(struct sdxi_dev *sdxi, enum sdxi_reg reg)
@@ -127,18 +140,15 @@ static void sdxi_do_cmd_complete(unsigned long data)
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = data;
-	union mmio_err_sts_reg err_sts;
 
-	err_sts.data = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
-
-	while (err_sts.sts) {
+	while (sdxi_read64(sdxi, SDXI_MMIO_ERR_STS) & SDXI_MMIO_ERR_STS_STS_BIT) {
 		sdxi_handle_err(sdxi);
 
-		/* clear status bit */
-		err_sts.data |= 0x1;
-		sdxi_write64(sdxi, SDXI_MMIO_ERR_STS, err_sts.data);
-
-		err_sts.data = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
+		// The flags in this register are RW1C.
+		sdxi_write64(sdxi, SDXI_MMIO_ERR_STS,
+			     SDXI_MMIO_ERR_STS_STS_BIT |
+			     SDXI_MMIO_ERR_STS_OVF_BIT |
+			     SDXI_MMIO_ERR_STS_ERR_BIT);
 	}
 
 	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
