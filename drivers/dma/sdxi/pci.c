@@ -126,7 +126,7 @@ static void sdxi_do_cmd_complete(unsigned long data)
 
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
-	struct sdxi_dev *sdxi = (struct sdxi_dev *)data;
+	struct sdxi_dev *sdxi = data;
 	union mmio_err_sts_reg err_sts;
 
 	err_sts.data = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
