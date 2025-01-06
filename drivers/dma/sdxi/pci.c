@@ -384,17 +384,15 @@ unmap_l2:
 
 static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
 {
-	union mmio_err_ctl_reg err_ctl;
-	union mmio_err_sts_reg err_sts;
-	union mmio_err_cfg_reg err_cfg;
-	union mmio_err_wrt_reg err_wrt;
-	union mmio_err_rd_reg err_rd;
+	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_CTL);
+	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
+	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_CFG);
+	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
+	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
 
-	err_ctl.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_CTL_OFFSET);
-	err_sts.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_STS_OFFSET);
-	err_cfg.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_CFG_OFFSET);
-	err_wrt.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_WRT_OFFSET);
-	err_rd.data = ioread64(sdxi->ctrl_regs + MMIO_ERR_RD_OFFSET);
+	// FIXME: is this function supposed to log these regs or
+	// something? Leaving it for now, just in case we're depending
+	// on some side effect of the reads. -ntl
 }
 
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
