@@ -403,9 +403,9 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 	sdxi_dump_errlog(sdxi);
 
 	/* disable device */
-	ctl0_reg.data = ioread64(sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
 	ctl0_reg.fn_gsr = GSRV_STOP_SF;
-	iowrite64(ctl0_reg.data, sdxi->ctrl_regs + MMIO_CTL0_OFFSET);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
 
 	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	dma_unmap_single(dev, sdxi->rkey_dma,
