@@ -156,18 +156,6 @@ union mmio_err_ctl_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* Error Status Register */
-union mmio_err_sts_reg {
-	struct {
-		u64 sts			:1;
-		u64 ovf			:1;
-		u64 rsvd0		:1;
-		u64 err			:1;
-		u64 rsvd1		:60;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 /* Error Config Register */
 union mmio_err_cfg_reg {
 	struct {
@@ -175,22 +163,6 @@ union mmio_err_cfg_reg {
 		u64 sz			:5;
 		u64 rsvd0		:6;
 		u64 ptr			:52;
-	};
-	u64 data;
-} __packed __aligned(8);
-
-/* Error Write Index Register */
-union mmio_err_wrt_reg {
-	struct {
-		u64 index		:64;
-	};
-	u64 data;
-} __packed __aligned(8);
-
-/* Error Read Index Register */
-union mmio_err_rd_reg {
-	struct {
-		u64 index		:64;
 	};
 	u64 data;
 } __packed __aligned(8);
