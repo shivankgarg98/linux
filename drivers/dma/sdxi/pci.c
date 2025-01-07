@@ -49,6 +49,13 @@ enum sdxi_reg {
 enum {
 	SDXI_MMIO_CXT_L2_PTR_MASK = GENMASK_ULL(63, 12),
 
+	//// SDXI_MMIO_ERR_CTL bit definitions
+
+	// When set to 1, an interrupt is signaled when hardware
+	// transitions MMIO_ERR_STS.sts from 0 to 1. Otherwise no
+	// interrupt is generated.
+	SDXI_MMIO_ERR_CTL_EN = BIT_ULL(0),
+
 	//// SDXI_MMIO_ERR_STS bit definitions.
 
 	// The device has attempted to log an error. Other bits
@@ -320,7 +327,6 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	union mmio_cxt_l2_reg cxt_l2_reg;
 	union mmio_rkey_reg rkey_reg;
 	union mmio_err_cfg_reg err_cfg_reg;
-	union mmio_err_ctl_reg err_ctl_reg;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
 
@@ -354,9 +360,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	err_cfg_reg.en = 1;
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, err_cfg_reg.data);
 
-	/* err log intr */
-	err_ctl_reg.en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, err_ctl_reg.data);
+	/* Signal interrupt on new error log entry */
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, SDXI_MMIO_ERR_CTL_EN);
 
 	/* enable device */
 	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
