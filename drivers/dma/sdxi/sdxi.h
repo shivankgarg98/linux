@@ -309,14 +309,9 @@ struct sdxi_dev {
 
 	/* hardware capabilities (from cap0 & cap1) */
 	u16 sfunc;			/* function's requester id */
-	bool is_vf;			/* is VF function? */
 	u32 db_stride;			/* doorbell stride in bytes */
 	u64 max_ring_entries;		/* max # of ring entries supported */
-	u32 max_rkeys;			/* max rkey # supported */
 
-	u64 max_buffer;			/* max supported buffer size bytes */
-	bool has_rkey;			/* is rkey functionality supported? */
-	u32 max_err_logs;		/* max err log entries supported */
 	u32 max_akeys;			/* max akey # supported */
 	u32 max_cxts;			/* max contexts # supported */
 	u32 op_grp_cap;			/* supported operatation group cap */

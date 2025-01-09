@@ -221,17 +221,12 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	cap0.data = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
 
 	sdxi->sfunc = cap0.sfunc;
-	sdxi->is_vf = cap0.vf;
 	sdxi->db_stride = 1 << (cap0.db_stride + 12);
 	sdxi->max_ring_entries = 1ULL << (cap0.max_ds_ring_sz + 10);
-	sdxi->max_rkeys = 1 << (cap0.max_rkey_sz + 8);
 
 	/* CAP1 */
 	cap1.data = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
 
-	sdxi->max_buffer = 2ULL << (cap1.max_buffer + 21);
-	sdxi->has_rkey = cap1.rkey_cap;
-	sdxi->max_err_logs = 2 << (cap1.max_errlog_sz + 7);
 	sdxi->max_akeys = 1 << (cap1.max_akey_sz + 8);
 	sdxi->max_cxts = cap1.max_cxt + 1;
 	sdxi->op_grp_cap = cap1.opb_000_cap;
