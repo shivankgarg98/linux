@@ -321,14 +321,9 @@ struct sdxi_dev {
 	u32 max_cxts;			/* max contexts # supported */
 	u32 op_grp_cap;			/* supported operatation group cap */
 
-	/* iommu support */
-	bool use_iommu_v2;		/* bound with iommu for pasid? */
-	u32 pasid_limit;
-
 	/* MSI */
 	unsigned int irq_count;
 	struct irq_entry err_irq;
-	struct irq_entry *cxt_irqs;	/* NB: convert to a struct */
 
 	/* context management */
 	struct mutex cxt_lock;		/* context protection */

@@ -196,7 +196,6 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 		goto err_irq0_alloc;
 	}
 
-	/* NB: alloc and setup cxt_irqs here */
 	return 0;
 
 err_irq0_alloc:
