@@ -218,9 +218,6 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	union mmio_cap0_reg cap0;
 	union mmio_cap1_reg cap1;
 
-	/* generic properties */
-	sdxi->max_pasids = pci_max_pasids(sdxi->pdev);
-
 	/* CAP0 */
 	cap0.data = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
 

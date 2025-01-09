@@ -323,7 +323,6 @@ struct sdxi_dev {
 
 	/* iommu support */
 	bool use_iommu_v2;		/* bound with iommu for pasid? */
-	u32 max_pasids;
 	u32 pasid_limit;
 
 	/* MSI */
