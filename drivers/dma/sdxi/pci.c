@@ -49,6 +49,17 @@ enum sdxi_reg {
 enum {
 	SDXI_MMIO_CXT_L2_PTR_MASK = GENMASK_ULL(63, 12),
 
+	//// SDXI_MMIO_ERR_CFG bit definitions
+
+	// Pointer to error log buffer (4KB-aligned).
+	SDXI_MMIO_ERR_CFG_PTR = GENMASK_ULL(63, 12),
+
+	// Encoded error log buffer size.
+	SDXI_MMIO_ERR_CFG_SZ  = GENMASK_ULL(5, 1),
+
+	// Error log enable.
+	SDXI_MMIO_ERR_CFG_EN  = BIT_ULL(0),
+
 	//// SDXI_MMIO_ERR_CTL bit definitions
 
 	// When set to 1, an interrupt is signaled when hardware
@@ -317,7 +328,6 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	struct device *dev = &sdxi->pdev->dev;
 	union mmio_cxt_l2_reg cxt_l2_reg;
 	union mmio_rkey_reg rkey_reg;
-	union mmio_err_cfg_reg err_cfg_reg;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
 
@@ -346,10 +356,11 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 					   DMA_FROM_DEVICE);
 	if (dma_mapping_error(dev, sdxi->err_log_dma))
 		goto unmap_rkey;
-	err_cfg_reg.ptr = sdxi->err_log_dma >> 12;
-	err_cfg_reg.sz = sdxi->err_log_num >> 6;
-	err_cfg_reg.en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, err_cfg_reg.data);
+
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
+		     FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
+		     FIELD_PREP(SDXI_MMIO_ERR_CFG_SZ, sdxi->err_log_num >> 6) |
+		     FIELD_PREP(SDXI_MMIO_ERR_CFG_EN, 1));
 
 	/* Signal interrupt on new error log entry */
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, SDXI_MMIO_ERR_CTL_EN);

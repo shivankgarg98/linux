@@ -147,15 +147,4 @@ union mmio_rkey_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* Error Config Register */
-union mmio_err_cfg_reg {
-	struct {
-		u64 en			:1;
-		u64 sz			:5;
-		u64 rsvd0		:6;
-		u64 ptr			:52;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 #endif /* __SDXI_PCI_H */
