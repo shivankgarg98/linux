@@ -10,6 +10,7 @@
 #define pr_fmt(fmt)     "SDXI: " fmt
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
+#include <linux/bitfield.h>
 #include <linux/delay.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
