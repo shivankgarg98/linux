@@ -5,9 +5,6 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-#define SDXI_MAJOR_VERSION	0
-#define SDXI_MINOR_VERSION	1
-
 struct sdxi_get_version_args {
 	__u32 major_version;		/* from SDXI */
 	__u32 minor_version;		/* from SDXI */
