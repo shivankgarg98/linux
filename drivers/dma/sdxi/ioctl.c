@@ -261,6 +261,7 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 			    .cmd_drv = 0, .name = #ioctl}
 
 static struct sdxi_ioctl_desc sdxi_ioctls[] = {
+	// FIXME: empty entry at 0
 	SDXI_IOCTL_DEF(SDXI_GET_VERSION,
 		       sdxi_ioctl_get_version, 0),
 
