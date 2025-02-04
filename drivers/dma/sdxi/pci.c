@@ -48,6 +48,20 @@ enum sdxi_reg {
 };
 
 enum {
+	//// SDXI_MMIO_CAP0 bit definitions
+
+	// SDXI function identifier, unique within its function group.
+	SDXI_MMIO_CAP0_SFUNC = GENMASK_ULL(15, 0),
+
+	// Encoded address stride between doorbell sections.
+	SDXI_MMIO_CAP0_DB_STRIDE = GENMASK_ULL(22, 20),
+
+	// Encoded maximum descriptor ring size for any context in
+	// this function.
+	SDXI_MMIO_CAP0_MAX_DS_RING_SZ = GENMASK_ULL(28, 24),
+
+	//// SDXI_MMIO_CAP1 bit definitions
+	
 	//// SDXI_MMIO_CXT_L2 bit definitions
 
 	// Pointer to level 2 context table (4KB-aligned).
@@ -240,15 +254,13 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 {
-	union mmio_cap0_reg cap0;
 	union mmio_cap1_reg cap1;
+	u64 cap0;
 
-	/* CAP0 */
-	cap0.data = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
-
-	sdxi->sfunc = cap0.sfunc;
-	sdxi->db_stride = 1 << (cap0.db_stride + 12);
-	sdxi->max_ring_entries = 1ULL << (cap0.max_ds_ring_sz + 10);
+	cap0 = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
+	sdxi->max_ring_entries = 1ULL << (FIELD_GET(SDXI_MMIO_CAP0_MAX_DS_RING_SZ, cap0) + 10);
+	sdxi->db_stride = 1UL << (FIELD_GET(SDXI_MMIO_CAP0_DB_STRIDE, cap0) + 12);
+	sdxi->sfunc = FIELD_GET(SDXI_MMIO_CAP0_SFUNC, cap0);
 
 	/* CAP1 */
 	cap1.data = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
@@ -258,7 +270,7 @@ static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
 	sdxi->op_grp_cap = cap1.opb_000_cap;
 
 	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
-		sdxi->sfunc, cap0.data, cap1.data);
+		sdxi->sfunc, cap0, cap1.data);
 }
 
 static int sdxi_pci_map(struct sdxi_dev *sdxi)

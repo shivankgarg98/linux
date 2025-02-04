@@ -83,22 +83,6 @@ union mmio_sts0_reg {
 #define GSV_STOPG_HD			0x4
 #define GSV_ERROR			0x5
 
-/* Capability 0 Register */
-union mmio_cap0_reg {
-	struct {
-		u64 sfunc		:16;
-		u64 vf			:1;
-		u64 cs_cap		:2;
-		u64 rsvd0		:1;
-		u64 db_stride		:3;
-		u64 rsvd1		:1;
-		u64 max_ds_ring_sz	:8;
-		u64 max_rkey_sz		:8;
-		u64 rsvd2		:24;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 /* Capability 1 Register */
 union mmio_cap1_reg {
 	struct {
