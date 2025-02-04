@@ -363,7 +363,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 		     FIELD_PREP(SDXI_MMIO_ERR_CFG_EN, 1));
 
 	/* Signal interrupt on new error log entry */
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, SDXI_MMIO_ERR_CTL_EN);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL,
+		     FIELD_PREP(SDXI_MMIO_ERR_CTL_EN, 1));
 
 	/* enable device */
 	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
