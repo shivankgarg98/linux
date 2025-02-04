@@ -14,6 +14,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
 #include <linux/module.h>
+#include <linux/bits.h>
+#include <linux/bitfield.h>
 #include <linux/device.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/mutex.h>
