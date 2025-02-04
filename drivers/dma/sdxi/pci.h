@@ -115,13 +115,4 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* L2 Table Pointer Register */
-union mmio_cxt_l2_reg {
-	struct {
-		u64 rsvd0		:12;
-		u64 ptr			:52;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 #endif /* __SDXI_PCI_H */

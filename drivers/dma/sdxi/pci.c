@@ -48,7 +48,10 @@ enum sdxi_reg {
 };
 
 enum {
-	SDXI_MMIO_CXT_L2_PTR_MASK = GENMASK_ULL(63, 12),
+	//// SDXI_MMIO_CXT_L2 bit definitions
+
+	// Pointer to level 2 context table (4KB-aligned).
+	SDXI_MMIO_CXT_L2_PTR = GENMASK_ULL(63, 12),
 
 	//// SDXI_MMIO_ERR_CFG bit definitions
 
@@ -338,7 +341,6 @@ static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
-	union mmio_cxt_l2_reg cxt_l2_reg;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
 
@@ -347,8 +349,8 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 				      DMA_TO_DEVICE);
 	if (dma_mapping_error(dev, sdxi->l2_dma))
 		return -ENOMEM;
-	cxt_l2_reg.ptr = sdxi->l2_dma >> 12;
-	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2, cxt_l2_reg.data);
+	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
+		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
 
 	/* rkey */
 	sdxi->rkey_dma = dma_map_single(dev, sdxi->rkey,
