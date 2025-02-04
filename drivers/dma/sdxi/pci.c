@@ -31,7 +31,6 @@ LIST_HEAD(sdxi_device_list);
 
 enum sdxi_reg {
 	SDXI_MMIO_CTL0       = 0x00000,
-	SDXI_MMIO_GRP_ENUM   = 0x00008,
 	SDXI_MMIO_CTL2       = 0x00010,
 	SDXI_MMIO_STS0       = 0x00100,
 	SDXI_MMIO_CAP0       = 0x00200,

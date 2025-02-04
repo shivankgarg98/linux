@@ -19,7 +19,6 @@
 
 /* MMIO Register Offsets */
 #define MMIO_CTL0_OFFSET		0x000000
-#define MMIO_GRP_ENUM_OFFSET		0x000008
 #define MMIO_CTL2_OFFSET		0x000010
 #define MMIO_STS0_OFFSET		0x000100
 #define MMIO_CAP0_OFFSET		0x000200
@@ -53,17 +52,6 @@ union mmio_ctl0_reg {
 #define GSRV_STOP_SF			0x1
 #define GSRV_STOP_HD			0x2
 #define GSRV_ACTIVE			0x3
-
-/* Group Enum Register */
-union mmio_grp_enum_reg {
-	struct {
-		u64 busy		:1;
-		u64 probe		:1;
-		u64 rsvd0		:6;
-		u64 rsvd1		:56;
-	};
-	u64 data;
-} __packed __aligned(8);
 
 /* Control 2 Register */
 union mmio_ctl2_reg {
