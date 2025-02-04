@@ -61,6 +61,17 @@ enum {
 	// Error log enable.
 	SDXI_MMIO_ERR_CFG_EN  = BIT_ULL(0),
 
+	//// SDXI_MMIO_RKEY bit definitions
+
+	// Pointer to RKey table (4KB-aligned).
+	SDXI_MMIO_RKEY_PTR = GENMASK_ULL(63, 12),
+	// Encoded RKey table size.
+	SDXI_MMIO_RKEY_SZ = GENMASK_ULL(4, 1),
+	// RKey functionality enabled, also functions as validity bit
+	// for ptr and sz.
+	SDXI_MMIO_RKEY_EN = BIT_ULL(0),
+	
+
 	//// SDXI_MMIO_ERR_CTL bit definitions
 
 	// When set to 1, an interrupt is signaled when hardware
@@ -328,7 +339,6 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	union mmio_cxt_l2_reg cxt_l2_reg;
-	union mmio_rkey_reg rkey_reg;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
 
@@ -346,10 +356,10 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 					DMA_FROM_DEVICE);
 	if (dma_mapping_error(dev, sdxi->rkey_dma))
 		goto unmap_l2;
-	rkey_reg.ptr = sdxi->rkey_dma >> 12;
-	rkey_reg.sz = sdxi->rkey_num >> 8;
-	rkey_reg.en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_RKEY, rkey_reg.data);
+	sdxi_write64(sdxi, SDXI_MMIO_RKEY,
+		     FIELD_PREP(SDXI_MMIO_RKEY_PTR, sdxi->rkey_dma >> 12) |
+		     FIELD_PREP(SDXI_MMIO_RKEY_SZ, sdxi->rkey_num >> 8) |
+		     FIELD_PREP(SDXI_MMIO_RKEY_EN, 1));
 
 	/* err log */
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
