@@ -23,7 +23,7 @@
 #define SDXI_PROCESS_LIST_SIZE	16
 static DEFINE_MUTEX(process_list_mutex);
 static DEFINE_HASHTABLE(process_list, SDXI_PROCESS_LIST_SIZE);
-DEFINE_SRCU(process_list_srcu);
+DEFINE_STATIC_SRCU(process_list_srcu);
 
 /**********************/
 /* PROCESS MANAGEMENT */
