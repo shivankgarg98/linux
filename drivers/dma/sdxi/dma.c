@@ -287,7 +287,7 @@ static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 	sq = cxt->sq;
 	cmd = cxt->sdxi->tdata.cmd;
 
-	if (sq->csb[cmd->index].signal == 0xFE)
+	if (le64_to_cpu(sq->csb[cmd->index].signal) == 0xFE)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
 }
 
