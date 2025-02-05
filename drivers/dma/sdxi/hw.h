@@ -19,8 +19,13 @@
 #ifndef LINUX_SDXI_HW_H
 #define LINUX_SDXI_HW_H
 
+#include <linux/align.h>
+#include <linux/bitfield.h>
 #include <linux/bits.h>
+#include <linux/bug.h>
 #include <linux/build_bug.h>
+#include <linux/log2.h>
+#include <linux/sizes.h>
 #include <linux/types.h>
 #include <asm/barrier.h>
 #include <asm/byteorder.h>
@@ -39,8 +44,8 @@ struct sdxi_cxt_l2_ent {
 	 */
 	__le64 lv01_ptr;
 
-#define SDXI_CXT_L2_ENT_LV01_PTR_MASK GENMASK_ULL(63, 12)
-#define SDXI_CXT_L2_ENT_VL_MASK       BIT_ULL(0)
+#define SDXI_CXT_L2_ENT_LV01_PTR GENMASK_ULL(63, 12)
+#define SDXI_CXT_L2_ENT_VL       BIT_ULL(0)
 
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
@@ -48,11 +53,9 @@ static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
 static inline void sdxi_cxt_l2_ent_set(struct sdxi_cxt_l2_ent *ent,
 				       dma_addr_t addr, bool valid)
 {
-	u64 tmp;
-
-	tmp = (addr & SDXI_CXT_L2_ENT_LV01_PTR_MASK);
-	if (valid)
-		tmp |= SDXI_CXT_L2_ENT_VL_MASK;
+	WARN_ON(!IS_ALIGNED(addr, SZ_4K));
+	u64 tmp = FIELD_PREP(SDXI_CXT_L2_ENT_LV01_PTR, addr >> ilog2(SZ_4K)) |
+		  FIELD_PREP(SDXI_CXT_L2_ENT_VL, valid);
 
 	// We're potentially releasing the entry to the hw, ensure
 	// the valid bit update follows any prior stores.
@@ -63,13 +66,13 @@ static inline void sdxi_cxt_l2_ent_set(struct sdxi_cxt_l2_ent *ent,
 static inline dma_addr_t
 sdxi_cxt_l2_ent_lv01_ptr(const struct sdxi_cxt_l2_ent *ent)
 {
-	return le64_to_cpu(ent->lv01_ptr) & SDXI_CXT_L2_ENT_LV01_PTR_MASK;
+	return FIELD_GET(SDXI_CXT_L2_ENT_LV01_PTR, le64_to_cpu(ent->lv01_ptr)) << ilog2(SZ_4K);
 }
 
 static inline bool
 sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
 {
-	return le64_to_cpu(ent->lv01_ptr) & SDXI_CXT_L2_ENT_VL_MASK;
+	return FIELD_GET(SDXI_CXT_L2_ENT_VL, le64_to_cpu(ent->lv01_ptr));
 }
 
 /*
