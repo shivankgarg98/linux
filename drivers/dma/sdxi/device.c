@@ -131,15 +131,13 @@ static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
-	u16 id, l2_idx, l1_idx;
+	u16 l2_idx;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)
 		return -EINVAL;
 
-	id = cxt->id;
-	l2_idx = ID_TO_L2_INDEX(id);
-	l1_idx = ID_TO_L1_INDEX(id);
+	l2_idx = ID_TO_L2_INDEX(cxt->id);
 
 	/* allocate l1 table if needed */
 	l1_table = sdxi->l1_table_array[l2_idx];
@@ -167,15 +165,13 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 			       struct sdxi_cxt *cxt)
 {
-	u16 id, l2_idx, l1_idx;
+	u16 l2_idx;
 	struct cxt_l1_entry *l1_table;
 
 	if (!cxt)
 		return;
 
-	id = cxt->id;
-	l2_idx = ID_TO_L2_INDEX(id);
-	l1_idx = ID_TO_L1_INDEX(id);
+	l2_idx = ID_TO_L2_INDEX(cxt->id);
 
 	l1_table = sdxi->l1_table_array[l2_idx];
 	/* clear l1 entry */
