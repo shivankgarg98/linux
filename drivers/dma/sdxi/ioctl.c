@@ -26,7 +26,7 @@
 static const char sdxi_dev_name[] = "sdxi";
 static int sdxi_char_dev_major = -1;
 static struct class *sdxi_class;
-struct device *sdxi_device;
+static struct device *sdxi_device;
 
 /*********************/
 /* SUPPORT FUNCTIONS */
