@@ -288,6 +288,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 
 	sdxi->dbs_bar = pci_resource_start(pdev, MMIO_DOORBELL_BAR);
 
+	// FIXME: pcim_iomap_table may return NULL, and it's deprecated.
 	sdxi->ctrl_regs = pcim_iomap_table(pdev)[MMIO_CTL_REGS_BAR];
 	sdxi->dbs = pcim_iomap_table(pdev)[MMIO_DOORBELL_BAR];
 	if (!sdxi->ctrl_regs || !sdxi->dbs) {
