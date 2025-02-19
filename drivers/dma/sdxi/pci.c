@@ -10,6 +10,7 @@
 #define pr_fmt(fmt)     "SDXI: " fmt
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
+#include <linux/delay.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
@@ -48,6 +49,16 @@ enum sdxi_reg {
 };
 
 enum {
+	//// SDXI_MMIO_CTL0 bit definitions
+
+	// Initiate function state transitions
+	SDXI_MMIO_CTL0_FN_GSR = GENMASK_ULL(1, 0),
+
+	//// SDXI_MMIO_STS0 bit definitions
+
+	// Overall function state.
+	SDXI_MMIO_STS0_FN_GSV = GENMASK_ULL(2, 0),
+
 	//// SDXI_MMIO_CAP0 bit definitions
 
 	// SDXI function identifier, unique within its function group.
@@ -110,7 +121,7 @@ enum {
 	SDXI_MMIO_ERR_STS_ERR_BIT = BIT_ULL(3),
 };
 
-static u64 sdxi_read64(struct sdxi_dev *sdxi, enum sdxi_reg reg)
+static u64 sdxi_read64(const struct sdxi_dev *sdxi, enum sdxi_reg reg)
 {
 	return ioread64(sdxi->ctrl_regs + reg);
 }
@@ -351,11 +362,76 @@ static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 	sdxi_pci_unmap(sdxi);
 }
 
+typedef enum sdxi_fn_gsv {
+	SDXI_GSV_STOP,
+	SDXI_GSV_INIT,
+	SDXI_GSV_ACTIVE,
+	SDXI_GSV_STOPG_SF,
+	SDXI_GSV_STOPG_HD,
+	SDXI_GSV_ERROR,
+} sdxi_fn_gsv_t;
+
+typedef enum sdxi_fn_gsr {
+	SDXI_GSRV_RESET,
+	SDXI_GSRV_STOP_SF,
+	SDXI_GSRV_STOP_HD,
+	SDXI_GSRV_ACTIVE,
+} sdxi_fn_gsr_t;
+
+
+static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
+{
+	return FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
+			 sdxi_read64(sdxi, SDXI_MMIO_STS0));
+}
+
+// Get the device to the GSV_STOP state.
+static int sdxi_dev_stop(struct sdxi_dev *sdxi)
+{
+	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
+
+	do {
+		u64 reset = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_RESET);
+		u64 stop = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_STOP_SF);
+		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
+
+		switch (status) {
+		case SDXI_GSV_ACTIVE:
+			sdxi_write64(sdxi, SDXI_MMIO_CTL0, stop);
+			break;
+		case SDXI_GSV_ERROR:
+		case SDXI_GSV_STOP:
+			// Perform a reset command and clear all other configuration
+			// from MMIO_CTL0 at least once. If the function is already in
+			// GSV_STOP the command will be ignored.
+			sdxi_write64(sdxi, SDXI_MMIO_CTL0, reset);
+			return 0;
+			break;
+		case SDXI_GSV_INIT:
+		case SDXI_GSV_STOPG_SF:
+		case SDXI_GSV_STOPG_HD:
+			// transitional states, wait
+			fsleep(1000);
+			break;
+		default:
+			dev_err(&sdxi->pdev->dev, "unknown gsv %u, giving up\n", status);
+			return -EIO;
+			break;
+		}
+	} while (time_before(jiffies, deadline));
+
+	return -ETIMEDOUT;
+}
+
 static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	u64 ctrl2, status;
 	union mmio_ctl0_reg ctl0_reg;
+	int err;
+
+	if ((err = sdxi_dev_stop(sdxi)))
+		return err;
 
 	/* l2 table */
 	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
