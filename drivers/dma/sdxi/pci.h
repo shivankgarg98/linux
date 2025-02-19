@@ -65,16 +65,6 @@ union mmio_ctl2_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* Status 0 Register */
-union mmio_sts0_reg {
-	struct {
-		u64 fn_gsv		:3;
-		u64 rsvd0		:5;
-		u64 rsvd1		:56;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 /* function state (sts0.fn_gsv) constants */
 #define GSV_STOP			0x0
 #define GSV_INIT			0x1
