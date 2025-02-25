@@ -532,8 +532,10 @@ static int all_fw_domain_init(struct xe_gt *gt)
 	if (IS_SRIOV_PF(gt_to_xe(gt)) && !xe_gt_is_media_type(gt))
 		xe_lmtt_init_hw(&gt_to_tile(gt)->sriov.pf.lmtt);
 
-	if (IS_SRIOV_PF(gt_to_xe(gt)))
+	if (IS_SRIOV_PF(gt_to_xe(gt))) {
+		xe_gt_sriov_pf_init(gt);
 		xe_gt_sriov_pf_init_hw(gt);
+	}
 
 	xe_force_wake_put(gt_to_fw(gt), fw_ref);
 
@@ -748,10 +750,8 @@ static int do_gt_restart(struct xe_gt *gt)
 	if (err)
 		return err;
 
-	for_each_hw_engine(hwe, gt, id) {
+	for_each_hw_engine(hwe, gt, id)
 		xe_reg_sr_apply_mmio(&hwe->reg_sr, gt);
-		xe_reg_sr_apply_whitelist(hwe);
-	}
 
 	/* Get CCS mode in sync between sw/hw */
 	xe_gt_apply_ccs_mode(gt);
