@@ -381,8 +381,8 @@ typedef enum sdxi_fn_gsr {
 
 static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 {
-	return FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
-			 sdxi_read64(sdxi, SDXI_MMIO_STS0));
+	return (sdxi_fn_gsv_t)FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
+					sdxi_read64(sdxi, SDXI_MMIO_STS0));
 }
 
 // Get the device to the GSV_STOP state.
