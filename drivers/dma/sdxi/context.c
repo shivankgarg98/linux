@@ -44,7 +44,7 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	memset(desc, 0, sizeof(*desc));
 
 	desc->fe = 1;
-	desc->body[0] |= size;
+	desc->body[0] |= size - 1; // size is encoded as (actual size - 1)
 	desc->body[1] |= (src_attr & 0xF);
 	desc->body[1] |= ((dst_attr & 0xF) << 4);
 	desc->body[2] |= lower_16_bits(src_akey);
