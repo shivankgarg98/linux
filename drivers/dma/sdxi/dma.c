@@ -353,7 +353,6 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 	struct sdxi_dev *sdxi = dma_cxt->sdxi;
 	struct device *dev;
 	struct dma_device *dma_dev = &sdxi->dma_dev;
-	char *cmd_cache_name;
 	char *desc_cache_name;
 	int ret = 0;
 
@@ -370,27 +369,17 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 
 	sdxi->sdxi_dma_chan->cxt = dma_cxt;
 
-	cmd_cache_name = devm_kasprintf(dev, GFP_KERNEL,
-					"%s-dmaengine-cmd-cache",
-					dev_name(dev));
-	if (!cmd_cache_name)
-		return -ENOMEM;
-
 	desc_cache_name = devm_kasprintf(dev, GFP_KERNEL,
 					 "%s-dmaengine-desc-cache",
 					 dev_name(dev));
-	if (!desc_cache_name) {
-		ret = -ENOMEM;
-		goto err_cache;
-	}
+	if (!desc_cache_name)
+		return -ENOMEM;
 
 	sdxi->dma_desc_cache = kmem_cache_create(desc_cache_name,
 						 sizeof(struct sdxi_dma_desc), 0,
 						 SLAB_HWCACHE_ALIGN, NULL);
-	if (!sdxi->dma_desc_cache) {
-		ret = -ENOMEM;
-		goto err_cache;
-	}
+	if (!sdxi->dma_desc_cache)
+		return -ENOMEM;
 
 	dma_dev->dev = dev;
 	dma_dev->src_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
@@ -431,10 +420,6 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 
 err_reg:
 	kmem_cache_destroy(sdxi->dma_desc_cache);
-
-err_cache:
-	kmem_cache_destroy(sdxi->dma_cmd_cache);
-
 	return ret;
 }
 
@@ -443,5 +428,4 @@ void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt)
 	dma_async_device_unregister(&dma_cxt->sdxi->dma_dev);
 
 	kmem_cache_destroy(dma_cxt->sdxi->dma_desc_cache);
-	kmem_cache_destroy(dma_cxt->sdxi->dma_cmd_cache);
 }

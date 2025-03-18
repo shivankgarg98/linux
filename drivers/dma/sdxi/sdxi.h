@@ -345,7 +345,6 @@ struct sdxi_dev {
 	/* DMA engine */
 	struct dma_device dma_dev;
 	struct sdxi_dma_chan *sdxi_dma_chan;
-	struct kmem_cache *dma_cmd_cache;
 	struct kmem_cache *dma_desc_cache;
 	struct sdxi_tasklet_data tdata;
 
