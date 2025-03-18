@@ -384,7 +384,7 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 	dma_dev->dev = dev;
 	dma_dev->src_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
 	dma_dev->dst_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
-	dma_dev->directions = DMA_MEM_TO_MEM;
+	dma_dev->directions = BIT(DMA_MEM_TO_MEM);
 	dma_dev->residue_granularity = DMA_RESIDUE_GRANULARITY_DESCRIPTOR;
 	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
 	dma_cap_set(DMA_INTERRUPT, dma_dev->cap_mask);
