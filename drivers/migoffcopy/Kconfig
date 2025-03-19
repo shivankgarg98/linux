@@ -1,0 +1,9 @@
+config MTCOPY_CPU
+       bool "Multi-Threaded Copy with CPU"
+       depends on OFFC_MIGRATION
+       default n
+       help
+         Enables a multi-threaded CPU-based offload engine for batch
+         page migration. This can increase page copy throughput by
+         parallelizing the copy operations.
+
