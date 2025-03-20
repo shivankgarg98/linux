@@ -158,7 +158,6 @@ struct sdxi_sq {
 };
 
 struct sdxi_tasklet_data {
-	struct completion completion;
 	struct sdxi_cmd *cmd;
 };
 
