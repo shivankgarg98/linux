@@ -503,7 +503,6 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 
 	sdxi_working_cxt_exit(sdxi->kern_cxt);
 	sdxi_working_cxt_exit(sdxi->dma_cxt);
-	sdxi_working_cxt_exit(sdxi->admin_cxt);
 
 	// Walk sdxi->cxt_array freeing any allocated rows.
 	for (size_t i = 0; i < L2_TABLE_ENTRIES; ++i) {
@@ -512,10 +511,16 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 		// When a context is released its entry in the table should be NULL.
 		for (size_t j = 0; j < L1_TABLE_ENTRIES; ++j) {
 			struct sdxi_cxt *cxt = sdxi->cxt_array[i][j];
-
-			WARN(cxt, "Possible context object leak %p at [%zu][%zu]; cxt_count=%d\n",
-			     cxt, i, j, sdxi->cxt_count);
+			if (!cxt)
+				continue;
+			if (cxt->id != 0) // admin context shutdown is last
+				sdxi_working_cxt_exit(cxt);
+			sdxi->cxt_array[i][j] = NULL;
 		}
-		kfree(sdxi->cxt_array[i]);
+		if (i != 0) // another special case for admin cxt
+			kfree(sdxi->cxt_array[i]);
 	}
+
+	sdxi_working_cxt_exit(sdxi->admin_cxt);
+	kfree(sdxi->cxt_array[0]); // ugh
 }
