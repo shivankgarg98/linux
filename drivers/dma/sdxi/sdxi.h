@@ -110,15 +110,6 @@ enum sdxi_cxt_id {
 	SDXI_ANY_CXT_ID,
 };
 
-/* context status entry */
-struct sdxi_cxt_status {
-	u64 state		: 4;	/* QW0 */
-	u64 rsvd1		: 4;
-	u64 rsh			: 1;
-	u64 rsvd2		: 55;
-	u64 read_idx;			/* QW1 */
-} __packed __aligned(16);
-
 struct sdxi_desc {
 	u32 vl			: 1;
 	u32 se			: 1;
@@ -151,7 +142,7 @@ struct sdxi_sq {
 	dma_addr_t write_index_dma;
 
 	u32 cxt_status_size;
-	struct sdxi_cxt_status *cxt_status;
+	struct sdxi_cxt_sts *cxt_status;
 	dma_addr_t cxt_status_dma;
 
 	/* NB: define doorbell here */

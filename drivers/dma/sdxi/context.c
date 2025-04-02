@@ -77,7 +77,7 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	}
 
 	/* no more room for any descriptor */
-	if (*sq->write_index + 1 - sq->cxt_status->read_idx > sq->ring_entries) {
+	if (*sq->write_index + 1 - le64_to_cpu(sq->cxt_status->read_index) > sq->ring_entries) {
 		dev_err(dev, "desc ring is full\n");
 		return -EINVAL;
 	}
