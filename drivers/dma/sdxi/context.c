@@ -37,6 +37,18 @@ void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 	desc->csb_ptr = 0x1;
 }
 
+void build_admin_stop_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
+			   u16 cxt_start, u16 cxt_end, u64 doorbell)
+{
+	memset(desc, 0, sizeof(*desc));
+
+	desc->fe = 1;
+	DESC_ADM_BUILD_VF(desc, vf, vf_num);
+	DESC_ADM_BUILD_CXT(desc, cxt_start, cxt_end);
+	DESC_BUILD_TYPE(desc, OP_TYPE_ADMIN, OP_ADMIN_STOP);
+	desc->csb_ptr = 0x1;
+}
+
 void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 		    u8 dst_attr, u16 src_akey, u16 dst_akey,
 		    u64 src_addr, u64 dst_addr, u64 csb_ptr)

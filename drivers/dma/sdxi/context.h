@@ -42,6 +42,8 @@
 
 void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 			   u16 cxt_start, u16 cxt_end, u64 doorbell);
+void build_admin_stop_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
+			   u16 cxt_start, u16 cxt_end, u64 doorbell);
 void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 		    u8 dst_attr, u16 src_akey, u16 dst_akey,
 		    u64 src_addr, u64 dst_dst, u64 comp_ptr);
