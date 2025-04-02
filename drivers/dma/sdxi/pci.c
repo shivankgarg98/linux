@@ -421,6 +421,8 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 		}
 	} while (time_before(jiffies, deadline));
 
+	dev_err(&sdxi->pdev->dev, "stop attempt timed out, current status %u\n",
+		sdxi_dev_gsv(sdxi));
 	return -ETIMEDOUT;
 }
 
