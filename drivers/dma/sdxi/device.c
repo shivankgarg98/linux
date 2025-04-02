@@ -9,6 +9,7 @@
 
 #define dev_fmt(fmt)    "SDXI: " fmt
 
+#include <linux/delay.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
@@ -371,6 +372,41 @@ err_cxt_id:
 	return NULL;
 }
 
+static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
+{
+	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
+	struct sdxi_cxt *admin_cxt = target_cxt->sdxi->admin_cxt;
+	struct device *dev = &target_cxt->sdxi->pdev->dev;
+	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_status;
+	struct sdxi_desc desc;
+	u16 cxtid = target_cxt->id;
+
+	build_admin_stop_new(&desc, 0, 0, cxtid, cxtid, 0);
+	mb();
+	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
+
+	dev_dbg(dev, "shutting down context %u\n", cxtid);
+
+	do {
+		u8 state = sdxi_cxt_sts_state(sts);
+		switch (state) {
+		case CXT_STATE_STOPPED:
+			return;
+			break;
+		case CXT_STATE_ERR:
+			dev_err(dev, "context %u went into error state while stopping\n",
+				cxtid);
+			break;
+		default:
+			fsleep(1000);
+			break;
+		}
+	} while (time_before(jiffies, deadline));
+
+	dev_err(dev, "stopping context %u timed out (state = %u)\n",
+		cxtid, sdxi_cxt_sts_state(sts));
+}
+
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 {
 	struct sdxi_sq *sq;
@@ -381,6 +417,8 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 	sq = cxt->sq;
 	if (!sq)
 		return;
+
+	sdxi_cxt_shutdown(cxt);
 
 	sdxi_sq_free(sq);
 
