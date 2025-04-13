@@ -60,6 +60,7 @@ struct movable_operations {
 /* Defined in mm/debug.c: */
 extern const char *migrate_reason_names[MR_TYPES];
 
+int folio_expected_refs(struct address_space *mapping, struct folio *folio);
 #ifdef CONFIG_MIGRATION
 
 void putback_movable_pages(struct list_head *l);

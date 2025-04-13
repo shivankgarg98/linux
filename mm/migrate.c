@@ -445,7 +445,7 @@ unlock:
 }
 #endif
 
-static int folio_expected_refs(struct address_space *mapping,
+int folio_expected_refs(struct address_space *mapping,
 		struct folio *folio)
 {
 	int refs = 1;
@@ -458,6 +458,7 @@ static int folio_expected_refs(struct address_space *mapping,
 
 	return refs;
 }
+EXPORT_SYMBOL_GPL(folio_expected_refs);
 
 /*
  * Replace the folio in the mapping.
