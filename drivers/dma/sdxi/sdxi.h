@@ -23,6 +23,7 @@
 #include "../virt-dma.h"
 #include "hw.h"
 #include "mmio.h"
+#include "version.h"
 
 #define SDXI_DRV_NAME		"sdxi"
 #define SDXI_DRV_DESC		"SDXI driver"
@@ -302,6 +303,8 @@ struct sdxi_dev {
 	resource_size_t dbs_bar;	/* doorbells base (BAR2) */
 	void __iomem *ctrl_regs;	/* virt addr of ctrl registers */
 	void __iomem *dbs;		/* virt addr of doorbells */
+
+	sdxi_version_t sdxi_version;    /* SDXI version implemented by device */
 
 	/* hardware capabilities (from cap0 & cap1) */
 	u16 sfunc;			/* function's requester id */

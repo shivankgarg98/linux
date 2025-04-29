@@ -14,6 +14,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
+#include <linux/packing.h>
 #include <linux/pci.h>
 #include <linux/ptrace.h>
 
@@ -598,6 +599,18 @@ static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
 		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
 }
 
+static void sdxi_parse_version(struct sdxi_dev *sdxi)
+{
+	static const struct packed_field_u8 version_fields[] = {
+		PACKED_FIELD(23, 16, typeof(sdxi->sdxi_version), major),
+		PACKED_FIELD(7, 0, typeof(sdxi->sdxi_version), minor),
+	};
+	u64 reg = sdxi_read64(sdxi, SDXI_MMIO_VER);
+
+	unpack_fields(&reg, sizeof(reg), &sdxi->sdxi_version, version_fields,
+		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
+}
+
 // This is meant to implement 4.1.8 "Activation of the SDXI Function
 // by Software"
 static int sdxi_activate(struct sdxi_dev *sdxi)
@@ -610,6 +623,10 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 		return err;
 
 	sdxi_parse_capabilities(sdxi);
+	sdxi_parse_version(sdxi);
+
+	dev_info(dev, "SDXI %u.%u device found\n",
+		 sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
 	/* l2 table */
 	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
