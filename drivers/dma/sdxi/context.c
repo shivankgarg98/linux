@@ -9,7 +9,6 @@
  */
 
 #define pr_fmt(fmt)     "SDXI: " fmt
-#define dev_fmt(fmt)    pr_fmt(fmt)
 
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
