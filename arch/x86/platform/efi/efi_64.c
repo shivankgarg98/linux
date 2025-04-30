@@ -434,12 +434,15 @@ void __init efi_dump_pagetable(void)
  */
 static void efi_enter_mm(void)
 {
-	efi_prev_mm = use_temporary_mm(&efi_mm);
+	efi_prev_mm = current->active_mm;
+	current->active_mm = &efi_mm;
+	switch_mm(efi_prev_mm, &efi_mm, NULL);
 }
 
 static void efi_leave_mm(void)
 {
-	unuse_temporary_mm(efi_prev_mm);
+	current->active_mm = efi_prev_mm;
+	switch_mm(&efi_mm, efi_prev_mm, NULL);
 }
 
 void arch_efi_call_virt_setup(void)
