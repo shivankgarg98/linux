@@ -123,7 +123,8 @@ union mmio_ctl0_reg {
 		u64 fn_err_intr_en	:1;
 		u64 rsvd1		:3;
 		u64 fn_pasid		:20;
-		u64 rsvd2		:4;
+		u64 rsvd2		:3;
+		u64 pr			:1;
 		u64 fn_grp_id		:32;
 	};
 	u64 data;

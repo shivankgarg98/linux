@@ -190,7 +190,8 @@ struct akey_entry {
 	u32 rsvd1		: 1;
 	u32 tgt_sfunc		: 16;
 	u32 pasid		: 20;
-	u32 rsvd2		: 10;
+	u32 rsvd2		: 9;
+	u32 pr			: 1;
 	u32 ph			: 2;
 	u32 stag		: 16;	/* QW1 */
 	u32 rsvd3		: 16;
@@ -236,7 +237,8 @@ struct rkey_ent {
 	u32 rsvd1		: 1;
 	u32 req_sfunc		: 16;
 	u32 pasid		: 20;
-	u32 rsvd2		: 10;
+	u32 rsvd2		: 9;
+	u32 pr			: 1;
 	u32 ph			: 2;
 	u32 stag		: 16;	/* QW1 */
 	u32 rsvd3		: 16;
@@ -273,7 +275,8 @@ struct cxt_l1_entry {
 	u64 vl			: 1;	/* QW0 */
 	u64 ka			: 1;
 	u64 pv			: 1;
-	u64 rsvd1		: 3;
+	u64 rsvd1		: 2;
+	u64 pr			: 1;
 	u64 cxt_ctrl_ptr	: 58;
 	u64 akey_tbl_size	: 4;	/* QW1 */
 	u64 rsvd2		: 8;
