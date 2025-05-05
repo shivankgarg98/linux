@@ -365,7 +365,6 @@ void sdxi_device_exit(struct sdxi_dev *sdxi);
 
 /* Context Control */
 struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi);
-struct sdxi_cxt *sdxi_working_cxt_random_alloc(void);
 void sdxi_cxt_free(struct sdxi_cxt *cxt);
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id);
