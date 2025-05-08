@@ -106,7 +106,6 @@ extern struct list_head sdxi_device_list;
 enum sdxi_cxt_id {
 	SDXI_ADMIN_CXT_ID = 0,
 	SDXI_DMA_CXT_ID = 1,
-	SDXI_KERNEL_CXT_ID = 2,
 	SDXI_ANY_CXT_ID,
 };
 
@@ -335,7 +334,6 @@ struct sdxi_dev {
 	/* special contexts */
 	struct sdxi_cxt *admin_cxt;	/* admin context */
 	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
-	struct sdxi_cxt *kern_cxt;	/* kernel space context */
 };
 
 /***************************/

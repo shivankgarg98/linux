@@ -461,7 +461,7 @@ struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 /* Main entry point for SDXI device initial configuration */
 int sdxi_device_init(struct sdxi_dev *sdxi)
 {
-	struct sdxi_cxt *admin_cxt, *dma_cxt, *kern_cxt;
+	struct sdxi_cxt *admin_cxt, *dma_cxt;
 	struct sdxi_desc desc;
 
 	/* init admin context */
@@ -474,23 +474,15 @@ int sdxi_device_init(struct sdxi_dev *sdxi)
 	if (!dma_cxt)
 		goto err_dma_cxt;
 
-	/* init in kernel API context */
-	kern_cxt = sdxi_working_cxt_init(sdxi, SDXI_KERNEL_CXT_ID);
-	if (!kern_cxt)
-		goto err_kern_cxt;
-
 	sdxi->admin_cxt = admin_cxt;
 	sdxi->dma_cxt = dma_cxt;
-	sdxi->kern_cxt = kern_cxt;
 
-	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_KERNEL_CXT_ID, 0);
+	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_DMA_CXT_ID, 0);
 	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
 
 	sdxi_dma_register(sdxi->dma_cxt);
 
 	return 0;
-err_kern_cxt:
-	sdxi_working_cxt_exit(dma_cxt);
 err_dma_cxt:
 	sdxi_working_cxt_exit(admin_cxt);
 
@@ -501,7 +493,6 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 {
 	sdxi_dma_unregister(sdxi->dma_cxt);
 
-	sdxi_working_cxt_exit(sdxi->kern_cxt);
 	sdxi_working_cxt_exit(sdxi->dma_cxt);
 
 	// Walk sdxi->cxt_array freeing any allocated rows.
