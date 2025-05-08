@@ -322,11 +322,6 @@ struct sdxi_dev {
 	/* all contexts, on-demand, access with [l2_idx][l1_idx] */
 	struct sdxi_cxt **cxt_array[L2_TABLE_ENTRIES];
 
-	/* rkey table */
-	int rkey_num;
-	struct rkey_ent *rkey;
-	dma_addr_t rkey_dma;
-
 	/* error log */
 	u32 err_log_num;
 	struct sdxi_err *err_log;

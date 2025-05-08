@@ -444,23 +444,12 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
 		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
 
-	/* rkey */
-	sdxi->rkey_dma = dma_map_single(dev, sdxi->rkey,
-					sdxi->rkey_num * sizeof(struct rkey_ent),
-					DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, sdxi->rkey_dma))
-		goto unmap_l2;
-	sdxi_write64(sdxi, SDXI_MMIO_RKEY,
-		     FIELD_PREP(SDXI_MMIO_RKEY_PTR, sdxi->rkey_dma >> 12) |
-		     FIELD_PREP(SDXI_MMIO_RKEY_SZ, sdxi->rkey_num >> 8) |
-		     FIELD_PREP(SDXI_MMIO_RKEY_EN, 1));
-
 	/* err log */
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
 					   sdxi->err_log_num * sizeof(struct sdxi_err),
 					   DMA_FROM_DEVICE);
 	if (dma_mapping_error(dev, sdxi->err_log_dma))
-		goto unmap_rkey;
+		goto unmap_l2;
 
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
 		     FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
@@ -488,18 +477,13 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 
 	pr_debug("function info:\n"
 		 "  err log addr: v=0x%p:d=0x%llx\n"
-		 "  rkey addr:    v=0x%p:d=0x%llx\n"
 		 "  func status:  0x%lx\n"
 		 "  ctrl2:        0x%llx\n",
-		 sdxi->err_log, sdxi->err_log_dma & ~0x1, sdxi->rkey, sdxi->rkey_dma,
+		 sdxi->err_log, sdxi->err_log_dma & ~0x1,
 		 (unsigned long)status, (unsigned long long)ctrl2);
 
 	return 0;
 
-unmap_rkey:
-	dma_unmap_single(dev, sdxi->rkey_dma,
-			 sdxi->rkey_num * sizeof(struct rkey_ent),
-			 DMA_FROM_DEVICE);
 unmap_l2:
 	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	return -ENOMEM;
@@ -531,9 +515,6 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
 
 	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
-	dma_unmap_single(dev, sdxi->rkey_dma,
-			 sdxi->rkey_num * sizeof(struct rkey_ent),
-			 DMA_FROM_DEVICE);
 	dma_unmap_single(dev, sdxi->err_log_dma,
 			 sdxi->err_log_num * sizeof(struct sdxi_err),
 			 DMA_FROM_DEVICE);
@@ -552,13 +533,6 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 	if (!sdxi->l2_table)
 		goto l2_fail;
 
-	/* rkey */
-	entries = DEFAULT_RKEY_NUM;
-	sdxi->rkey = kcalloc(entries, sizeof(struct rkey_ent), GFP_KERNEL);
-	if (!sdxi->rkey)
-		goto rkey_fail;
-	sdxi->rkey_num = entries;
-
 	/* error log */
 	entries = DEFAULT_ERR_LOG_NUM;
 	sdxi->err_log = kcalloc(entries, sizeof(struct sdxi_err), GFP_KERNEL);
@@ -573,8 +547,6 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 	return sdxi;
 
 err_log_fail:
-	kfree(sdxi->rkey);
-rkey_fail:
 	kfree(sdxi->l2_table);
 l2_fail:
 	kfree(sdxi);
@@ -585,7 +557,6 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 {
 	list_del(&sdxi->list);
 	kfree(sdxi->err_log);
-	kfree(sdxi->rkey);
 	kfree(sdxi->l2_table);
 	kfree(sdxi);
 }
