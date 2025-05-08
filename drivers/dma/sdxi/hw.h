@@ -19,6 +19,8 @@
 #ifndef LINUX_SDXI_HW_H
 #define LINUX_SDXI_HW_H
 
+#include <asm/barrier.h>
+#include <asm/byteorder.h>
 #include <linux/align.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
@@ -27,8 +29,6 @@
 #include <linux/log2.h>
 #include <linux/sizes.h>
 #include <linux/types.h>
-#include <asm/barrier.h>
-#include <asm/byteorder.h>
 
 /**
  * struct sdxi_cxt_l2_ent - Context Level 2 Table Entry (CXT_L2_ENT).

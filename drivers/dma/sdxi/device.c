@@ -9,23 +9,19 @@
 
 #define dev_fmt(fmt)    "SDXI: " fmt
 
+#include <asm/mmu.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <linux/device.h>
 #include <linux/pci.h>
-#include <linux/dma-mapping.h>
-#include <asm/mmu.h>
 #include <linux/ptrace.h>
 
-#include "sdxi.h"
-#include "hw.h"
-#include "pci.h"
 #include "context.h"
-#include "process.h"
-
+#include "hw.h"
+#include "sdxi.h"
 #define CREATE_TRACE_POINTS
 #include "trace.h"
 

@@ -10,14 +10,14 @@
 #ifndef __SDXI_H
 #define __SDXI_H
 
-#include <linux/types.h>
-#include <linux/module.h>
-#include <linux/mutex.h>
 #include <linux/device.h>
-#include <linux/pci.h>
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 #include <linux/idr.h>
+#include <linux/module.h>
+#include <linux/mutex.h>
+#include <linux/pci.h>
+#include <linux/types.h>
 
 #include "../virt-dma.h"
 #include "hw.h"

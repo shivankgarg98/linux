@@ -11,23 +11,21 @@
 #define dev_fmt(fmt)    pr_fmt(fmt)
 
 #include <linux/bitfield.h>
+#include <linux/bits.h>
 #include <linux/delay.h>
+#include <linux/device.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
-#include <linux/module.h>
-#include <linux/bits.h>
-#include <linux/bitfield.h>
-#include <linux/device.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
-#include <linux/mutex.h>
-#include <linux/pci.h>
-#include <linux/pci-ats.h>
 #include <linux/io.h>
 #include <linux/iomap.h>
 #include <linux/math64.h>
+#include <linux/module.h>
+#include <linux/mutex.h>
+#include <linux/pci-ats.h>
+#include <linux/pci.h>
 
-#include "sdxi.h"
 #include "pci.h"
 #include "process.h"
 

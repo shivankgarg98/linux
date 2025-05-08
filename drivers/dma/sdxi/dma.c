@@ -14,8 +14,8 @@
 #include <linux/dmaengine.h>
 
 #include "../dmaengine.h"
-#include "sdxi.h"
 #include "context.h"
+#include "sdxi.h"
 
 static inline struct sdxi_dma_chan *to_sdxi_dma_chan(struct dma_chan *dma_chan)
 {

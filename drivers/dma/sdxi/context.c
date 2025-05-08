@@ -13,14 +13,13 @@
 
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/types.h>
 #include <linux/wordpart.h>
-#include <linux/io-64-nonatomic-lo-hi.h>
 
+#include "context.h"
 #include "hw.h"
 #include "sdxi.h"
-#include "pci.h"
-#include "context.h"
 #include "trace.h"
 
 void build_admin_start_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
