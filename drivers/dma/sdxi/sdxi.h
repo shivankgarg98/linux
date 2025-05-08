@@ -366,4 +366,6 @@ void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
 int sdxi_chardev_init(void);
 void sdxi_chardev_exit(void);
 
+void sdxi_delay(void);
+
 #endif /* __SDXI_H */
