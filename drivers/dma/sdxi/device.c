@@ -44,6 +44,7 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			return;
 		}
 
+		sdxi_delay();
 		sdxi_cxt_l2_ent_set(l2_entry, l1_addr, true);
 	} else {
 		memset(l2_entry, 0, sizeof(*l2_entry));
@@ -76,6 +77,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 			return;
 		}
 
+		sdxi_delay();
 		l1_entry->cxt_ctrl_ptr = cxt->cce_addr >> L1_CXT_CTRL_PTR_SHIFT;
 		l1_entry->akey_tbl_ptr = cxt->akey_addr >> L1_CXT_AKEY_PTR_SHIFT;
 		l1_entry->akey_tbl_size = (cxt->akey_entries * sizeof(struct akey_entry) >> 12) - 1;
