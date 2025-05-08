@@ -144,6 +144,7 @@ static u64 sdxi_read64(const struct sdxi_dev *sdxi, enum sdxi_reg reg)
 static void sdxi_write64(struct sdxi_dev *sdxi, enum sdxi_reg reg, u64 val)
 {
 	iowrite64(val, sdxi->ctrl_regs + reg);
+	sdxi_delay();
 }
 
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
