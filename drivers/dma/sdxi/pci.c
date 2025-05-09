@@ -26,8 +26,13 @@
 #include <linux/pci-ats.h>
 #include <linux/pci.h>
 
-#include "pci.h"
+#include "mmio.h"
 #include "process.h"
+#include "sdxi.h"
+
+/* MMIO BARs */
+#define MMIO_CTL_REGS_BAR		0x0
+#define MMIO_DOORBELL_BAR		0x2
 
 LIST_HEAD(sdxi_device_list);
 
@@ -46,22 +51,6 @@ void sdxi_delay(void)
 	if (update_delay_ms)
 		fsleep(min(update_delay_ms, 1000) * 1000UL);
 }
-
-enum sdxi_reg {
-	SDXI_MMIO_CTL0       = 0x00000,
-	SDXI_MMIO_CTL2       = 0x00010,
-	SDXI_MMIO_STS0       = 0x00100,
-	SDXI_MMIO_CAP0       = 0x00200,
-	SDXI_MMIO_CAP1       = 0x00208,
-	SDXI_MMIO_VER        = 0x00210,
-	SDXI_MMIO_CXT_L2     = 0x10000,
-	SDXI_MMIO_RKEY       = 0x10100,
-	SDXI_MMIO_ERR_CTL    = 0x20000,
-	SDXI_MMIO_ERR_STS    = 0x20008,
-	SDXI_MMIO_ERR_CFG    = 0x20010,
-	SDXI_MMIO_ERR_WRT    = 0x20020,
-	SDXI_MMIO_ERR_RD     = 0x20028,
-};
 
 enum {
 	//// SDXI_MMIO_CTL0 bit definitions
