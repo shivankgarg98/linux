@@ -25,6 +25,7 @@
 #include <linux/pci-ats.h>
 #include <linux/pci.h>
 
+#include "error.h"
 #include "mmio.h"
 #include "process.h"
 #include "sdxi.h"
@@ -34,94 +35,6 @@
 #define MMIO_DOORBELL_BAR		0x2
 
 LIST_HEAD(sdxi_device_list);
-
-static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
-{
-	struct device *dev = &sdxi->pdev->dev;
-	int index;
-	static const char * const sub_steps[] = {
-		"Other or Internal Error",
-		"Address Translation Failure",
-		"Data Access Failure",
-		"Data Validation Failure",
-		"Unknown/Reserved Type",
-	};
-	static const char * const reactions[] = {
-		"Informative Entry (nothing stopped)",
-		"SDXI Context Stopped",
-		"SDXI Function Stopped",
-		"Unknown/Reserved Reaction",
-	};
-
-	if (err->vl) {
-		dev_err(dev, "error log entry:");
-		dev_err(dev, "  step: 0x%x\n", err->step);
-		dev_err(dev, "  type: 0x%x\n", err->type);
-		dev_err(dev, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
-		dev_err(dev, "  buff: 0x%x\n", err->buf);
-		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)err->sub_step);
-		dev_err(dev, "  sub_step: %s\n", sub_steps[index]);
-		index = min(ARRAY_SIZE(reactions) - 1, (size_t)err->re);
-		dev_err(dev, "  re: %s\n", reactions[index]);
-		dev_err(dev, "  buff: 0x%x\n", err->buf);
-		dev_err(dev, "  cxt_num: 0x%x\n", err->cxt_num);
-		dev_err(dev, "  desc_idx: 0x%llx\n", err->desc_idx);
-		dev_err(dev, "  err_class: 0x%x\n", err->err_class);
-	} else {
-		dev_err(dev, "Not a valid error log entry!\n");
-	}
-}
-
-static void sdxi_handle_err(struct sdxi_dev *sdxi)
-{
-	u64 read_ptr, write_ptr, offset;
-	struct sdxi_err *err_entry;
-
-	read_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
-	write_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
-
-	while (read_ptr < write_ptr) {
-		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
-		err_entry = (struct sdxi_err *)sdxi->err_log + offset;
-		sdxi_print_err(sdxi, err_entry);
-		read_ptr++;
-	}
-
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, read_ptr);
-}
-
-static void sdxi_do_cmd_complete(unsigned long data)
-{
-	struct sdxi_tasklet_data *tdata = (void *)data;
-	struct sdxi_cmd *cmd = tdata->cmd;
-
-	if (cmd && cmd->sdxi_cmd_callback)
-		cmd->sdxi_cmd_callback(cmd->data, cmd->ret);
-}
-
-static irqreturn_t sdxi_irq_thread(int irq, void *data)
-{
-	struct sdxi_dev *sdxi = data;
-
-	while (sdxi_read64(sdxi, SDXI_MMIO_ERR_STS) & SDXI_MMIO_ERR_STS_STS_BIT) {
-		sdxi_handle_err(sdxi);
-
-		// The flags in this register are RW1C.
-		sdxi_write64(sdxi, SDXI_MMIO_ERR_STS,
-			     SDXI_MMIO_ERR_STS_STS_BIT |
-			     SDXI_MMIO_ERR_STS_OVF_BIT |
-			     SDXI_MMIO_ERR_STS_ERR_BIT);
-	}
-
-	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
-
-	return IRQ_HANDLED;
-}
-
-static irqreturn_t sdxi_irq_handler(int irq, void *data)
-{
-	return IRQ_WAKE_THREAD;
-}
 
 static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 {
@@ -141,15 +54,10 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 	}
 
 	sdxi->irq_count = ret;
-	sdxi->err_irq.vector = pci_irq_vector(pdev, 0);
-	/* setup err log interrupt handler */
-	ret = request_threaded_irq(sdxi->err_irq.vector,
-				   sdxi_irq_handler, sdxi_irq_thread, 0,
-				   SDXI_DRV_NAME, sdxi);
-	if (ret) {
-		dev_err(dev, "cannot alloc irq handler for error irq\n");
+
+	ret = sdxi_error_init(sdxi, pci_irq_vector(pdev, 0));
+	if (ret)
 		goto err_irq0_alloc;
-	}
 
 	return 0;
 
@@ -160,11 +68,8 @@ err_irq0_alloc:
 
 static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 {
-	struct pci_dev *pdev = sdxi->pdev;
-
-	free_irq(sdxi->err_irq.vector, sdxi);
-	/* NB: free context IRQs */
-	pci_free_irq_vectors(pdev);
+	sdxi_error_exit(sdxi);
+	pci_free_irq_vectors(sdxi->pdev);
 }
 
 static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
