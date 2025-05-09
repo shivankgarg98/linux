@@ -17,7 +17,6 @@
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
-#include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/io.h>
 #include <linux/iomap.h>
 #include <linux/math64.h>
@@ -50,17 +49,6 @@ void sdxi_delay(void)
 
 	if (update_delay_ms)
 		fsleep(min(update_delay_ms, 1000) * 1000UL);
-}
-
-static u64 sdxi_read64(const struct sdxi_dev *sdxi, enum sdxi_reg reg)
-{
-	return ioread64(sdxi->ctrl_regs + reg);
-}
-
-static void sdxi_write64(struct sdxi_dev *sdxi, enum sdxi_reg reg, u64 val)
-{
-	iowrite64(val, sdxi->ctrl_regs + reg);
-	sdxi_delay();
 }
 
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)

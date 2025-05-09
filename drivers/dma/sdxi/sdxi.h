@@ -14,6 +14,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 #include <linux/idr.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
@@ -21,6 +22,7 @@
 
 #include "../virt-dma.h"
 #include "hw.h"
+#include "mmio.h"
 
 #define SDXI_DRV_NAME		"sdxi"
 #define SDXI_DRV_DESC		"SDXI driver"
@@ -367,5 +369,18 @@ int sdxi_chardev_init(void);
 void sdxi_chardev_exit(void);
 
 void sdxi_delay(void);
+
+static inline u64 sdxi_read64(const struct sdxi_dev *sdxi, enum sdxi_reg reg)
+{
+	return ioread64(sdxi->ctrl_regs + reg);
+}
+
+static inline void sdxi_write64(struct sdxi_dev *sdxi, enum sdxi_reg reg, u64 val)
+{
+	iowrite64(val, sdxi->ctrl_regs + reg);
+	sdxi_delay();
+}
+
+
 
 #endif /* __SDXI_H */
