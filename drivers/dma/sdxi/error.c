@@ -116,6 +116,6 @@ int sdxi_error_init(struct sdxi_dev *sdxi, unsigned int irq)
 
 void sdxi_error_exit(struct sdxi_dev *sdxi)
 {
-	// FIXME - should udpate SDXI_MMIO_ERR_CTL?
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, 0);
 	free_irq(sdxi->err_irq.vector, sdxi);
 }
