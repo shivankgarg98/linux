@@ -297,25 +297,10 @@ unmap_l2:
 	return -ENOMEM;
 }
 
-static void sdxi_dump_errlog(struct sdxi_dev *sdxi)
-{
-	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_CTL);
-	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
-	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_CFG);
-	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
-	(void)sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
-
-	// FIXME: is this function supposed to log these regs or
-	// something? Leaving it for now, just in case we're depending
-	// on some side effect of the reads. -ntl
-}
-
 static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	union mmio_ctl0_reg ctl0_reg;
-
-	sdxi_dump_errlog(sdxi);
 
 	/* disable device */
 	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
