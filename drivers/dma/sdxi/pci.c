@@ -171,148 +171,6 @@ static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 	sdxi_pci_unmap(sdxi);
 }
 
-typedef enum sdxi_fn_gsv {
-	SDXI_GSV_STOP,
-	SDXI_GSV_INIT,
-	SDXI_GSV_ACTIVE,
-	SDXI_GSV_STOPG_SF,
-	SDXI_GSV_STOPG_HD,
-	SDXI_GSV_ERROR,
-} sdxi_fn_gsv_t;
-
-typedef enum sdxi_fn_gsr {
-	SDXI_GSRV_RESET,
-	SDXI_GSRV_STOP_SF,
-	SDXI_GSRV_STOP_HD,
-	SDXI_GSRV_ACTIVE,
-} sdxi_fn_gsr_t;
-
-
-static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
-{
-	return (sdxi_fn_gsv_t)FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
-					sdxi_read64(sdxi, SDXI_MMIO_STS0));
-}
-
-// Get the device to the GSV_STOP state.
-static int sdxi_dev_stop(struct sdxi_dev *sdxi)
-{
-	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
-
-	do {
-		u64 reset = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_RESET);
-		u64 stop = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_STOP_SF);
-		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
-
-		switch (status) {
-		case SDXI_GSV_ACTIVE:
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0, stop);
-			break;
-		case SDXI_GSV_ERROR:
-		case SDXI_GSV_STOP:
-			// Perform a reset command and clear all other configuration
-			// from MMIO_CTL0 at least once. If the function is already in
-			// GSV_STOP the command will be ignored.
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0, reset);
-			return 0;
-			break;
-		case SDXI_GSV_INIT:
-		case SDXI_GSV_STOPG_SF:
-		case SDXI_GSV_STOPG_HD:
-			// transitional states, wait
-			fsleep(1000);
-			break;
-		default:
-			dev_err(&sdxi->pdev->dev, "unknown gsv %u, giving up\n", status);
-			return -EIO;
-			break;
-		}
-	} while (time_before(jiffies, deadline));
-
-	dev_err(&sdxi->pdev->dev, "stop attempt timed out, current status %u\n",
-		sdxi_dev_gsv(sdxi));
-	return -ETIMEDOUT;
-}
-
-static int sdxi_pci_enable(struct sdxi_dev *sdxi)
-{
-	struct device *dev = &sdxi->pdev->dev;
-	u64 ctrl2, status;
-	union mmio_ctl0_reg ctl0_reg;
-	int err;
-
-	if ((err = sdxi_dev_stop(sdxi)))
-		return err;
-
-	/* l2 table */
-	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
-				      DMA_TO_DEVICE);
-	if (dma_mapping_error(dev, sdxi->l2_dma))
-		return -ENOMEM;
-	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
-		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
-
-	/* err log */
-	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
-					   sdxi->err_log_num * sizeof(struct sdxi_err),
-					   DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, sdxi->err_log_dma))
-		goto unmap_l2;
-
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_SZ, sdxi->err_log_num >> 6) |
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_EN, 1));
-
-	/* Signal interrupt on new error log entry */
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL,
-		     FIELD_PREP(SDXI_MMIO_ERR_CTL_EN, 1));
-
-	/* enable device */
-	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0_reg.fn_gsr = GSRV_ACTIVE;
-	ctl0_reg.fn_err_intr_en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
-
-	ctrl2 = sdxi_read64(sdxi, SDXI_MMIO_CTL2);
-	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
-	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
-	ctrl2 &= 0x00000000FFFFFFFFULL;
-	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctrl2);
-
-	status = sdxi_read64(sdxi, SDXI_MMIO_STS0);
-
-	pr_debug("function info:\n"
-		 "  err log addr: v=0x%p:d=0x%llx\n"
-		 "  func status:  0x%lx\n"
-		 "  ctrl2:        0x%llx\n",
-		 sdxi->err_log, sdxi->err_log_dma & ~0x1,
-		 (unsigned long)status, (unsigned long long)ctrl2);
-
-	return 0;
-
-unmap_l2:
-	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
-	return -ENOMEM;
-}
-
-static void sdxi_pci_disable(struct sdxi_dev *sdxi)
-{
-	struct device *dev = &sdxi->pdev->dev;
-	union mmio_ctl0_reg ctl0_reg;
-
-	/* disable device */
-	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0_reg.fn_gsr = GSRV_STOP_SF;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
-
-	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
-	dma_unmap_single(dev, sdxi->err_log_dma,
-			 sdxi->err_log_num * sizeof(struct sdxi_err),
-			 DMA_FROM_DEVICE);
-}
-
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 {
 	struct sdxi_dev *sdxi;
@@ -374,10 +232,6 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 	if (ret)
 		goto err_pci_init;
 
-	ret = sdxi_pci_enable(sdxi);
-	if (ret)
-		goto err_pci_enable;
-
 	ret = sdxi_iommu_device_init(sdxi);
 	if (ret)
 		goto err_iommu_init;
@@ -391,8 +245,6 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 err_dev_init:
 	sdxi_iommu_device_exit(sdxi);
 err_iommu_init:
-	sdxi_pci_disable(sdxi);
-err_pci_enable:
 	sdxi_pci_exit(sdxi);
 err_pci_init:
 	sdxi_device_free(sdxi);
@@ -406,7 +258,6 @@ static void sdxi_pci_remove(struct pci_dev *pdev)
 
 	sdxi_device_exit(sdxi);
 	sdxi_iommu_device_exit(sdxi);
-	sdxi_pci_disable(sdxi);
 	sdxi_pci_exit(sdxi);
 	sdxi_device_free(sdxi);
 }
