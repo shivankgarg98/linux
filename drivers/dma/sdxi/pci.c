@@ -72,27 +72,6 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 	pci_free_irq_vectors(sdxi->pdev);
 }
 
-static void sdxi_pci_parse_cap(struct sdxi_dev *sdxi)
-{
-	union mmio_cap1_reg cap1;
-	u64 cap0;
-
-	cap0 = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
-	sdxi->max_ring_entries = 1ULL << (FIELD_GET(SDXI_MMIO_CAP0_MAX_DS_RING_SZ, cap0) + 10);
-	sdxi->db_stride = 1UL << (FIELD_GET(SDXI_MMIO_CAP0_DB_STRIDE, cap0) + 12);
-	sdxi->sfunc = FIELD_GET(SDXI_MMIO_CAP0_SFUNC, cap0);
-
-	/* CAP1 */
-	cap1.data = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
-
-	sdxi->max_akeys = 1 << (cap1.max_akey_sz + 8);
-	sdxi->max_cxts = cap1.max_cxt + 1;
-	sdxi->op_grp_cap = cap1.opb_000_cap;
-
-	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
-		sdxi->sfunc, cap0, cap1.data);
-}
-
 static int sdxi_pci_map(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi->pdev;
@@ -159,8 +138,6 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 		sdxi_pci_unmap(sdxi);
 		return ret;
 	}
-
-	sdxi_pci_parse_cap(sdxi);
 
 	return 0;
 }
