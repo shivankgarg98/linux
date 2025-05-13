@@ -130,18 +130,11 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 		return ret;
 	}
 
-	ret = sdxi_pci_irq_init(sdxi);
-	if (ret) {
-		sdxi_pci_unmap(sdxi);
-		return ret;
-	}
-
 	return 0;
 }
 
 static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 {
-	sdxi_pci_irq_exit(sdxi);
 	sdxi_pci_unmap(sdxi);
 }
 
@@ -186,6 +179,11 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 	kfree(sdxi);
 }
 
+const struct sdxi_dev_ops sdxi_pci_dev_ops = {
+	.irq_init = sdxi_pci_irq_init,
+	.irq_exit = sdxi_pci_irq_exit,
+};
+
 static int sdxi_pci_probe(struct pci_dev *pdev,
 			  const struct pci_device_id *id)
 {
@@ -208,7 +206,7 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 	if (ret)
 		goto err_iommu_init;
 
-	ret = sdxi_device_init(sdxi);
+	ret = sdxi_device_init(sdxi, &sdxi_pci_dev_ops);
 	if (ret)
 		goto err_dev_init;
 

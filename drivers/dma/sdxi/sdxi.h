@@ -288,6 +288,11 @@ struct irq_entry {
 	int vector;
 };
 
+struct sdxi_dev_ops {
+	int (*irq_init)(struct sdxi_dev *);
+	void (*irq_exit)(struct sdxi_dev *);
+};
+
 struct sdxi_dev {
 	struct list_head list;
 
@@ -335,6 +340,8 @@ struct sdxi_dev {
 	/* special contexts */
 	struct sdxi_cxt *admin_cxt;	/* admin context */
 	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
+
+	const struct sdxi_dev_ops *dev_ops;
 };
 
 static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
@@ -350,7 +357,7 @@ static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
 /*           API           */
 /***************************/
 /* Device Control */
-int sdxi_device_init(struct sdxi_dev *sdxi);
+int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
 
 /* Context Control */

@@ -621,21 +621,27 @@ static void sdxi_pci_disable(struct sdxi_dev *sdxi)
 }
 
 /* Main entry point for SDXI device initial configuration */
-int sdxi_device_init(struct sdxi_dev *sdxi)
+int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
 	struct sdxi_cxt *admin_cxt, *dma_cxt;
 	struct sdxi_desc desc;
 	int err;
 
+	sdxi->dev_ops = ops;
+
 	err = sdxi_pci_enable(sdxi);
 	if (err)
 		return err;
+
+	err = (ops && ops->irq_init) ? ops->irq_init(sdxi) : 0;
+	if (err)
+		goto pci_disable;
 
 	/* init admin context */
 	admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
 	if (!admin_cxt) {
 		err = -EINVAL;
-		goto pci_disable;
+		goto irq_exit;
 	}
 
 	/* init DMA context */
@@ -654,10 +660,13 @@ int sdxi_device_init(struct sdxi_dev *sdxi)
 	sdxi_dma_register(sdxi->dma_cxt);
 
 	return 0;
-pci_disable:
-	sdxi_pci_disable(sdxi);
 admin_cxt_exit:
 	sdxi_working_cxt_exit(admin_cxt);
+irq_exit:
+	if (ops && ops->irq_exit)
+		ops->irq_exit(sdxi);
+pci_disable:
+	sdxi_pci_disable(sdxi);
 
 	return err;
 }
@@ -688,5 +697,7 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 	sdxi_working_cxt_exit(sdxi->admin_cxt);
 	kfree(sdxi->cxt_array[0]); // ugh
 
+	if (sdxi->dev_ops && sdxi->dev_ops->irq_exit)
+		sdxi->dev_ops->irq_exit(sdxi);
 	sdxi_pci_disable(sdxi);
 }
