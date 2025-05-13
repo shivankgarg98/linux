@@ -338,6 +338,15 @@ struct sdxi_dev {
 	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
 };
 
+static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
+{
+	return &sdxi->pdev->dev;
+}
+
+#define sdxi_dbg(s, fmt, ...) dev_dbg(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
+#define sdxi_info(s, fmt, ...) dev_info(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
+#define sdxi_err(s, fmt, ...) dev_err(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
+
 /***************************/
 /*           API           */
 /***************************/
