@@ -556,8 +556,6 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 				      DMA_TO_DEVICE);
 	if (dma_mapping_error(dev, sdxi->l2_dma))
 		return -ENOMEM;
-	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
-		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
 
 	/* err log */
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
@@ -575,18 +573,22 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL,
 		     FIELD_PREP(SDXI_MMIO_ERR_CTL_EN, 1));
 
-	/* enable device */
-	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0_reg.fn_gsr = GSRV_ACTIVE;
-	ctl0_reg.fn_err_intr_en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
-
+	// FIXME: clean this up
 	ctrl2 = sdxi_read64(sdxi, SDXI_MMIO_CTL2);
 	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
 	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
 	ctrl2 &= 0x00000000FFFFFFFFULL;
 	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
 	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctrl2);
+
+	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
+		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
+
+	/* enable device */
+	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+	ctl0_reg.fn_gsr = GSRV_ACTIVE;
+	ctl0_reg.fn_err_intr_en = 1;
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
 
 	status = sdxi_read64(sdxi, SDXI_MMIO_STS0);
 
