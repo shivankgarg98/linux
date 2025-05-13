@@ -308,7 +308,6 @@ struct sdxi_dev {
 	u32 op_grp_cap;			/* supported operatation group cap */
 
 	/* MSI */
-	unsigned int irq_count;
 	struct irq_entry err_irq;
 
 	/* context management */

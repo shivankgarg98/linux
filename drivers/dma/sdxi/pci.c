@@ -51,7 +51,7 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 		return ret;
 	}
 
-	sdxi->irq_count = ret;
+	sdxi_dbg(sdxi, "allocated %d irq vectors", ret);
 
 	ret = sdxi_error_init(sdxi, pci_irq_vector(pdev, 0));
 	if (ret)
