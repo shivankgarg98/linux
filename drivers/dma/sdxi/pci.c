@@ -197,10 +197,8 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 	int ret;
 
 	sdxi = sdxi_device_alloc(dev);
-	if (!sdxi) {
-		dev_err(dev, "failed to allocate sdxi device\n");
+	if (!sdxi)
 		return -ENOMEM;
-	}
 
 	sdxi->pdev = pdev;
 	pci_set_drvdata(pdev, sdxi);
