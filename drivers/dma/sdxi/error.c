@@ -15,7 +15,6 @@
 
 static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 {
-	struct device *dev = &sdxi->pdev->dev;
 	int index;
 	static const char * const sub_steps[] = {
 		"Other or Internal Error",
@@ -32,21 +31,21 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 	};
 
 	if (err->vl) {
-		dev_err(dev, "error log entry:");
-		dev_err(dev, "  step: 0x%x\n", err->step);
-		dev_err(dev, "  type: 0x%x\n", err->type);
-		dev_err(dev, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
-		dev_err(dev, "  buff: 0x%x\n", err->buf);
+		sdxi_err(sdxi, "error log entry:");
+		sdxi_err(sdxi, "  step: 0x%x\n", err->step);
+		sdxi_err(sdxi, "  type: 0x%x\n", err->type);
+		sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
+		sdxi_err(sdxi, "  buff: 0x%x\n", err->buf);
 		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)err->sub_step);
-		dev_err(dev, "  sub_step: %s\n", sub_steps[index]);
+		sdxi_err(sdxi, "  sub_step: %s\n", sub_steps[index]);
 		index = min(ARRAY_SIZE(reactions) - 1, (size_t)err->re);
-		dev_err(dev, "  re: %s\n", reactions[index]);
-		dev_err(dev, "  buff: 0x%x\n", err->buf);
-		dev_err(dev, "  cxt_num: 0x%x\n", err->cxt_num);
-		dev_err(dev, "  desc_idx: 0x%llx\n", err->desc_idx);
-		dev_err(dev, "  err_class: 0x%x\n", err->err_class);
+		sdxi_err(sdxi, "  re: %s\n", reactions[index]);
+		sdxi_err(sdxi, "  buff: 0x%x\n", err->buf);
+		sdxi_err(sdxi, "  cxt_num: 0x%x\n", err->cxt_num);
+		sdxi_err(sdxi, "  desc_idx: 0x%llx\n", err->desc_idx);
+		sdxi_err(sdxi, "  err_class: 0x%x\n", err->err_class);
 	} else {
-		dev_err(dev, "Not a valid error log entry!\n");
+		sdxi_err(sdxi, "Not a valid error log entry!\n");
 	}
 }
 

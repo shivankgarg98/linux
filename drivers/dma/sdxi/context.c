@@ -78,18 +78,18 @@ static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 			bool csb, u64 init_signal)
 {
-	struct device *dev = &sq->cxt->sdxi->pdev->dev;
+	struct sdxi_dev *sdxi = sq->cxt->sdxi;
 	u64 dest;
 
 	/* check context status */
 	if (sq->cxt_status->state != CXT_STATE_RUNNING) {
-		dev_err(dev, "Context is not running\n");
+		sdxi_err(sdxi, "Context is not running\n");
 		return -EINVAL;
 	}
 
 	/* no more room for any descriptor */
 	if (*sq->write_index + 1 - le64_to_cpu(sq->cxt_status->read_index) > sq->ring_entries) {
-		dev_err(dev, "desc ring is full\n");
+		sdxi_err(sdxi, "desc ring is full\n");
 		return -EINVAL;
 	}
 
@@ -122,7 +122,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 	/* alloc desc_ring */
 	if (ring_entries > sdxi->max_ring_entries) {
-		dev_err(dev, "%d ring entries requested, max is %llu\n",
+		sdxi_err(sdxi, "%d ring entries requested, max is %llu\n",
 			ring_entries, sdxi->max_ring_entries);
 		return NULL;
 	}

@@ -7,8 +7,6 @@
  * Author: Wei Huang <wei.huang2@amd.com>
  */
 
-#define dev_fmt(fmt)    "SDXI: " fmt
-
 #include <asm/mmu.h>
 #include <linux/delay.h>
 #include <linux/device.h>
@@ -40,7 +38,7 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 		l1_addr = dma_map_single(dev, l1_table, L1_TABLE_SIZE,
 					 DMA_TO_DEVICE);
 		if (dma_mapping_error(dev, l1_addr)) {
-			dev_err(dev, "dma_map_single for L1 table failed\n");
+			sdxi_err(sdxi, "dma_map_single for L1 table failed\n");
 			return;
 		}
 
@@ -62,7 +60,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 		cxt->cce_addr = dma_map_single(dev, &cxt->cce, sizeof(cxt->cce),
 					       DMA_TO_DEVICE);
 		if (dma_mapping_error(dev, cxt->cce_addr)) {
-			dev_err(dev, "dma_map for cxt ctrl addr failed\n");
+			sdxi_err(sdxi, "dma_map for cxt ctrl addr failed\n");
 			return;
 		}
 
@@ -71,7 +69,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 						cxt->akey_entries * sizeof(struct akey_entry),
 						DMA_TO_DEVICE);
 		if (dma_mapping_error(dev, cxt->akey_addr))  {
-			dev_err(dev, "dma_map for akey table failed\n");
+			sdxi_err(sdxi, "dma_map for akey table failed\n");
 			dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce),
 					 DMA_TO_DEVICE);
 			return;
@@ -339,25 +337,24 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id id)
 {
-	struct device *dev = &sdxi->pdev->dev;
 	struct sdxi_cxt *cxt;
 	struct sdxi_sq *sq;
 
 	cxt = sdxi_cxt_alloc(sdxi);
 	if (!cxt) {
-		dev_err(dev, "failed to alloc a new context\n");
+		sdxi_err(sdxi, "failed to alloc a new context\n");
 		return NULL;
 	}
 
 	/* check if context ID matches */
 	if (id < SDXI_ANY_CXT_ID && cxt->id != id) {
-		dev_err(dev, "failed to alloc a context with id=%d\n", id);
+		sdxi_err(sdxi, "failed to alloc a context with id=%d\n", id);
 		goto err_cxt_id;
 	}
 
 	sq = sdxi_sq_alloc_default(cxt);
 	if (!sq) {
-		dev_err(dev, "failed to alloc a submission queue (sq)\n");
+		sdxi_err(sdxi, "failed to alloc a submission queue (sq)\n");
 		goto err_sq_alloc;
 	}
 
@@ -374,7 +371,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 {
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
 	struct sdxi_cxt *admin_cxt = target_cxt->sdxi->admin_cxt;
-	struct device *dev = &target_cxt->sdxi->pdev->dev;
+	struct sdxi_dev *sdxi = target_cxt->sdxi;
 	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_status;
 	struct sdxi_desc desc;
 	u16 cxtid = target_cxt->id;
@@ -383,7 +380,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	mb();
 	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
 
-	dev_dbg(dev, "shutting down context %u\n", cxtid);
+	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
 
 	do {
 		u8 state = sdxi_cxt_sts_state(sts);
@@ -392,7 +389,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 			return;
 			break;
 		case CXT_STATE_ERR:
-			dev_err(dev, "context %u went into error state while stopping\n",
+			sdxi_err(sdxi, "context %u went into error state while stopping\n",
 				cxtid);
 			break;
 		default:
@@ -401,7 +398,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		}
 	} while (time_before(jiffies, deadline));
 
-	dev_err(dev, "stopping context %u timed out (state = %u)\n",
+	sdxi_err(sdxi, "stopping context %u timed out (state = %u)\n",
 		cxtid, sdxi_cxt_sts_state(sts));
 }
 
@@ -508,13 +505,13 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 			fsleep(1000);
 			break;
 		default:
-			dev_err(&sdxi->pdev->dev, "unknown gsv %u, giving up\n", status);
+			sdxi_err(sdxi, "unknown gsv %u, giving up\n", status);
 			return -EIO;
 			break;
 		}
 	} while (time_before(jiffies, deadline));
 
-	dev_err(&sdxi->pdev->dev, "stop attempt timed out, current status %u\n",
+	sdxi_err(sdxi, "stop attempt timed out, current status %u\n",
 		sdxi_dev_gsv(sdxi));
 	return -ETIMEDOUT;
 }
@@ -536,8 +533,10 @@ static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
 	sdxi->max_cxts = cap1.max_cxt + 1;
 	sdxi->op_grp_cap = cap1.opb_000_cap;
 
-	pr_info("Device 0x%04x found [cap0=0x%llx, cap1=0x%llx]\n",
-		sdxi->sfunc, cap0, cap1.data);
+	dev_info(&sdxi->pdev->dev,
+		 "sfunc:%#hx descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
+		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
+		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
 }
 
 static int sdxi_pci_enable(struct sdxi_dev *sdxi)

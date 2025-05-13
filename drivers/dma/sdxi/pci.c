@@ -7,13 +7,12 @@
  * Author: Wei Huang <wei.huang2@amd.com>
  */
 
-#define pr_fmt(fmt)     "SDXI: " fmt
-#define dev_fmt(fmt)    pr_fmt(fmt)
 
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/delay.h>
 #include <linux/device.h>
+#include <linux/dev_printk.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
 #include <linux/errno.h>
@@ -39,7 +38,6 @@ LIST_HEAD(sdxi_device_list);
 static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi->pdev;
-	struct device *dev = &pdev->dev;
 	int msi_count;
 	int ret;
 
@@ -49,7 +47,7 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 	ret = pci_alloc_irq_vectors(pdev, 1, msi_count,
 				    PCI_IRQ_MSI | PCI_IRQ_MSIX);
 	if (ret < 0) {
-		dev_info(dev, "alloc MSI/MSI-X vectors failed\n");
+		sdxi_err(sdxi, "alloc MSI/MSI-X vectors failed\n");
 		return ret;
 	}
 
@@ -75,13 +73,12 @@ static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 static int sdxi_pci_map(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi->pdev;
-	struct device *dev = &pdev->dev;
 	int bars, ret;
 
 	bars = 1 << MMIO_CTL_REGS_BAR | 1 << MMIO_DOORBELL_BAR;
 	ret = pcim_iomap_regions(pdev, bars, SDXI_DRV_NAME);
 	if (ret) {
-		dev_err(dev, "pcim_iomap_regions failed (%d)\n", ret);
+		sdxi_err(sdxi, "pcim_iomap_regions failed (%d)\n", ret);
 		return ret;
 	}
 
@@ -91,7 +88,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 	sdxi->ctrl_regs = pcim_iomap_table(pdev)[MMIO_CTL_REGS_BAR];
 	sdxi->dbs = pcim_iomap_table(pdev)[MMIO_DOORBELL_BAR];
 	if (!sdxi->ctrl_regs || !sdxi->dbs) {
-		dev_err(dev, "pcim_iomap_table failed\n");
+		sdxi_err(sdxi, "pcim_iomap_table failed\n");
 		pcim_iounmap_regions(pdev, bars);
 		return -EINVAL;
 	}
@@ -116,20 +113,20 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 
 	ret = pcim_enable_device(pdev);
 	if (ret) {
-		dev_err(dev, "pcim_enbale_device failed\n");
+		sdxi_err(sdxi, "pcim_enbale_device failed\n");
 		return ret;
 	}
 
 	pci_set_master(pdev);
 	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(dma_bits));
 	if (ret) {
-		dev_err(dev, "failed to set DMA mask & coherent bits\n");
+		sdxi_err(sdxi, "failed to set DMA mask & coherent bits\n");
 		return ret;
 	}
 
 	ret = sdxi_pci_map(sdxi);
 	if (ret) {
-		dev_err(dev, "failed to map device IO resources\n");
+		sdxi_err(sdxi, "failed to map device IO resources\n");
 		return ret;
 	}
 
