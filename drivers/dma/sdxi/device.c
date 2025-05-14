@@ -482,26 +482,33 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
 
 	do {
-		u64 reset = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_RESET);
-		u64 stop = FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_STOP_SF);
 		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
+		u64 ctl0;
 
 		switch (status) {
 		case SDXI_GSV_ACTIVE:
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0, stop);
+			ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+			ctl0 &= ~SDXI_MMIO_CTL0_FN_GSR;
+			ctl0 |= FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR,
+					   SDXI_GSRV_STOP_SF);
+			sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
 			break;
 		case SDXI_GSV_ERROR:
 		case SDXI_GSV_STOP:
 			// Perform a reset command and clear all other configuration
 			// from MMIO_CTL0 at least once. If the function is already in
 			// GSV_STOP the command will be ignored.
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0, reset);
+			sdxi_write64(sdxi, SDXI_MMIO_CTL0,
+				     FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR,
+						SDXI_GSRV_RESET));
 			return 0;
 			break;
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOPG_SF:
 		case SDXI_GSV_STOPG_HD:
 			// transitional states, wait
+			sdxi_dbg(sdxi, "waiting for stop (gsv = %u)\n",
+				 status);
 			fsleep(1000);
 			break;
 		default:
