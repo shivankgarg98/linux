@@ -476,6 +476,58 @@ static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 					sdxi_read64(sdxi, SDXI_MMIO_STS0));
 }
 
+static int sdxi_dev_start(struct sdxi_dev *sdxi)
+{
+	unsigned long deadline;
+	sdxi_fn_gsv_t status;
+	u64 ctl0;
+
+	status = sdxi_dev_gsv(sdxi);
+	if (status != SDXI_GSV_STOP) {
+		sdxi_err(sdxi,
+			 "can't activate busy device (unexpected gsv %u)\n",
+			 status);
+		return -EIO;
+	}
+
+	ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+	ctl0 &= ~SDXI_MMIO_CTL0_FN_GSR;
+	ctl0 |= FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_ACTIVE);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
+
+	deadline = jiffies + msecs_to_jiffies(1000);
+	do {
+		status = sdxi_dev_gsv(sdxi);
+
+		switch (status) {
+		case SDXI_GSV_ACTIVE:
+			sdxi_dbg(sdxi, "activated\n");
+			return 0;
+			break;
+		case SDXI_GSV_ERROR:
+			sdxi_err(sdxi, "went to error state\n");
+			return -EIO;
+			break;
+		case SDXI_GSV_INIT:
+		case SDXI_GSV_STOP:
+			// transitional states, wait
+			sdxi_dbg(sdxi, "waiting for active (gsv = %u)\n",
+				 status);
+			fsleep(1000);
+			break;
+		default:
+			sdxi_err(sdxi, "unexpected gsv %u, giving up\n", status);
+			return -EIO;
+			break;
+		}
+	} while (time_before(jiffies, deadline));
+
+	sdxi_err(sdxi, "activation timed out, current status %u\n",
+		sdxi_dev_gsv(sdxi));
+	return -ETIMEDOUT;
+	
+}
+
 // Get the device to the GSV_STOP state.
 static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 {
@@ -549,8 +601,7 @@ static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
 static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
-	u64 ctrl2, status;
-	union mmio_ctl0_reg ctl0_reg;
+	u64 ctrl2;
 	int err;
 
 	if ((err = sdxi_dev_stop(sdxi)))
@@ -591,23 +642,15 @@ static int sdxi_pci_enable(struct sdxi_dev *sdxi)
 	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
 		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
 
-	/* enable device */
-	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0_reg.fn_gsr = GSRV_ACTIVE;
-	ctl0_reg.fn_err_intr_en = 1;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
-
-	status = sdxi_read64(sdxi, SDXI_MMIO_STS0);
-
-	pr_debug("function info:\n"
-		 "  err log addr: v=0x%p:d=0x%llx\n"
-		 "  func status:  0x%lx\n"
-		 "  ctrl2:        0x%llx\n",
-		 sdxi->err_log, sdxi->err_log_dma & ~0x1,
-		 (unsigned long)status, (unsigned long long)ctrl2);
+	err = sdxi_dev_start(sdxi);
+	if (err)
+		goto unmap_errlog;
 
 	return 0;
-
+unmap_errlog:
+	dma_unmap_single(dev, sdxi->err_log_dma,
+			 sdxi->err_log_num * sizeof(struct sdxi_err),
+			 DMA_FROM_DEVICE);
 unmap_l2:
 	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	return -ENOMEM;
