@@ -660,13 +660,9 @@ unmap_l2:
 
 static void sdxi_stop(struct sdxi_dev *sdxi)
 {
-	struct device *dev = &sdxi->pdev->dev;
-	union mmio_ctl0_reg ctl0_reg;
+	struct device *dev = sdxi_to_dev(sdxi);
 
-	/* disable device */
-	ctl0_reg.data = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0_reg.fn_gsr = GSRV_STOP_SF;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0_reg.data);
+	sdxi_dev_stop(sdxi);
 
 	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	dma_unmap_single(dev, sdxi->err_log_dma,
