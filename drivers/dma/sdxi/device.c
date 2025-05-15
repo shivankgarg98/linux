@@ -598,7 +598,9 @@ static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
 		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
 }
 
-static int sdxi_pci_enable(struct sdxi_dev *sdxi)
+// This is meant to implement 4.1.8 "Activation of the SDXI Function
+// by Software"
+static int sdxi_activate(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	u64 ctrl2;
@@ -656,7 +658,7 @@ unmap_l2:
 	return -ENOMEM;
 }
 
-static void sdxi_pci_disable(struct sdxi_dev *sdxi)
+static void sdxi_stop(struct sdxi_dev *sdxi)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	union mmio_ctl0_reg ctl0_reg;
@@ -681,7 +683,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	sdxi->dev_ops = ops;
 
-	err = sdxi_pci_enable(sdxi);
+	err = sdxi_activate(sdxi);
 	if (err)
 		return err;
 
@@ -718,7 +720,7 @@ irq_exit:
 	if (ops && ops->irq_exit)
 		ops->irq_exit(sdxi);
 pci_disable:
-	sdxi_pci_disable(sdxi);
+	sdxi_stop(sdxi);
 
 	return err;
 }
@@ -751,5 +753,5 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 
 	if (sdxi->dev_ops && sdxi->dev_ops->irq_exit)
 		sdxi->dev_ops->irq_exit(sdxi);
-	sdxi_pci_disable(sdxi);
+	sdxi_stop(sdxi);
 }
