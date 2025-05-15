@@ -10,7 +10,7 @@
 // Use this to insert artificial delays between critical register and
 // data structure updates to more easily recreate issues with function
 // and context init/exit.
-static unsigned int update_delay_ms = 100;
+static unsigned int update_delay_ms;
 module_param(update_delay_ms, uint, 0644);
 MODULE_PARM_DESC(iowrite_delay_ms, "Artificial delay to insert after critical data structure updates");
 
