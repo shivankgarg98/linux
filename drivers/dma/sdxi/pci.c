@@ -269,6 +269,7 @@ static struct pci_driver sdxi_driver = {
 	.driver = {
 		.pm = &sdxi_pci_pm_ops,
 	},
+	.sriov_configure = pci_sriov_configure_simple,
 };
 
 static int __init sdxi_module_init(void)
