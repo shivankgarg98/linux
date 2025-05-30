@@ -584,6 +584,7 @@ static inline void pdev_disable_cap_pri(struct pci_dev *pdev)
 static inline void pdev_enable_cap_pasid(struct pci_dev *pdev)
 {
 	struct iommu_dev_data *dev_data = dev_iommu_priv_get(&pdev->dev);
+	int features;
 
 	if (dev_data->pasid_enabled)
 		return;
@@ -591,7 +592,13 @@ static inline void pdev_enable_cap_pasid(struct pci_dev *pdev)
 	if (!pdev_pasid_supported(dev_data))
 		return;
 
-	if (pci_enable_pasid(pdev, 0))
+	features = pci_pasid_features(pdev);
+	if (features < 0)
+		return;
+
+	features &= PCI_PASID_CAP_PRIV;
+
+	if (pci_enable_pasid(pdev, features))
 		return;
 
 	dev_data->pasid_enabled = 1;
