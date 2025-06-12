@@ -186,6 +186,7 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 	cxt->akey[1].vl = 1;
 	cxt->akey[1].pv = 1;
 	cxt->akey[1].pasid = p->pasid;
+	cxt->akey[1].pr = cxt->privileged && cxt->sdxi->use_privileged_bits;
 
 	mutex_unlock(&p->mutex);
 

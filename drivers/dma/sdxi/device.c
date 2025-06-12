@@ -37,6 +37,15 @@ MODULE_PARM_DESC(set_pr_bits,
 		 "(e.g. PCIe PASID Privileged Mode) "
 		 "(default: false)");
 
+static bool force_pr_for_user_contexts = false;
+module_param(force_pr_for_user_contexts, bool, 0644);
+MODULE_PARM_DESC(force_pr_for_user_contexts,
+		 "Force-enable the 'pr' bit for user contexts. "
+		 "Not useful without set_pr_bits=1. "
+		 "This is a security hole and is intended for hardware "
+		 "validation only. "
+		 "(default: false)");
+
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
 			     struct cxt_l1_entry *l1_table)
@@ -353,9 +362,20 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id id)
 {
-	bool privileged = id != SDXI_ANY_CXT_ID;
 	struct sdxi_cxt *cxt;
 	struct sdxi_sq *sq;
+	bool privileged;
+
+	switch (id) {
+	case SDXI_ANY_CXT_ID: // User context
+		privileged = false;
+		if (force_pr_for_user_contexts)
+			privileged = true;
+		break;
+	default: // kernel context
+		privileged = true;
+		break;
+	}
 
 	cxt = sdxi_cxt_alloc(sdxi, privileged);
 	if (!cxt) {
