@@ -133,6 +133,19 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 	return 0;
 }
 
+static bool sdxi_pci_supports_privileged_addrspace(struct sdxi_dev *sdxi)
+{
+#ifdef CONFIG_PCI_PASID
+	struct pci_dev *pdev = sdxi->pdev;
+
+	return pdev->pasid_enabled &&
+		(pdev->pasid_features & PCI_PASID_CAP_PRIV);
+#else
+	return false;
+#endif
+}
+
+
 static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 {
 	sdxi_pci_unmap(sdxi);
@@ -182,6 +195,7 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 const struct sdxi_dev_ops sdxi_pci_dev_ops = {
 	.irq_init = sdxi_pci_irq_init,
 	.irq_exit = sdxi_pci_irq_exit,
+	.supports_privileged_addrspace = sdxi_pci_supports_privileged_addrspace,
 };
 
 static int sdxi_pci_probe(struct pci_dev *pdev,
