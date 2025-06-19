@@ -356,6 +356,13 @@ struct sdxi_dev {
 	const struct sdxi_dev_ops *dev_ops;
 };
 
+static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
+                                      sdxi_version_t v)
+{
+       return sdxi_version_ge(sdxi->sdxi_version, v);
+}
+
+
 static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
 {
 	return &sdxi->pdev->dev;
