@@ -354,6 +354,12 @@ struct sdxi_dev {
 	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
 
 	const struct sdxi_dev_ops *dev_ops;
+	bool use_privileged_bits:1; // Whether to set the 'pr' bit
+				    // within the portions of the
+				    // control structure hierarchy
+				    // that should be considered
+				    // private to the kernel, not
+				    // exposed to user space.
 };
 
 static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
@@ -371,6 +377,17 @@ static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
 #define sdxi_dbg(s, fmt, ...) dev_dbg(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
 #define sdxi_info(s, fmt, ...) dev_info(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
 #define sdxi_err(s, fmt, ...) dev_err(sdxi_to_dev(s), fmt, ## __VA_ARGS__)
+
+static inline bool
+sdxi_dev_supports_privileged_address_space(struct sdxi_dev *sdxi)
+{
+	if (!sdxi_dev_compatible(sdxi, SDXI_VERSION_1_1))
+		return false;
+	return sdxi->dev_ops->supports_privileged_addrspace ?
+		sdxi->dev_ops->supports_privileged_addrspace(sdxi) :
+		false;
+}
+
 
 /***************************/
 /*           API           */

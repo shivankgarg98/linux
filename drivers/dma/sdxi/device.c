@@ -625,6 +625,12 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 	sdxi_parse_capabilities(sdxi);
 	sdxi_parse_version(sdxi);
 
+	if (sdxi_dev_supports_privileged_address_space(sdxi)){
+		sdxi->use_privileged_bits = true;
+		sdxi_dbg(sdxi,
+			 "Setting 'pr' bit on kernel-private control structures\n");
+	}
+
 	dev_info(dev, "SDXI %u.%u device found\n",
 		 sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
