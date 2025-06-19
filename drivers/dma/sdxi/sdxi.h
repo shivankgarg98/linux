@@ -289,6 +289,12 @@ struct irq_entry {
 	int vector;
 };
 
+/**
+ * struct sdxi_dev_ops - Bus-specific methods for SDXI devices.
+ *
+ * @irq_init: Allocate MSIs.
+ * @irq_exit: Release MSIs.
+ */
 struct sdxi_dev_ops {
 	int (*irq_init)(struct sdxi_dev *);
 	void (*irq_exit)(struct sdxi_dev *);
