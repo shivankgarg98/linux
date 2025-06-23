@@ -7,6 +7,7 @@
 
 #include <linux/bits.h>
 #include <linux/compiler_attributes.h>
+#include <linux/compiler_types.h>
 #include <linux/types.h>
 
 enum sdxi_reg {
@@ -129,6 +130,43 @@ union mmio_ctl0_reg {
 	};
 	u64 data;
 } __packed __aligned(8);
+
+// Control registers.
+
+struct sdxi_mmio_ctl0 {
+	u32 fn_pasid;
+	u32 fn_grp_id;
+	u8 fn_gsr;
+	bool fn_pasid_vl;
+	bool fn_err_intr_en;
+};
+
+struct sdxi_mmio_ctl2 {
+	u32 obp_000_avl;
+	u16 max_cxt;
+	u8 max_buffer;
+	u8 max_akey_sz;
+};
+
+struct sdxi_mmio_cxt_l2 {
+	u64 lv02_ptr;
+};
+
+struct sdxi_mmio_rkey {
+	u64 ptr;
+	bool en;
+	u8 sz;
+};
+
+void sdxi_mmio_ctl0_read(void __iomem *, struct sdxi_mmio_ctl0 *);
+void sdxi_mmio_ctl2_read(void __iomem *, struct sdxi_mmio_ctl2 *);
+void sdxi_mmio_cxt_l2_read(void __iomem *, struct sdxi_mmio_cxt_l2 *);
+void sdxi_mmio_rkey_read(void __iomem *, struct sdxi_mmio_rkey *);
+
+void sdxi_mmio_ctl0_commit(void __iomem *, const struct sdxi_mmio_ctl0 *);
+void sdxi_mmio_ctl2_commit(void __iomem *, const struct sdxi_mmio_ctl2 *);
+void sdxi_mmio_cxt_l2_commit(void __iomem *, const struct sdxi_mmio_cxt_l2 *);
+void sdxi_mmio_rkey_commit(void __iomem *, const struct sdxi_mmio_rkey *);
 
 /* function state control (ctl0.fn_gsr) constants */
 #define GSRV_STOP_SF			0x1
