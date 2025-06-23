@@ -1,5 +1,14 @@
 ccflags-y := -DDEBUG
 
-obj-$(CONFIG_SDXI)	+= sdxi.o
+obj-$(CONFIG_SDXI) += sdxi.o
 
-sdxi-objs := pci.o device.o context.o dma.o ioctl.o process.o trace.o util.o error.o
+sdxi-objs += \
+	context.o     \
+	device.o      \
+	dma.o         \
+	error.o       \
+	ioctl.o       \
+	pci.o         \
+	process.o     \
+	trace.o       \
+	util.o
