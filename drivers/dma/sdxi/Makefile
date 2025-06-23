@@ -1,5 +1,3 @@
-ccflags-y := -DDEBUG
-
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
