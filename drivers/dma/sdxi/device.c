@@ -549,6 +549,7 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 {
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
+	bool reset_issued = false;
 
 	do {
 		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
@@ -562,14 +563,17 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 			sdxi_set_ctl0(sdxi, ctl0);
 			break;
 		case SDXI_GSV_ERROR:
+			if (!reset_issued) {
+				sdxi_info(sdxi,
+					  "function in error state, issuing reset\n");
+				ctl0.fn_gsr = SDXI_GSRV_RESET;
+				sdxi_set_ctl0(sdxi, ctl0);
+				reset_issued = true;
+			} else {
+				fsleep(1000);
+			}
+			break;
 		case SDXI_GSV_STOP:
-			// Perform a reset command and clear all other configuration
-			// from MMIO_CTL0 at least once. If the function is already in
-			// GSV_STOP the command will be ignored.
-			sdxi_set_ctl0(sdxi,
-				      (struct sdxi_mmio_ctl0) {
-					      .fn_gsr = SDXI_GSRV_RESET,
-				      });
 			return 0;
 			break;
 		case SDXI_GSV_INIT:
