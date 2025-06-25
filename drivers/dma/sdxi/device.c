@@ -470,7 +470,6 @@ typedef enum sdxi_fn_gsr {
 	SDXI_GSRV_ACTIVE,
 } sdxi_fn_gsr_t;
 
-
 static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 {
 	return (sdxi_fn_gsv_t)FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
