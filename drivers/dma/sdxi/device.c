@@ -479,9 +479,9 @@ static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 
 static int sdxi_dev_start(struct sdxi_dev *sdxi)
 {
+	struct sdxi_mmio_ctl0 ctl0;
 	unsigned long deadline;
 	sdxi_fn_gsv_t status;
-	u64 ctl0;
 
 	status = sdxi_dev_gsv(sdxi);
 	if (status != SDXI_GSV_STOP) {
@@ -491,10 +491,9 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 		return -EIO;
 	}
 
-	ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-	ctl0 &= ~SDXI_MMIO_CTL0_FN_GSR;
-	ctl0 |= FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR, SDXI_GSRV_ACTIVE);
-	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
+	ctl0 = sdxi_get_ctl0(sdxi);
+	ctl0.fn_gsr = SDXI_GSRV_ACTIVE;
+	sdxi_set_ctl0(sdxi, ctl0);
 
 	deadline = jiffies + msecs_to_jiffies(1000);
 	do {
@@ -535,25 +534,23 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
 
 	do {
+		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
-		u64 ctl0;
 
 		switch (status) {
 		case SDXI_GSV_ACTIVE:
-			ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
-			ctl0 &= ~SDXI_MMIO_CTL0_FN_GSR;
-			ctl0 |= FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR,
-					   SDXI_GSRV_STOP_SF);
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
+			ctl0.fn_gsr = SDXI_GSRV_STOP_SF;
+			sdxi_set_ctl0(sdxi, ctl0);
 			break;
 		case SDXI_GSV_ERROR:
 		case SDXI_GSV_STOP:
 			// Perform a reset command and clear all other configuration
 			// from MMIO_CTL0 at least once. If the function is already in
 			// GSV_STOP the command will be ignored.
-			sdxi_write64(sdxi, SDXI_MMIO_CTL0,
-				     FIELD_PREP(SDXI_MMIO_CTL0_FN_GSR,
-						SDXI_GSRV_RESET));
+			sdxi_set_ctl0(sdxi,
+				      (struct sdxi_mmio_ctl0) {
+					      .fn_gsr = SDXI_GSRV_RESET,
+				      });
 			return 0;
 			break;
 		case SDXI_GSV_INIT:

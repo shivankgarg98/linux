@@ -102,6 +102,7 @@ static irqreturn_t sdxi_irq_handler(int irq, void *data)
 
 int sdxi_error_init(struct sdxi_dev *sdxi, unsigned int irq)
 {
+	struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 	int err;
 
 	err = request_threaded_irq(irq, sdxi_irq_handler, sdxi_irq_thread, 0,
@@ -109,6 +110,8 @@ int sdxi_error_init(struct sdxi_dev *sdxi, unsigned int irq)
 	if (err)
 		return err;
 
+	ctl0.fn_err_intr_en = 1;
+	sdxi_set_ctl0(sdxi, ctl0);
 	sdxi->err_irq.vector = irq;
 	return 0;
 }
