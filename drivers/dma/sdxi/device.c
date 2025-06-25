@@ -693,6 +693,14 @@ static void sdxi_stop(struct sdxi_dev *sdxi)
 			 DMA_FROM_DEVICE);
 }
 
+static void init_ctrl_regs(struct sdxi_dev *sdxi)
+{
+	// Don't assume that the control registers have their defined
+	// reset values; set them explicitly. Updating the registers
+	// caches the committed values in sdxi_dev.
+	sdxi_set_ctl0(sdxi, (struct sdxi_mmio_ctl0){});
+}
+
 /* Main entry point for SDXI device initial configuration */
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
@@ -701,6 +709,8 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	int err;
 
 	sdxi->dev_ops = ops;
+
+	init_ctrl_regs(sdxi);
 
 	err = sdxi_activate(sdxi);
 	if (err)
