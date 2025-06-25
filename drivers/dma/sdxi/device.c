@@ -463,6 +463,25 @@ typedef enum sdxi_fn_gsv {
 	SDXI_GSV_ERROR,
 } sdxi_fn_gsv_t;
 
+static const char *const gsv_strings[] = {
+	[SDXI_GSV_STOP]     = "stopped",
+	[SDXI_GSV_INIT]     = "initializing",
+	[SDXI_GSV_ACTIVE]   = "active",
+	[SDXI_GSV_STOPG_SF] = "soft stopping",
+	[SDXI_GSV_STOPG_HD] = "hard stopping",
+	[SDXI_GSV_ERROR]    = "error",
+};
+
+static const char *gsv_str(sdxi_fn_gsv_t gsv)
+{
+	if ((size_t)gsv < ARRAY_SIZE(gsv_strings))
+		return gsv_strings[(size_t)gsv];
+
+	WARN_ONCE(1, "unexpected gsv %u\n", gsv);
+
+	return "unknown";
+}
+
 typedef enum sdxi_fn_gsr {
 	SDXI_GSRV_RESET,
 	SDXI_GSRV_STOP_SF,
@@ -485,8 +504,8 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 	status = sdxi_dev_gsv(sdxi);
 	if (status != SDXI_GSV_STOP) {
 		sdxi_err(sdxi,
-			 "can't activate busy device (unexpected gsv %u)\n",
-			 status);
+			 "can't activate busy device (unexpected gsv: %s)\n",
+			 gsv_str(status));
 		return -EIO;
 	}
 
@@ -497,6 +516,7 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 	deadline = jiffies + msecs_to_jiffies(1000);
 	do {
 		status = sdxi_dev_gsv(sdxi);
+		sdxi_dbg(sdxi, "%s: function state: %s\n", __func__, gsv_str(status));
 
 		switch (status) {
 		case SDXI_GSV_ACTIVE:
@@ -510,8 +530,6 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOP:
 			// transitional states, wait
-			sdxi_dbg(sdxi, "waiting for active (gsv = %u)\n",
-				 status);
 			fsleep(1000);
 			break;
 		default:
@@ -535,6 +553,8 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	do {
 		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
+
+		sdxi_dbg(sdxi, "%s: function state: %s\n", __func__, gsv_str(status));
 
 		switch (status) {
 		case SDXI_GSV_ACTIVE:
