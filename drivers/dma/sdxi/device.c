@@ -83,6 +83,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 		l1_entry->opb_000_enb = sdxi->op_grp_cap;
 		l1_entry->vl = 1;
 		l1_entry->ka = 1;
+		l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
 		l1_entry->max_buf = 11;
 
 		cxt->akey[0].vl = 1;
@@ -176,7 +177,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 	config_cxt_table_entries(sdxi->l2_table, l1_table, cxt, true);
 }
 
-static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi)
+static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 {
 	struct sdxi_cxt *cxt;
 	u16 id, l2_idx, l1_idx;
@@ -231,6 +232,7 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi)
 	cxt->akey = akey;
 	cxt->db_base = sdxi->dbs_bar + id * sdxi->db_stride;
 	cxt->db = sdxi->dbs + id * sdxi->db_stride;
+	cxt->privileged = privileged;
 
 	sdxi->cxt_array[l2_idx][l1_idx] = cxt;
 	list_add(&cxt->list, &sdxi->cxt_list);
@@ -284,14 +286,14 @@ static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *d
 }
 
 /* alloc context resources and populate context table */
-struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi)
+static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 {
 	struct device *dev = &sdxi->pdev->dev;
 	struct sdxi_cxt *cxt;
 
 	mutex_lock(&sdxi->cxt_lock);
 
-	cxt = alloc_cxt(sdxi);
+	cxt = alloc_cxt(sdxi, privileged);
 	if (!cxt)
 		goto drop_cxt_lock;
 
@@ -338,10 +340,11 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id id)
 {
+	bool privileged = id != SDXI_ANY_CXT_ID;
 	struct sdxi_cxt *cxt;
 	struct sdxi_sq *sq;
 
-	cxt = sdxi_cxt_alloc(sdxi);
+	cxt = sdxi_cxt_alloc(sdxi, privileged);
 	if (!cxt) {
 		sdxi_err(sdxi, "failed to alloc a new context\n");
 		return NULL;
@@ -646,6 +649,9 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 	sdxi_parse_version(sdxi);
 
 	if (sdxi_dev_supports_privileged_address_space(sdxi)){
+		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
+		ctl0.fn_pr = true;
+		sdxi_set_ctl0(sdxi, ctl0);
 		sdxi->use_privileged_bits = true;
 		sdxi_dbg(sdxi,
 			 "Setting 'pr' bit on kernel-private control structures\n");

@@ -204,6 +204,7 @@ struct sdxi_cxt {
 	struct list_head list;
 	struct sdxi_dev *sdxi;	/* owner */
 	unsigned int id;
+	bool privileged;
 
 	resource_size_t db_base;	/* doorbell MMIO base addr */
 	void __iomem *db;		/* doorbell virt addr */
@@ -412,7 +413,6 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
 
 /* Context Control */
-struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi);
 void sdxi_cxt_free(struct sdxi_cxt *cxt);
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id);
