@@ -139,6 +139,7 @@ struct sdxi_mmio_ctl0 {
 	u8 fn_gsr;
 	bool fn_pasid_vl;
 	bool fn_err_intr_en;
+	bool fn_pr;
 };
 
 struct sdxi_mmio_ctl2 {
