@@ -58,7 +58,7 @@ static void sdxi_handle_err(struct sdxi_dev *sdxi)
 	write_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
 
 	while (read_ptr < write_ptr) {
-		offset = (read_ptr * 64) % ((sdxi->err_log_num + 1) * 4096);
+		offset = read_ptr % ((sdxi->err_log_num + 1) * 4096);
 		err_entry = (struct sdxi_err *)sdxi->err_log + offset;
 		sdxi_print_err(sdxi, err_entry);
 		read_ptr++;
