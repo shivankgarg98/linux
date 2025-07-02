@@ -232,10 +232,10 @@ struct sdxi_cxt_ctl {
 static_assert(sizeof(struct sdxi_cxt_ctl) == 64);
 
 struct sdxi_cxt_sts {
-	u8 state;
+	__u8 state;
 #define SDXI_CXT_STS_STATE GENMASK(3, 0)
-	u8 misc0;
-	u8 rsvd_0[6];
+	__u8 misc0;
+	__u8 rsvd_0[6];
 	__le64 read_index;
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_sts) == 16);
