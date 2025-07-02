@@ -379,6 +379,10 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_status;
 	struct sdxi_desc desc;
 	u16 cxtid = target_cxt->id;
+	cxt_sts_state_t state = sdxi_cxt_sts_state(sts);
+
+	sdxi_dbg(sdxi, "%s entry: context state: %s",
+		 __func__, cxt_sts_state_str(state));
 
 	build_admin_stop_new(&desc, 0, 0, cxtid, cxtid, 0);
 	mb();
@@ -387,18 +391,30 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
 
 	do {
-		u8 state = sdxi_cxt_sts_state(sts);
+		cxt_sts_state_t state = sdxi_cxt_sts_state(sts);
+
+		sdxi_dbg(sdxi, "context %u state: %s", cxtid,
+			 cxt_sts_state_str(state));
+
 		switch (state) {
-		case CXT_STATE_STOPPED:
-			return;
-			break;
 		case CXT_STATE_ERR:
 			sdxi_err(sdxi, "context %u went into error state while stopping\n",
 				cxtid);
+			fallthrough;
+		case CXTV_STOP_SW:
+		case CXTV_STOP_FN:
 			return;
 			break;
-		default:
+		case CXTV_RUN:
+		case CXTV_STOPG_SW:
+		case CXTV_STOPG_FN:
+			// transitional states
 			fsleep(1000);
+			break;
+		default:
+			sdxi_err(sdxi, "context %u in unknown state %u\n",
+				 cxtid, state);
+			return;
 			break;
 		}
 	} while (time_before(jiffies, deadline));
