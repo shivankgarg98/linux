@@ -105,6 +105,9 @@ int sdxi_error_init(struct sdxi_dev *sdxi, unsigned int irq)
 	struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 	int err;
 
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_WRT, 0);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, 0);
+
 	err = request_threaded_irq(irq, sdxi_irq_handler, sdxi_irq_thread, 0,
 				   SDXI_DRV_NAME, sdxi);
 	if (err)
