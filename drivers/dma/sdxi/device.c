@@ -395,6 +395,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		case CXT_STATE_ERR:
 			sdxi_err(sdxi, "context %u went into error state while stopping\n",
 				cxtid);
+			return;
 			break;
 		default:
 			fsleep(1000);
