@@ -1,7 +1,6 @@
 config SDXI
 	tristate "SDXI support"
 	default m
-	depends on IOMMU_SVA
 	select DMA_ENGINE
 	select DMA_VIRTUAL_CHANNELS
 	help
