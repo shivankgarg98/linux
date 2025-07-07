@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
@@ -7,7 +8,8 @@ sdxi-objs += \
 	error.o       \
 	ioctl.o       \
 	mmio.o        \
-	pci.o         \
 	process.o     \
 	trace.o       \
 	util.o
+
+sdxi-$(CONFIG_PCI_MSI) += pci.o
