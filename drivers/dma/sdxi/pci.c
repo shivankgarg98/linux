@@ -89,7 +89,6 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 	sdxi->dbs = pcim_iomap_table(pdev)[MMIO_DOORBELL_BAR];
 	if (!sdxi->ctrl_regs || !sdxi->dbs) {
 		sdxi_err(sdxi, "pcim_iomap_table failed\n");
-		pcim_iounmap_regions(pdev, bars);
 		return -EINVAL;
 	}
 
