@@ -28,6 +28,15 @@ static bool dma_engine = false;
 module_param(dma_engine, bool, 0644);
 MODULE_PARM_DESC(dma_engine, "Enable DMA engine interface (default: false)");
 
+static bool set_pr_bits = false;
+module_param(set_pr_bits, bool, 0644);
+MODULE_PARM_DESC(set_pr_bits,
+		 "Set the 'pr' bits on kernel-private SDXI "
+		 "control structures when the underlying bus supports privileged "
+		 "address space and the function has been configured to use it "
+		 "(e.g. PCIe PASID Privileged Mode) "
+		 "(default: false)");
+
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
 			     struct cxt_l1_entry *l1_table)
@@ -669,7 +678,7 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 	sdxi_parse_capabilities(sdxi);
 	sdxi_parse_version(sdxi);
 
-	if (sdxi_dev_supports_privileged_address_space(sdxi)){
+	if (sdxi_dev_supports_privileged_address_space(sdxi) && set_pr_bits) {
 		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 		ctl0.fn_pr = true;
 		sdxi_set_ctl0(sdxi, ctl0);
