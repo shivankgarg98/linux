@@ -160,6 +160,15 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 	struct sdxi_cxt *cxt;
 	int err = 0;
 
+	// I doubt the utility of this field and think we should get
+	// rid of it, but we should validate it as long as it's there.
+	if (args->cxt_type != SDXI_CXT_TYPE_USER)
+		return -EINVAL;
+
+	// This is the only ring size we allocate for user space right now.
+	if (args->ring_entries != 1024) // see sdxi_sq_alloc_default()
+		return -EINVAL;
+
 	/* We actually skip the configuration from user. Need to be used */
 	cxt = sdxi_working_cxt_alloc();
 	if (IS_ERR(cxt))
