@@ -4,6 +4,11 @@ CPPFLAGS += -I../../../include/ -Ilib/
 
 TEST_GEN_PROGS += context copy device nop
 
+# pasid_pmr isn't run directly. The pasid_pmr_wrapper script invokes
+# it several times with different arguments.
+TEST_GEN_PROGS_EXTENDED += pasid_pmr
+TEST_PROGS += pasid_pmr_wrapper
+
 # Only for internal PASID PMR testing
 TEST_GEN_MODS_DIR := pteditor
 
@@ -37,3 +42,4 @@ $(LIBDIR)/%.o: ./lib/%.c $(LIBDEPS)
 	$(CC) $< $(CFLAGS) $(CPPFLAGS) -o $@ -c
 
 $(TEST_GEN_PROGS): $(LIB)
+$(TEST_GEN_PROGS_EXTENDED): $(LIB)
