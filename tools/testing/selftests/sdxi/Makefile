@@ -4,6 +4,9 @@ CPPFLAGS += -I../../../include/ -Ilib/
 
 TEST_GEN_PROGS += context copy device nop
 
+# Only for internal PASID PMR testing
+TEST_GEN_MODS_DIR := pteditor
+
 include ../lib.mk
 
 HOSTAR ?= ar
@@ -17,10 +20,12 @@ LIBDEPS := \
 	lib/descriptor.h \
 	lib/fixture-context.h \
 	lib/fixture-device.h \
-	lib/lib.h
+	lib/lib.h \
+	lib/ptedit.h
 
 # Library
 LIBSRC	:= context.c lib.c
+LIBSRC	+= ptedit.c
 LIBOBJ	:= $(LIBSRC:%.c=$(LIBDIR)/%.o)
 EXTRA_CLEAN += $(LIBOBJ) $(LIB)
 
