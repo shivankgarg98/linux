@@ -1,13 +1,34 @@
 werror := -Werror
 CFLAGS += -std=gnu17 -Og -Wall -Wextra $(werror) $(KHDR_INCLUDES)
-CPPFLAGS += -I../../../include/
+CPPFLAGS += -I../../../include/ -Ilib/
 
-TEST_GEN_PROGS += simple_cdev
-$(OUTPUT)/simple_cdev: lib.o
+TEST_GEN_PROGS += context copy device nop
 
 include ../lib.mk
 
-# When I change lib.h, I want the files that include it to rebuild.
-# This isn't handled automatically and I don't see how to communicate
-# such dependencies to this build system. Use this hack for now:
-.PHONY: *.c
+HOSTAR ?= ar
+
+LIBDIR	:= $(OUTPUT)/lib
+LIB	:= $(LIBDIR)/lib.a
+
+LIBDEPS := \
+	Makefile \
+	lib/compat.h \
+	lib/descriptor.h \
+	lib/fixture-context.h \
+	lib/fixture-device.h \
+	lib/lib.h
+
+# Library
+LIBSRC	:= context.c lib.c
+LIBOBJ	:= $(LIBSRC:%.c=$(LIBDIR)/%.o)
+EXTRA_CLEAN += $(LIBOBJ) $(LIB)
+
+$(LIB): $(LIBOBJ)
+	$(HOSTAR) rcs $@ $^
+
+$(LIBDIR)/%.o: ./lib/%.c $(LIBDEPS)
+	mkdir -p $(LIBDIR)
+	$(CC) $< $(CFLAGS) $(CPPFLAGS) -o $@ -c
+
+$(TEST_GEN_PROGS): $(LIB)

@@ -2,6 +2,7 @@
 #define SELFTEST_SDXI_LIB_H
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "descriptor.h"
 #include "linux/build_bug.h"
@@ -35,8 +36,13 @@ struct sdxi_context {
 	struct descriptor_ring *ring;
 };
 
+struct sdxi_context *sdxi_context_create(void);
+void sdxi_context_destroy(struct sdxi_context *cxt);
+bool sdxi_context_running(const struct sdxi_context *cxt);
+
 struct sdxi_desc sdxi_dsc_encode_nop(void);
 struct sdxi_desc sdxi_dsc_encode_copy(void *dest, const void *src, size_t n);
-int sdxi_submit(struct sdxi_context *cxt, const struct sdxi_desc *desc);
+int sdxi_submit_sync(struct sdxi_context *cxt, const struct sdxi_desc *desc);
+int sdxi_submit_oneshot(const struct sdxi_desc *desc);
 
 #endif/* SELFTEST_SDXI_LIB_H */

@@ -1,4 +1,5 @@
 #include <stdatomic.h>
+#include <time.h>
 #include <errno.h>
 
 #include "linux/kernel.h"
@@ -98,11 +99,20 @@ static void copy_desc_to_ring(struct descriptor_ring *ring, size_t idx,
 	dst->qw[0] = src->qw[0];
 }
 
-int sdxi_submit(struct sdxi_context *cxt, const struct sdxi_desc *desc)
+static u64 sample_read_index(const struct sdxi_context *cxt)
 {
-	volatile __le64 *rptr = &cxt->cxt_sts->read_index;
+	const volatile __le64 *rptr = &cxt->cxt_sts->read_index;
+	return le64_to_cpu(*rptr);
+}
+
+int sdxi_submit_async(struct sdxi_context *cxt, const struct sdxi_desc *desc, u64 *pos)
+{
+	const volatile __le64 *rptr = &cxt->cxt_sts->read_index;
 	volatile __le64 *wptr = cxt->write_idx;
 	u64 read, old_write, new_write;
+
+	if (!sdxi_context_running(cxt))
+		return -EIO;
 
 	read = le64_to_cpu(*rptr);
 	atomic_thread_fence(memory_order_acq_rel);
@@ -120,11 +130,55 @@ int sdxi_submit(struct sdxi_context *cxt, const struct sdxi_desc *desc)
 	copy_desc_to_ring(cxt->ring, old_write, desc);
 	*cxt->doorbell = cpu_to_le64(new_write);
 
-	// Wait for the read index to advance. This implies that the
-	// function has begun processing the descriptor, not that it
-	// has completed it.
-	while (cpu_to_le64(*rptr) <= read)
-		; // spin
-
+	if (pos)
+		*pos = old_write;
 	return 0;
+}
+
+// Submit nops until the function increments the read index or the
+// threshold is reached. Sleeps 1ms between each nop.
+static int force_read_index_advance(struct sdxi_context *cxt, u64 target)
+{
+	struct sdxi_desc nop = sdxi_dsc_encode_nop();
+
+	for (size_t tries = 1000; tries > 0; --tries) {
+		if (sample_read_index(cxt) >= target)
+			return 0;
+		sdxi_submit_async(cxt, &nop, NULL);
+		nanosleep(&(struct timespec)
+			  {
+				  .tv_nsec = 1000000,
+			  }, NULL);
+	}
+
+	fprintf(stderr, "Failed to force read index advance to %llu\n",
+		(unsigned long long)target);
+	return -ETIMEDOUT;
+}
+
+int sdxi_submit_sync(struct sdxi_context *cxt, const struct sdxi_desc *desc)
+{
+	u64 pos;
+	int err;
+
+	err = sdxi_submit_async(cxt, desc, &pos);
+	if (err)
+		return err;
+
+	return force_read_index_advance(cxt, pos + 1);
+}
+
+int sdxi_submit_oneshot(const struct sdxi_desc *desc)
+{
+	struct sdxi_context *context = sdxi_context_create();
+	int err;
+
+	if (!context)
+		return -EIO;
+
+	err = sdxi_submit_async(context, desc, NULL);
+
+	sdxi_context_destroy(context);
+
+	return err;
 }
