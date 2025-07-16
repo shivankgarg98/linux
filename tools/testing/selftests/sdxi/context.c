@@ -64,7 +64,7 @@ TEST_F(sdxi_context_nomap, context_create_and_destroy_nomap)
 
 TEST_F(sdxi_context, context_create_and_destroy)
 {
-	// Just run the fixture setup and teardown
+	EXPECT_TRUE(sdxi_context_running(&self->context));
 }
 
 TEST_HARNESS_MAIN
