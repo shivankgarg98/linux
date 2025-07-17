@@ -97,4 +97,4 @@ done
 
 set_sdxi_param "force_pr_for_user_contexts" "off"
 
-tap_end 4
+tap_end ${#expected_results[*]}
