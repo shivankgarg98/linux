@@ -170,10 +170,6 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 
 	sdxi->dev = dev;
 
-	sdxi->l2_table = kzalloc(sizeof(*sdxi->l2_table), GFP_KERNEL);
-	if (!sdxi->l2_table)
-		goto l2_fail;
-
 	/* error log */
 	entries = DEFAULT_ERR_LOG_NUM;
 	sdxi->err_log = kcalloc(entries, sizeof(struct sdxi_err), GFP_KERNEL);
@@ -188,8 +184,6 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 	return sdxi;
 
 err_log_fail:
-	kfree(sdxi->l2_table);
-l2_fail:
 	kfree(sdxi);
 	return NULL;
 }
@@ -198,7 +192,6 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 {
 	list_del(&sdxi->list);
 	kfree(sdxi->err_log);
-	kfree(sdxi->l2_table);
 	kfree(sdxi);
 }
 

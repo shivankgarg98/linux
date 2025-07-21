@@ -334,7 +334,6 @@ struct sdxi_dev {
 	struct mutex cxt_lock;		/* context protection */
 	struct list_head cxt_list;
 	int cxt_count;
-	/* l2 table, pre-allocated with sdxi_device */
 	struct sdxi_cxt_l2_table *l2_table;
 	dma_addr_t l2_dma;
 	/* list of context l1 tables, on-demand, access with [l2_idx] */

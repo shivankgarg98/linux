@@ -708,18 +708,12 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 	dev_info(dev, "SDXI %u.%u device found\n",
 		 sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
-	/* l2 table */
-	sdxi->l2_dma = dma_map_single(dev, sdxi->l2_table, L2_TABLE_SIZE,
-				      DMA_TO_DEVICE);
-	if (dma_mapping_error(dev, sdxi->l2_dma))
-		return -ENOMEM;
-
 	/* err log */
 	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
 					   sdxi->err_log_num * sizeof(struct sdxi_err),
 					   DMA_FROM_DEVICE);
 	if (dma_mapping_error(dev, sdxi->err_log_dma))
-		goto unmap_l2;
+		return -ENOMEM;
 
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
 		     FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
@@ -750,8 +744,6 @@ unmap_errlog:
 	dma_unmap_single(dev, sdxi->err_log_dma,
 			 sdxi->err_log_num * sizeof(struct sdxi_err),
 			 DMA_FROM_DEVICE);
-unmap_l2:
-	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	return -ENOMEM;
 }
 
@@ -761,7 +753,6 @@ static void sdxi_stop(struct sdxi_dev *sdxi)
 
 	sdxi_dev_stop(sdxi);
 
-	dma_unmap_single(dev, sdxi->l2_dma, L2_TABLE_SIZE, DMA_TO_DEVICE);
 	dma_unmap_single(dev, sdxi->err_log_dma,
 			 sdxi->err_log_num * sizeof(struct sdxi_err),
 			 DMA_FROM_DEVICE);
@@ -785,6 +776,11 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	sdxi->dev_ops = ops;
 
 	init_ctrl_regs(sdxi);
+
+	sdxi->l2_table = dmam_alloc_coherent(sdxi_to_dev(sdxi), L2_TABLE_SIZE,
+					     &sdxi->l2_dma, GFP_KERNEL);
+	if (!sdxi->l2_table)
+		return -ENOMEM;
 
 	err = sdxi_activate(sdxi);
 	if (err)
