@@ -162,7 +162,6 @@ static void sdxi_pci_exit(struct sdxi_dev *sdxi)
 static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 {
 	struct sdxi_dev *sdxi;
-	int entries;
 
 	sdxi = kzalloc(sizeof(*sdxi), GFP_KERNEL);
 	if (!sdxi)
@@ -170,28 +169,16 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 
 	sdxi->dev = dev;
 
-	/* error log */
-	entries = DEFAULT_ERR_LOG_NUM;
-	sdxi->err_log = kcalloc(entries, sizeof(struct sdxi_err), GFP_KERNEL);
-	if (!sdxi->err_log)
-		goto err_log_fail;
-	sdxi->err_log_num = entries;
-
 	mutex_init(&sdxi->cxt_lock);
 	INIT_LIST_HEAD(&sdxi->cxt_list);
 	list_add_tail(&sdxi->list, &sdxi_device_list);
 
 	return sdxi;
-
-err_log_fail:
-	kfree(sdxi);
-	return NULL;
 }
 
 static void sdxi_device_free(struct sdxi_dev *sdxi)
 {
 	list_del(&sdxi->list);
-	kfree(sdxi->err_log);
 	kfree(sdxi);
 }
 

@@ -709,10 +709,10 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 		 sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
 	/* err log */
-	sdxi->err_log_dma = dma_map_single(dev, sdxi->err_log,
-					   sdxi->err_log_num * sizeof(struct sdxi_err),
-					   DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, sdxi->err_log_dma))
+	sdxi->err_log_num = DEFAULT_ERR_LOG_NUM;
+	sdxi->err_log = dma_alloc_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
+					   &sdxi->err_log_dma, GFP_KERNEL);
+	if (!sdxi->err_log)
 		return -ENOMEM;
 
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
@@ -741,9 +741,8 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 
 	return 0;
 unmap_errlog:
-	dma_unmap_single(dev, sdxi->err_log_dma,
-			 sdxi->err_log_num * sizeof(struct sdxi_err),
-			 DMA_FROM_DEVICE);
+	dma_free_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
+			  sdxi->err_log, sdxi->err_log_dma);
 	return -ENOMEM;
 }
 
@@ -753,9 +752,8 @@ static void sdxi_stop(struct sdxi_dev *sdxi)
 
 	sdxi_dev_stop(sdxi);
 
-	dma_unmap_single(dev, sdxi->err_log_dma,
-			 sdxi->err_log_num * sizeof(struct sdxi_err),
-			 DMA_FROM_DEVICE);
+	dma_free_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
+			  sdxi->err_log, sdxi->err_log_dma);
 }
 
 static void init_ctrl_regs(struct sdxi_dev *sdxi)
