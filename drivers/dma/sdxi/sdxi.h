@@ -17,7 +17,6 @@
 #include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <linux/pci.h>
 #include <linux/types.h>
 
 #include "../virt-dma.h"
@@ -310,8 +309,7 @@ struct sdxi_dev_ops {
 struct sdxi_dev {
 	struct list_head list;
 
-	/* physical device */
-	struct pci_dev *pdev;
+	struct device *dev;
 	resource_size_t ctrl_regs_bar;	/* ctrl registers base (BAR0) */
 	resource_size_t dbs_bar;	/* doorbells base (BAR2) */
 	void __iomem *ctrl_regs;	/* virt addr of ctrl registers */
@@ -387,7 +385,7 @@ static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
 
 static inline struct device *sdxi_to_dev(const struct sdxi_dev *sdxi)
 {
-	return &sdxi->pdev->dev;
+	return sdxi->dev;
 }
 
 #define sdxi_dbg(s, fmt, ...) dev_dbg(sdxi_to_dev(s), fmt, ## __VA_ARGS__)

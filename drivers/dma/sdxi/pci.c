@@ -39,9 +39,14 @@ MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
 LIST_HEAD(sdxi_device_list);
 
+static struct pci_dev *sdxi_to_pci_dev(const struct sdxi_dev *sdxi)
+{
+	return to_pci_dev(sdxi_to_dev(sdxi));
+}
+
 static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 {
-	struct pci_dev *pdev = sdxi->pdev;
+	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 	int msi_count;
 	int ret;
 
@@ -71,12 +76,12 @@ err_irq0_alloc:
 static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 {
 	sdxi_error_exit(sdxi);
-	pci_free_irq_vectors(sdxi->pdev);
+	pci_free_irq_vectors(sdxi_to_pci_dev(sdxi));
 }
 
 static int sdxi_pci_map(struct sdxi_dev *sdxi)
 {
-	struct pci_dev *pdev = sdxi->pdev;
+	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 	int bars, ret;
 
 	bars = 1 << MMIO_CTL_REGS_BAR | 1 << MMIO_DOORBELL_BAR;
@@ -101,7 +106,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 
 static void sdxi_pci_unmap(struct sdxi_dev *sdxi)
 {
-	struct pci_dev *pdev = sdxi->pdev;
+	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 
 	pcim_iounmap(pdev, sdxi->ctrl_regs);
 	pcim_iounmap(pdev, sdxi->dbs);
@@ -109,7 +114,7 @@ static void sdxi_pci_unmap(struct sdxi_dev *sdxi)
 
 static int sdxi_pci_init(struct sdxi_dev *sdxi)
 {
-	struct pci_dev *pdev = sdxi->pdev;
+	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 	struct device *dev = &pdev->dev;
 	int dma_bits = 64;
 	int ret;
@@ -139,7 +144,7 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 static bool sdxi_pci_supports_privileged_addrspace(struct sdxi_dev *sdxi)
 {
 #ifdef CONFIG_PCI_PASID
-	struct pci_dev *pdev = sdxi->pdev;
+	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 
 	return pdev->pasid_enabled &&
 		(pdev->pasid_features & PCI_PASID_CAP_PRIV);
@@ -162,6 +167,8 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 	sdxi = kzalloc(sizeof(*sdxi), GFP_KERNEL);
 	if (!sdxi)
 		return NULL;
+
+	sdxi->dev = dev;
 
 	sdxi->l2_table = kzalloc(sizeof(*sdxi->l2_table), GFP_KERNEL);
 	if (!sdxi->l2_table)
@@ -212,7 +219,6 @@ static int sdxi_pci_probe(struct pci_dev *pdev,
 	if (!sdxi)
 		return -ENOMEM;
 
-	sdxi->pdev = pdev;
 	pci_set_drvdata(pdev, sdxi);
 
 	ret = sdxi_pci_init(sdxi);
