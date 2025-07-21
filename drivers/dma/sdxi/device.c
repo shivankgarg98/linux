@@ -50,7 +50,7 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
 			     struct cxt_l1_entry *l1_table)
 {
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 	dma_addr_t l1_addr;
 
 	if (l1_table) {
@@ -75,7 +75,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 			     struct cxt_l1_entry *l1_entry,
 			     struct sdxi_cxt *cxt)
 {
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 
 	if (cxt) {
 		/* NB: More need to be done */
@@ -140,7 +140,7 @@ static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 
 			// assumes we're freeing a single page
 			static_assert(L1_TABLE_SIZE == PAGE_SIZE);
-			dma_unmap_single(&sdxi->pdev->dev, l1_dma,
+			dma_unmap_single(sdxi_to_dev(sdxi), l1_dma,
 					 L1_TABLE_SIZE, DMA_TO_DEVICE);
 			free_page((unsigned long)l1_table);
 		}
@@ -308,7 +308,7 @@ static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *d
 /* alloc context resources and populate context table */
 static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 {
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 	struct sdxi_cxt *cxt;
 
 	mutex_lock(&sdxi->cxt_lock);
@@ -340,14 +340,14 @@ drop_cxt_lock:
 void sdxi_cxt_free(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 
 	trace_sdxi_free_cxt(sdxi, cxt);
 
 	mutex_lock(&sdxi->cxt_lock);
 
 	cleanup_cxt_tables(sdxi, cxt);
-	sdxi_cxt_release_dummy_buffer(cxt, &sdxi->pdev->dev);
+	sdxi_cxt_release_dummy_buffer(cxt, sdxi_to_dev(sdxi));
 	dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce), DMA_TO_DEVICE);
 	dma_unmap_single(dev, cxt->akey_addr,
 			 cxt->akey_entries * sizeof(struct akey_entry),
@@ -664,7 +664,7 @@ static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
 	sdxi->max_cxts = cap1.max_cxt + 1;
 	sdxi->op_grp_cap = cap1.opb_000_cap;
 
-	dev_info(&sdxi->pdev->dev,
+	dev_info(sdxi_to_dev(sdxi),
 		 "sfunc:%#hx descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
 		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
 		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
@@ -686,7 +686,7 @@ static void sdxi_parse_version(struct sdxi_dev *sdxi)
 // by Software"
 static int sdxi_activate(struct sdxi_dev *sdxi)
 {
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 	u64 ctrl2;
 	int err;
 

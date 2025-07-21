@@ -77,7 +77,6 @@ int sdxi_bind_process_to_device(struct sdxi_process *process)
 	struct sdxi_cxt *cxt = process->cxt;
 	struct iommu_sva *sva;
 	struct sdxi_dev *sdxi;
-	struct device *dev;
 	u32 pasid;
 	int err;
 
@@ -85,8 +84,7 @@ int sdxi_bind_process_to_device(struct sdxi_process *process)
 		return -EINVAL;
 
 	sdxi = cxt->sdxi;
-	dev = &sdxi->pdev->dev;
-	sva = iommu_sva_bind_device(dev, process->mm);
+	sva = iommu_sva_bind_device(sdxi_to_dev(sdxi), process->mm);
 	if (IS_ERR(sva))
 		return PTR_ERR(sva);
 

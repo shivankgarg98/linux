@@ -54,7 +54,7 @@ static int sdxi_cxt_doorbell_mmap(struct sdxi_process *process,
 		 "     physical address    == 0x%08llX\n"
 		 "     vm_flags            == 0x%04lX\n"
 		 "     size                == 0x%04lX\n",
-		 process->pasid, dev_name(&sdxi->pdev->dev),
+		 process->pasid, dev_name(sdxi_to_dev(sdxi)),
 		 (unsigned long long) vma->vm_start, address,
 		 vma->vm_flags, PAGE_SIZE);
 

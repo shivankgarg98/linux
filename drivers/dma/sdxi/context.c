@@ -116,7 +116,7 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
-	struct device *dev = &sdxi->pdev->dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 	struct sdxi_sq *sq;
 
 	/* alloc desc_ring */
@@ -227,14 +227,13 @@ free_sq:
 void sdxi_sq_free(struct sdxi_sq *sq)
 {
 	struct sdxi_cxt *cxt = sq->cxt;
-	struct device *dev;
+	struct device *dev = sdxi_to_dev(cxt->sdxi);
 
 	if (!cxt)
 		return;
 
 	trace_sdxi_free_sq(cxt, sq);
 
-	dev = &cxt->sdxi->pdev->dev;
 	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
 	dma_unmap_single(dev, sq->write_index_dma,

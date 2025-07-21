@@ -111,7 +111,7 @@ TRACE_EVENT(sdxi_bind_process,
 	    TP_PROTO(const struct sdxi_dev *sdxi, u32 pasid),
 	    TP_ARGS(sdxi, pasid),
 	    TP_STRUCT__entry(
-		    __string(devname, dev_name(&sdxi->pdev->dev))
+		    __string(devname, dev_name(sdxi_to_dev(sdxi)))
 		    __field(u32, pasid)
 		    ),
 	    TP_fast_assign(
@@ -127,7 +127,7 @@ TRACE_EVENT(sdxi_unbind_process,
 	    TP_PROTO(const struct sdxi_dev *sdxi, u32 pasid),
 	    TP_ARGS(sdxi, pasid),
 	    TP_STRUCT__entry(
-		    __string(devname, dev_name(&sdxi->pdev->dev))
+		    __string(devname, dev_name(sdxi_to_dev(sdxi)))
 		    __field(u32, pasid)
 		    ),
 	    TP_fast_assign(

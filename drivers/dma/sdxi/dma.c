@@ -348,15 +348,9 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 {
 	struct sdxi_dma_chan *chan;
 	struct sdxi_dev *sdxi = dma_cxt->sdxi;
-	struct device *dev;
+	struct device *dev = sdxi_to_dev(sdxi);
 	struct dma_device *dma_dev = &sdxi->dma_dev;
 	int ret = 0;
-
-	if (!dma_cxt)
-		return 0;
-
-	sdxi = dma_cxt->sdxi;
-	dev = &sdxi->pdev->dev;
 
 	sdxi->sdxi_dma_chan = devm_kzalloc(dev, sizeof(*sdxi->sdxi_dma_chan),
 					   GFP_KERNEL);
