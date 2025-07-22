@@ -40,8 +40,10 @@ struct sdxi_context *sdxi_context_create(void);
 void sdxi_context_destroy(struct sdxi_context *cxt);
 bool sdxi_context_running(const struct sdxi_context *cxt);
 
-struct sdxi_desc sdxi_dsc_encode_nop(void);
 struct sdxi_desc sdxi_dsc_encode_copy(void *dest, const void *src, size_t n);
+struct sdxi_desc sdxi_dsc_encode_nop(void);
+struct sdxi_desc sdxi_dsc_encode_rsvd(void);
+
 int sdxi_submit_sync(struct sdxi_context *cxt, const struct sdxi_desc *desc);
 int sdxi_submit_oneshot(const struct sdxi_desc *desc);
 

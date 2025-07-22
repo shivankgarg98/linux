@@ -2,7 +2,7 @@ werror := -Werror
 CFLAGS += -std=gnu17 -Og -Wall -Wextra $(werror) $(KHDR_INCLUDES)
 CPPFLAGS += -I../../../include/ -Ilib/
 
-TEST_GEN_PROGS += context copy device nop
+TEST_GEN_PROGS += context copy device error nop
 
 # pasid_pmr isn't run directly. The pasid_pmr_wrapper script invokes
 # it several times with different arguments.

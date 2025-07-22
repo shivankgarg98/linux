@@ -31,6 +31,26 @@ enum sdxi_operation {
 	DMAB_COPY = 0x03,
 };
 
+struct sdxi_desc sdxi_dsc_encode_rsvd(void)
+{
+	u32 opcode =
+		FIELD_PREP(DESC_VL, 1) |
+		FIELD_PREP(DESC_SE, 0) |
+		FIELD_PREP(DESC_FE, 1) |
+		FIELD_PREP(DESC_CH, 0) |
+		FIELD_PREP(DESC_CSR, 1) |
+		FIELD_PREP(DESC_SUBTYPE, 0) |
+		FIELD_PREP(DESC_TYPE, 0);
+	u64 csb_ptr =
+		FIELD_PREP(DESC_NP, 1) |
+		FIELD_PREP(DESC_CSB_PTR, 0);
+
+	return (struct sdxi_desc) {
+		.opcode = cpu_to_le32(opcode),
+		.csb_ptr = cpu_to_le64(csb_ptr),
+	};
+}
+
 struct sdxi_desc sdxi_dsc_encode_nop(void)
 {
 	u32 opcode =
