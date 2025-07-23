@@ -13,9 +13,8 @@
 #include "mmio.h"
 #include "sdxi.h"
 
-static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
+static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 {
-	int index;
 	static const char * const sub_steps[] = {
 		"Other or Internal Error",
 		"Address Translation Failure",
@@ -29,9 +28,15 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 		"SDXI Function Stopped",
 		"Unknown/Reserved Reaction",
 	};
+	struct sdxi_err *err;
+	size_t index;
+
+	index = err_rd % sdxi->err_log_num;
+	err = &sdxi->err_log[index];
 
 	if (err->vl) {
-		sdxi_err(sdxi, "error log entry:");
+		sdxi_err(sdxi, "error log entry[%zu], MMIO_ERR_RD=%#llx:\n",
+			 index, err_rd);
 		sdxi_err(sdxi, "  step: 0x%x\n", err->step);
 		sdxi_err(sdxi, "  type: 0x%x\n", err->type);
 		sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
@@ -49,48 +54,62 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, struct sdxi_err *err)
 	}
 }
 
-static void sdxi_handle_err(struct sdxi_dev *sdxi)
-{
-	u64 read_ptr, write_ptr, offset;
-	struct sdxi_err *err_entry;
-
-	read_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
-	write_ptr = sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
-
-	while (read_ptr < write_ptr) {
-		offset = read_ptr % ((sdxi->err_log_num + 1) * 4096);
-		err_entry = (struct sdxi_err *)sdxi->err_log + offset;
-		sdxi_print_err(sdxi, err_entry);
-		read_ptr++;
-	}
-
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, read_ptr);
-}
-
-static void sdxi_do_cmd_complete(unsigned long data)
-{
-	struct sdxi_tasklet_data *tdata = (void *)data;
-	struct sdxi_cmd *cmd = tdata->cmd;
-
-	if (cmd && cmd->sdxi_cmd_callback)
-		cmd->sdxi_cmd_callback(cmd->data, cmd->ret);
-}
-
+// Refer to "Error Log Processing by Software"
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = data;
+	u64 err_sts;
+	u64 write_index;
+	u64 read_index;
 
-	while (sdxi_read64(sdxi, SDXI_MMIO_ERR_STS) & SDXI_MMIO_ERR_STS_STS_BIT) {
-		sdxi_handle_err(sdxi);
+	// 1. Check MMIO_ERR_STS and perform any required remediation.
+	err_sts = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
+	if (!(err_sts & SDXI_MMIO_ERR_STS_STS_BIT))
+		return IRQ_HANDLED;
 
-		// The flags in this register are RW1C.
-		sdxi_write64(sdxi, SDXI_MMIO_ERR_STS,
-			     SDXI_MMIO_ERR_STS_STS_BIT |
-			     SDXI_MMIO_ERR_STS_OVF_BIT |
-			     SDXI_MMIO_ERR_STS_ERR_BIT);
+	if (err_sts & SDXI_MMIO_ERR_STS_ERR_BIT) {
+		// Assume this isn't recoverable; e.g. the error log
+		// isn't configured correctly. Don't clear
+		// SDXI_MMIO_ERR_STS before returning.
+		sdxi_err(sdxi, "attempted but failed to log errors\n");
+		sdxi_err(sdxi, "error log not functional\n");
+		return IRQ_HANDLED;
 	}
 
-	sdxi_do_cmd_complete((ulong)&sdxi->tdata);
+	if (err_sts & SDXI_MMIO_ERR_STS_OVF_BIT)
+		sdxi_err(sdxi, "error log overflow, some entries lost\n");
+
+	// 2. If MMIO_ERR_STS.sts is 1, then compute read_index.
+	read_index = sdxi_read64(sdxi, SDXI_MMIO_ERR_RD);
+
+	// 3. Clear MMIO_ERR_STS. The flags in this register are RW1C.
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_STS,
+		     SDXI_MMIO_ERR_STS_STS_BIT |
+		     SDXI_MMIO_ERR_STS_OVF_BIT |
+		     SDXI_MMIO_ERR_STS_ERR_BIT);
+
+	// 4. Compute write_index.
+	write_index = sdxi_read64(sdxi, SDXI_MMIO_ERR_WRT);
+
+	// 5. If the indexes are equal then exit.
+	if (read_index == write_index)
+		return IRQ_HANDLED;
+
+	// 6. While read_index < write_index...
+	while (read_index < write_index) {
+
+		// 7. and 8. Compute the real ring buffer index from
+		// read_index and process the entry.
+		sdxi_print_err(sdxi, read_index);
+
+		// 9. Advance read_index.
+		++read_index;
+
+		// 10. Return to step 6.
+	}
+
+	// 11. Write read_index to MMIO_ERR_RD.
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, read_index);
 
 	return IRQ_HANDLED;
 }
