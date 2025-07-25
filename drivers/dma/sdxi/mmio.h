@@ -32,6 +32,9 @@ enum {
 	// Initiate function state transitions
 	SDXI_MMIO_CTL0_FN_GSR = GENMASK_ULL(1, 0),
 
+	// Interrupt on function-level error
+	SDXI_MMIO_CTL0_FN_ERR_INTR_EN = BIT_ULL(4),
+
 	//// SDXI_MMIO_STS0 bit definitions
 
 	// Overall function state.
