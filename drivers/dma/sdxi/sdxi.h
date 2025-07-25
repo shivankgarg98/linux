@@ -288,10 +288,6 @@ struct cxt_l1_entry {
 	u64 rsvd4;			/* QW3 */
 } __packed;
 
-struct irq_entry {
-	int vector;
-};
-
 /**
  * struct sdxi_dev_ops - Bus-specific methods for SDXI devices.
  *
@@ -327,9 +323,6 @@ struct sdxi_dev {
 	u32 max_cxts;			/* max contexts # supported */
 	u32 op_grp_cap;			/* supported operatation group cap */
 
-	/* MSI */
-	struct irq_entry err_irq;
-
 	/* context management */
 	struct mutex cxt_lock;		/* context protection */
 	struct list_head cxt_list;
@@ -342,7 +335,7 @@ struct sdxi_dev {
 	struct sdxi_cxt **cxt_array[L2_TABLE_ENTRIES];
 
 	/* error log */
-	u32 err_log_num;
+	int error_irq;
 	struct sdxi_err *err_log;
 	dma_addr_t err_log_dma;
 

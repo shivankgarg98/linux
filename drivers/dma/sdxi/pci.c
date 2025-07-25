@@ -29,6 +29,10 @@
 #include "process.h"
 #include "sdxi.h"
 
+// SDXI devices signal message 0 on error conditions, see "Error
+// Logging Control and Status Registers".
+#define ERROR_IRQ_MSG 0
+
 /* MMIO BARs */
 #define MMIO_CTL_REGS_BAR		0x0
 #define MMIO_DOORBELL_BAR		0x2
@@ -60,22 +64,15 @@ static int sdxi_pci_irq_init(struct sdxi_dev *sdxi)
 		return ret;
 	}
 
+	sdxi->error_irq = pci_irq_vector(pdev, ERROR_IRQ_MSG);
+
 	sdxi_dbg(sdxi, "allocated %d irq vectors", ret);
 
-	ret = sdxi_error_init(sdxi, pci_irq_vector(pdev, 0));
-	if (ret)
-		goto err_irq0_alloc;
-
 	return 0;
-
-err_irq0_alloc:
-	pci_free_irq_vectors(pdev);
-	return ret;
 }
 
 static void sdxi_pci_irq_exit(struct sdxi_dev *sdxi)
 {
-	sdxi_error_exit(sdxi);
 	pci_free_irq_vectors(sdxi_to_pci_dev(sdxi));
 }
 

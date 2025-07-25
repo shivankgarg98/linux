@@ -12,14 +12,15 @@
 #include <linux/device.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
+#include <linux/log2.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
-#include <linux/packing.h>
 #include <linux/pci.h>
 #include <linux/ptrace.h>
 
 #include "context.h"
 #include "hw.h"
+#include "error.h"
 #include "sdxi.h"
 #define CREATE_TRACE_POINTS
 #include "trace.h"
@@ -647,53 +648,39 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	return -ETIMEDOUT;
 }
 
-static void sdxi_parse_capabilities(struct sdxi_dev *sdxi)
+static void sdxi_stop(struct sdxi_dev *sdxi)
 {
-	union mmio_cap1_reg cap1;
+	sdxi_dev_stop(sdxi);
+}
+
+// Refer to "Activation of the SDXI Function by Software".
+static int sdxi_fn_activate(struct sdxi_dev *sdxi)
+{
+	const struct sdxi_dev_ops *ops = sdxi->dev_ops;
+	struct sdxi_cxt *admin_cxt;
+	u64 version;
+	u64 cxt_l2;
 	u64 cap0;
-
-	cap0 = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
-	sdxi->max_ring_entries = 1ULL << (FIELD_GET(SDXI_MMIO_CAP0_MAX_DS_RING_SZ, cap0) + 10);
-	sdxi->db_stride = 1UL << (FIELD_GET(SDXI_MMIO_CAP0_DB_STRIDE, cap0) + 12);
-	sdxi->sfunc = FIELD_GET(SDXI_MMIO_CAP0_SFUNC, cap0);
-
-	/* CAP1 */
-	cap1.data = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
-
-	sdxi->max_akeys = 1 << (cap1.max_akey_sz + 8);
-	sdxi->max_cxts = cap1.max_cxt + 1;
-	sdxi->op_grp_cap = cap1.opb_000_cap;
-
-	dev_info(sdxi_to_dev(sdxi),
-		 "sfunc:%#hx descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
-		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
-		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
-}
-
-static void sdxi_parse_version(struct sdxi_dev *sdxi)
-{
-	static const struct packed_field_u8 version_fields[] = {
-		PACKED_FIELD(23, 16, typeof(sdxi->sdxi_version), major),
-		PACKED_FIELD(7, 0, typeof(sdxi->sdxi_version), minor),
-	};
-	u64 reg = sdxi_read64(sdxi, SDXI_MMIO_VERSION);
-
-	unpack_fields(&reg, sizeof(reg), &sdxi->sdxi_version, version_fields,
-		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
-}
-
-// Refer to "Activation of the SDXI Function by Software"
-static int sdxi_activate(struct sdxi_dev *sdxi)
-{
-	struct device *dev = sdxi_to_dev(sdxi);
-	u64 ctrl2;
+	u64 cap1;
+	u64 ctl2;
 	int err;
 
-	if ((err = sdxi_dev_stop(sdxi)))
+	// Clear any existing configuration from MMIO_CTL0 and ensure
+	// the function is in GSV_STOP state.
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, 0);
+	err = sdxi_dev_stop(sdxi);
+	if (err)
 		return err;
 
-	sdxi_parse_capabilities(sdxi);
-	sdxi_parse_version(sdxi);
+	// Determine which spec version the function implements.
+	version = sdxi_read64(sdxi, SDXI_MMIO_VERSION);
+	sdxi->sdxi_version = (sdxi_version_t){
+		.major = FIELD_GET(SDXI_MMIO_VERSION_MAJOR, version),
+		.minor = FIELD_GET(SDXI_MMIO_VERSION_MINOR, version),
+	};
+
+	sdxi_info(sdxi, "SDXI %u.%u device found\n",
+		  sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
 	if (sdxi_dev_supports_privileged_address_space(sdxi) && set_pr_bits) {
 		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
@@ -704,122 +691,138 @@ static int sdxi_activate(struct sdxi_dev *sdxi)
 			 "Setting 'pr' bit on kernel-private control structures\n");
 	}
 
-	dev_info(dev, "SDXI %u.%u device found\n",
-		 sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
+	// 1.a. Discover limits and implemented features via MMIO_CAP0
+	// and MMIO_CAP1.
+	cap0 = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
+	sdxi->sfunc = FIELD_GET(SDXI_MMIO_CAP0_SFUNC, cap0);
+	sdxi->max_ring_entries = SZ_1K;
+	sdxi->max_ring_entries *= 1U << FIELD_GET(SDXI_MMIO_CAP0_MAX_DS_RING_SZ, cap0);
+	sdxi->db_stride = SZ_4K;
+	sdxi->db_stride *= 1U << FIELD_GET(SDXI_MMIO_CAP0_DB_STRIDE, cap0);
 
-	/* err log */
-	sdxi->err_log_num = DEFAULT_ERR_LOG_NUM;
-	sdxi->err_log = dma_alloc_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
-					   &sdxi->err_log_dma, GFP_KERNEL);
-	if (!sdxi->err_log)
+	cap1 = sdxi_read64(sdxi, SDXI_MMIO_CAP1);
+	sdxi->max_akeys = SZ_256;
+	sdxi->max_akeys *= 1U << FIELD_GET(SDXI_MMIO_CAP1_MAX_AKEY_SZ, cap1);
+	sdxi->max_cxts = 1 + FIELD_GET(SDXI_MMIO_CAP1_MAX_CXT, cap1);
+	sdxi->op_grp_cap = FIELD_GET(SDXI_MMIO_CAP1_OPB_000_CAP, cap1);
+
+	// 1.b. Configure SDXI parameters via MMIO_CTL2. We don't have
+	// any reason to impose more conservative limits than those
+	// reported in the capability registers, so use those for now.
+	ctl2 = 0;
+	ctl2 |= FIELD_PREP(SDXI_MMIO_CTL2_MAX_BUFFER,
+			   FIELD_GET(SDXI_MMIO_CAP1_MAX_BUFFER, cap1));
+	ctl2 |= FIELD_PREP(SDXI_MMIO_CTL2_MAX_AKEY_SZ,
+			   FIELD_GET(SDXI_MMIO_CAP1_MAX_AKEY_SZ, cap1));
+	ctl2 |= FIELD_PREP(SDXI_MMIO_CTL2_MAX_CXT,
+			   FIELD_GET(SDXI_MMIO_CAP1_MAX_CXT, cap1));
+	ctl2 |= FIELD_PREP(SDXI_MMIO_CTL2_OPB_000_AVL,
+			   FIELD_GET(SDXI_MMIO_CAP1_OPB_000_CAP, cap1));
+	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctl2);
+
+	sdxi_dbg(sdxi,
+		 "sfunc:%#hx descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
+		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
+		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
+
+	// 2.a-2.b. Allocate and zero the 4KB Context Level 2 Table
+	sdxi->l2_table = dmam_alloc_coherent(sdxi_to_dev(sdxi), L2_TABLE_SIZE,
+					     &sdxi->l2_dma,
+					     GFP_KERNEL | __GFP_ZERO);
+	if (!sdxi->l2_table)
 		return -ENOMEM;
 
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG,
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_SZ, sdxi->err_log_num >> 6) |
-		     FIELD_PREP(SDXI_MMIO_ERR_CFG_EN, 1));
+	// 2.c. Program MMIO_CXT_L2
+	cxt_l2 = FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> ilog2(SZ_4K));
+	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2, cxt_l2);
 
-	/* Signal interrupt on new error log entry */
-	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL,
-		     FIELD_PREP(SDXI_MMIO_ERR_CTL_EN, 1));
+	// 2.c.i. TODO: Program MMIO_CTL0.fn_pasid and
+	// MMIO_CTL0.fn_pasid if guest virtual addressing required.
 
-	// FIXME: clean this up
-	ctrl2 = sdxi_read64(sdxi, SDXI_MMIO_CTL2);
-	ctrl2 &= 0xFFFFFFFF0000FFFFULL;
-	ctrl2 |= (sdxi->max_cxts << 16) & 0x00000000FFFF0000ULL;
-	ctrl2 &= 0x00000000FFFFFFFFULL;
-	ctrl2 |= (uint64_t)sdxi->op_grp_cap << 32;
-	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctrl2);
+	// This covers the following steps:
+	// 3. Context Level 1 Table Setup for contexts 0..127.
+	// 4.a. Create the administrative context and associated control
+	//      structures.
+	// 4.b. Set its CXT_STS.state to CXTV_RUN; see 10.b.
+	admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
+	if (!admin_cxt)
+		return -ENOMEM;
 
-	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2,
-		     FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> 12));
+	// 5. Mailbox: we don't use this facility and we assume the
+	// reset values are sane.
 
+	// 6. If restoring saved state, adjust as appropriate. (We're not.)
+
+	// 7. Initialize error log according to "Error Log Initialization".
+	err = sdxi_error_init(sdxi);
+	if (err)
+		goto admin_cxt_exit;
+
+	// 8. Configure and enable additional features such as MSI.
+	// MSI allocation is informed by the function's maximum
+	// supported contexts, which was discovered in 1.a.
+	err = (ops && ops->irq_init) ?
+		ops->irq_init(sdxi) : 0;
+	if (err)
+		goto error_exit;
+
+	// 9. Set MMIO_CTL0.fn_gsr to GSRV_ACTIVE and wait for
+	// MMIO_STS0.fn_gsv to reach GSV_ACTIVE or GSV_ERROR.
 	err = sdxi_dev_start(sdxi);
 	if (err)
-		goto unmap_errlog;
+		goto irq_exit;
+
+	// 10. Jump start the admin context. This step refers to
+	// "Starting A context and Context Signaling," where method #3
+	// recommends writing an "appropriate" value to the doorbell
+	// register. We haven't queued any descriptors to the admin
+	// context at this point, so the appropriate value would be 0.
+	iowrite64(0, admin_cxt->db);
+
+	sdxi->admin_cxt = admin_cxt;
 
 	return 0;
-unmap_errlog:
-	dma_free_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
-			  sdxi->err_log, sdxi->err_log_dma);
-	return -ENOMEM;
+
+irq_exit:
+	if (ops && ops->irq_exit)
+		ops->irq_exit(sdxi);
+error_exit:
+	sdxi_error_exit(sdxi);
+admin_cxt_exit:
+	sdxi_working_cxt_exit(admin_cxt);
+	return err;
 }
 
-static void sdxi_stop(struct sdxi_dev *sdxi)
-{
-	struct device *dev = sdxi_to_dev(sdxi);
-
-	sdxi_dev_stop(sdxi);
-
-	dma_free_coherent(dev, sdxi->err_log_num * sizeof(sdxi->err_log[0]),
-			  sdxi->err_log, sdxi->err_log_dma);
-}
-
-static void init_ctrl_regs(struct sdxi_dev *sdxi)
-{
-	// Don't assume that the control registers have their defined
-	// reset values; set them explicitly. Updating the registers
-	// caches the committed values in sdxi_dev.
-	sdxi_set_ctl0(sdxi, (struct sdxi_mmio_ctl0){});
-}
-
-/* Main entry point for SDXI device initial configuration */
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
-	struct sdxi_cxt *admin_cxt, *dma_cxt;
+	struct sdxi_cxt *dma_cxt;
 	struct sdxi_desc desc;
 	int err;
 
 	sdxi->dev_ops = ops;
 
-	init_ctrl_regs(sdxi);
-
-	sdxi->l2_table = dmam_alloc_coherent(sdxi_to_dev(sdxi), L2_TABLE_SIZE,
-					     &sdxi->l2_dma, GFP_KERNEL);
-	if (!sdxi->l2_table)
-		return -ENOMEM;
-
-	err = sdxi_activate(sdxi);
+	err = sdxi_fn_activate(sdxi);
 	if (err)
 		return err;
 
-	err = (ops && ops->irq_init) ? ops->irq_init(sdxi) : 0;
-	if (err)
-		goto pci_disable;
-
-	/* init admin context */
-	admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
-	if (!admin_cxt) {
-		err = -EINVAL;
-		goto irq_exit;
-	}
-
-	/* init DMA context */
 	dma_cxt = sdxi_working_cxt_init(sdxi, SDXI_DMA_CXT_ID);
 	if (!dma_cxt) {
 		err = -EINVAL;
-		goto admin_cxt_exit;
+		goto fn_stop;
 	}
 
-	sdxi->admin_cxt = admin_cxt;
 	sdxi->dma_cxt = dma_cxt;
 
 	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_DMA_CXT_ID, 0);
-	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
+	sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
 
-	/* register with DMA engine */
+	// Set up DMA engine provider.
 	if (dma_engine)
 		sdxi_dma_register(sdxi->dma_cxt);
 
 	return 0;
-admin_cxt_exit:
-	sdxi_working_cxt_exit(admin_cxt);
-irq_exit:
-	if (ops && ops->irq_exit)
-		ops->irq_exit(sdxi);
-pci_disable:
+fn_stop:
 	sdxi_stop(sdxi);
-
 	return err;
 }
 
@@ -850,7 +853,8 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 	sdxi_working_cxt_exit(sdxi->admin_cxt);
 	kfree(sdxi->cxt_array[0]); // ugh
 
+	sdxi_stop(sdxi);
+	sdxi_error_exit(sdxi);
 	if (sdxi->dev_ops && sdxi->dev_ops->irq_exit)
 		sdxi->dev_ops->irq_exit(sdxi);
-	sdxi_stop(sdxi);
 }

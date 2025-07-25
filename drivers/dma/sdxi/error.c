@@ -13,6 +13,11 @@
 #include "mmio.h"
 #include "sdxi.h"
 
+// The error log ring buffer size is configurable, but for now we fix
+// it to 64 entries (which is the spec minimum).
+#define ERROR_LOG_ENTRIES 64
+#define ERROR_LOG_SZ (ERROR_LOG_ENTRIES * sizeof(struct sdxi_err))
+
 static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 {
 	static const char * const sub_steps[] = {
@@ -31,7 +36,7 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 	struct sdxi_err *err;
 	size_t index;
 
-	index = err_rd % sdxi->err_log_num;
+	index = err_rd % ERROR_LOG_ENTRIES;
 	err = &sdxi->err_log[index];
 
 	if (err->vl) {
@@ -114,32 +119,70 @@ static irqreturn_t sdxi_irq_thread(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static irqreturn_t sdxi_irq_handler(int irq, void *data)
+// Refer to "Error Log Initialization"
+int sdxi_error_init(struct sdxi_dev *sdxi)
 {
-	return IRQ_WAKE_THREAD;
-}
-
-int sdxi_error_init(struct sdxi_dev *sdxi, unsigned int irq)
-{
-	struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
+	u64 reg;
 	int err;
 
+	// 1. Clear MMIO_ERR_CFG. Error interrupts are inhibited until step 6.
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, 0);
+
+	// 2. Clear MMIO_ERR_STS. The flags in this register are RW1C.
+	reg = FIELD_PREP(SDXI_MMIO_ERR_STS_STS_BIT, 1) |
+	      FIELD_PREP(SDXI_MMIO_ERR_STS_OVF_BIT, 1) |
+	      FIELD_PREP(SDXI_MMIO_ERR_STS_ERR_BIT, 1);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_STS, reg);
+
+	// 3. Allocate memory for the error log ring buffer, initialize to zero.
+	sdxi->err_log = dma_alloc_coherent(sdxi_to_dev(sdxi), ERROR_LOG_SZ,
+					   &sdxi->err_log_dma,
+					   GFP_KERNEL | __GFP_ZERO);
+	if (!sdxi->err_log)
+		return -ENOMEM;
+
+	// 4. Set MMIO_ERR_CTL.intr_en to 1 if interrupts on
+	// context-level errors are desired.
+	reg = sdxi_read64(sdxi, SDXI_MMIO_ERR_CTL);
+	FIELD_MODIFY(SDXI_MMIO_ERR_CTL_EN, &reg, 1);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CTL, reg);
+
+	// The spec is not explicit about when to do this, but this
+	// seems like the right time: enable interrupt on
+	// function-level transition to error state.
+	reg = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+	FIELD_MODIFY(SDXI_MMIO_CTL0_FN_ERR_INTR_EN, &reg, 1);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, reg);
+
+	// 5. Clear MMIO_ERR_WRT and MMIO_ERR_RD.
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_WRT, 0);
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_RD, 0);
 
-	err = request_threaded_irq(irq, sdxi_irq_handler, sdxi_irq_thread, 0,
-				   SDXI_DRV_NAME, sdxi);
+	// Error interrupts can be generated once MMIO_ERR_CFG.en is
+	// set in step 6, so set up the handler now.
+	err = request_threaded_irq(sdxi->error_irq, NULL, sdxi_irq_thread,
+				   IRQF_TRIGGER_NONE, "SDXI error", sdxi);
 	if (err)
-		return err;
+		goto free_errlog;
 
-	ctl0.fn_err_intr_en = 1;
-	sdxi_set_ctl0(sdxi, ctl0);
-	sdxi->err_irq.vector = irq;
+	// 6. Program MMIO_ERR_CFG.
+	reg = FIELD_PREP(SDXI_MMIO_ERR_CFG_PTR, sdxi->err_log_dma >> 12) |
+	      FIELD_PREP(SDXI_MMIO_ERR_CFG_SZ, ERROR_LOG_ENTRIES >> 6) |
+	      FIELD_PREP(SDXI_MMIO_ERR_CFG_EN, 1);
+	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, reg);
+
 	return 0;
+
+free_errlog:
+	dma_free_coherent(sdxi_to_dev(sdxi), ERROR_LOG_SZ,
+			  sdxi->err_log, sdxi->err_log_dma);
+	return err;
 }
 
 void sdxi_error_exit(struct sdxi_dev *sdxi)
 {
 	sdxi_write64(sdxi, SDXI_MMIO_ERR_CFG, 0);
-	free_irq(sdxi->err_irq.vector, sdxi);
+	free_irq(sdxi->error_irq, sdxi);
+	dma_free_coherent(sdxi_to_dev(sdxi), ERROR_LOG_SZ,
+			  sdxi->err_log, sdxi->err_log_dma);
 }
