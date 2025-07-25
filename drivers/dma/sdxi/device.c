@@ -682,8 +682,7 @@ static void sdxi_parse_version(struct sdxi_dev *sdxi)
 		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
 }
 
-// This is meant to implement 4.1.8 "Activation of the SDXI Function
-// by Software"
+// Refer to "Activation of the SDXI Function by Software"
 static int sdxi_activate(struct sdxi_dev *sdxi)
 {
 	struct device *dev = sdxi_to_dev(sdxi);
