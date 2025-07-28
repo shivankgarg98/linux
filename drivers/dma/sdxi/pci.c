@@ -235,29 +235,6 @@ static void sdxi_pci_remove(struct pci_dev *pdev)
 	sdxi_device_free(sdxi);
 }
 
-#ifdef CONFIG_PM_SLEEP
-static int sdxi_pci_suspend(struct device *dev)
-{
-	/* place holder, need to expand */
-	sdxi_iommu_suspend(NULL);
-
-	return 0;
-}
-
-static int sdxi_pci_resume(struct device *dev)
-{
-	/* place holder, need to expand */
-	sdxi_iommu_resume(NULL);
-
-	return 0;
-}
-
-static const struct dev_pm_ops sdxi_pci_pm_ops = {
-	.suspend	= sdxi_pci_suspend,
-	.resume		= sdxi_pci_resume,
-};
-#endif /* CONFIG_PM_SLEEP */
-
 static const struct pci_device_id sdxi_id_table[] = {
 	{ PCI_DEVICE_CLASS(PCI_CLASS_ACCEL_SDXI, 0xffffff) },
 	{0, }
@@ -269,9 +246,6 @@ static struct pci_driver sdxi_driver = {
 	.id_table = sdxi_id_table,
 	.probe = sdxi_pci_probe,
 	.remove = sdxi_pci_remove,
-	.driver = {
-		.pm = &sdxi_pci_pm_ops,
-	},
 	.sriov_configure = pci_sriov_configure_simple,
 };
 
