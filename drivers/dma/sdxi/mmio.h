@@ -10,6 +10,7 @@
 #include <linux/compiler_types.h>
 #include <linux/types.h>
 
+// Refer to "MMIO Control Registers".
 enum sdxi_reg {
 	SDXI_MMIO_CTL0       = 0x00000,
 	SDXI_MMIO_CTL2       = 0x00010,
