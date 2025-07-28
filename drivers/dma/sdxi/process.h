@@ -35,35 +35,6 @@ struct sdxi_process {
 	u32 pasid;				/* no meaning if !cxt */
 };
 
-/* SDXI Device IOMMU Management */
-#if IS_REACHABLE(CONFIG_AMD_IOMMU_V2)
-int sdxi_iommu_device_init(struct sdxi_dev *sdxi);
-void sdxi_iommu_device_exit(struct sdxi_dev *sdxi);
-void sdxi_iommu_suspend(struct sdxi_dev *sdxi);
-int sdxi_iommu_resume(struct sdxi_dev *sdxi);
-#else
-static inline int sdxi_iommu_device_init(struct sdxi_dev *sdxi)
-{
-#if IS_MODULE(CONFIG_AMD_IOMMU_V2)
-	WARN_ONCE(1, "iommu_v2 module is not usable by SDXI");
-#endif
-	return 0;
-}
-
-static inline void sdxi_iommu_device_exit(struct sdxi_dev *sdxi)
-{
-}
-
-static inline void sdxi_iommu_suspend(struct sdxi_dev *sdxi)
-{
-}
-
-static inline int sdxi_iommu_resume(struct sdxi_dev *sdxi)
-{
-	return 0;
-}
-#endif /* CONFIG_AMD_IOMMU_V2 */
-
 /* User Process Management */
 struct sdxi_process *sdxi_create_process(struct file *filep);
 void sdxi_destroy_process(struct sdxi_process *p);
