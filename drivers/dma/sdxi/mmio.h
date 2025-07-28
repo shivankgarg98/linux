@@ -53,8 +53,15 @@ enum {
 	// this function.
 	SDXI_MMIO_CAP0_MAX_DS_RING_SZ = GENMASK_ULL(28, 24),
 
-	//// SDXI_MMIO_CAP1 bit definitions
-	
+	//// SDXI_MMIO_CAP1 fields
+	SDXI_MMIO_CAP1_MAX_AKEY_SZ = GENMASK_ULL(15, 12),
+	SDXI_MMIO_CAP1_MAX_CXT     = GENMASK_ULL(31, 16),
+	SDXI_MMIO_CAP1_OPB_000_CAP = GENMASK_ULL(63, 32),
+
+	//// SDXI_MMIO_VERSION fields
+	SDXI_MMIO_VER_MINOR = GENMASK_ULL(7, 0),
+	SDXI_MMIO_VER_MAJOR = GENMASK_ULL(23, 16),
+
 	//// SDXI_MMIO_CXT_L2 bit definitions
 
 	// Pointer to level 2 context table (4KB-aligned).
