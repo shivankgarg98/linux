@@ -135,22 +135,6 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-/* Control 0 Register */
-union mmio_ctl0_reg {
-	struct {
-		u64 fn_gsr		:2;
-		u64 fn_pasid_vl		:1;
-		u64 rsvd0		:1;
-		u64 fn_err_intr_en	:1;
-		u64 rsvd1		:3;
-		u64 fn_pasid		:20;
-		u64 rsvd2		:3;
-		u64 pr			:1;
-		u64 fn_grp_id		:32;
-	};
-	u64 data;
-} __packed __aligned(8);
-
 // Control registers.
 
 struct sdxi_mmio_ctl0 {
