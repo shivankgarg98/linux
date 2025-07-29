@@ -17,23 +17,6 @@ static const struct packed_field_u8 ctl0_fields[] = {
 	PACKED_FIELD(63, 32, struct sdxi_mmio_ctl0, fn_grp_id),
 };
 
-static const struct packed_field_u8 ctl2_fields[] = {
-	PACKED_FIELD(3, 0, struct sdxi_mmio_ctl2, max_buffer),
-	PACKED_FIELD(15, 12, struct sdxi_mmio_ctl2, max_akey_sz),
-	PACKED_FIELD(31, 16, struct sdxi_mmio_ctl2, max_cxt),
-	PACKED_FIELD(63, 32, struct sdxi_mmio_ctl2, obp_000_avl),
-};
-
-static const struct packed_field_u8 cxt_l2_fields[] = {
-	PACKED_FIELD(63, 12, struct sdxi_mmio_cxt_l2, lv02_ptr),
-};
-
-static const struct packed_field_u8 rkey_fields[] = {
-	PACKED_FIELD(0, 0, struct sdxi_mmio_rkey, en),
-	PACKED_FIELD(4, 1, struct sdxi_mmio_rkey, sz),
-	PACKED_FIELD(63, 12, struct sdxi_mmio_rkey, ptr),
-};
-
 #define define_reg_commit_func(_regname, _offset, _field_struct)		\
 void sdxi_mmio_##_regname##_commit(void __iomem *base,				\
 				   const struct sdxi_mmio_##_regname *unpacked)	\
@@ -58,6 +41,3 @@ void sdxi_mmio_##_regname##_read(void __iomem *base,			\
 	define_reg_commit_func(_regname, _offset, _field_struct)
 
 define_reg_access_funcs_rw(ctl0,   SDXI_MMIO_CTL0,   ctl0_fields)
-define_reg_access_funcs_rw(ctl2,   SDXI_MMIO_CTL2,   ctl2_fields)
-define_reg_access_funcs_rw(cxt_l2, SDXI_MMIO_CXT_L2, cxt_l2_fields)
-define_reg_access_funcs_rw(rkey,   SDXI_MMIO_RKEY,   rkey_fields)

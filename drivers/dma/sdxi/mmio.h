@@ -146,32 +146,9 @@ struct sdxi_mmio_ctl0 {
 	bool fn_pr;
 };
 
-struct sdxi_mmio_ctl2 {
-	u32 obp_000_avl;
-	u16 max_cxt;
-	u8 max_buffer;
-	u8 max_akey_sz;
-};
-
-struct sdxi_mmio_cxt_l2 {
-	u64 lv02_ptr;
-};
-
-struct sdxi_mmio_rkey {
-	u64 ptr;
-	bool en;
-	u8 sz;
-};
-
 void sdxi_mmio_ctl0_read(void __iomem *, struct sdxi_mmio_ctl0 *);
-void sdxi_mmio_ctl2_read(void __iomem *, struct sdxi_mmio_ctl2 *);
-void sdxi_mmio_cxt_l2_read(void __iomem *, struct sdxi_mmio_cxt_l2 *);
-void sdxi_mmio_rkey_read(void __iomem *, struct sdxi_mmio_rkey *);
 
 void sdxi_mmio_ctl0_commit(void __iomem *, const struct sdxi_mmio_ctl0 *);
-void sdxi_mmio_ctl2_commit(void __iomem *, const struct sdxi_mmio_ctl2 *);
-void sdxi_mmio_cxt_l2_commit(void __iomem *, const struct sdxi_mmio_cxt_l2 *);
-void sdxi_mmio_rkey_commit(void __iomem *, const struct sdxi_mmio_rkey *);
 
 /* function state control (ctl0.fn_gsr) constants */
 #define GSRV_STOP_SF			0x1
