@@ -676,7 +676,7 @@ static void sdxi_parse_version(struct sdxi_dev *sdxi)
 		PACKED_FIELD(23, 16, typeof(sdxi->sdxi_version), major),
 		PACKED_FIELD(7, 0, typeof(sdxi->sdxi_version), minor),
 	};
-	u64 reg = sdxi_read64(sdxi, SDXI_MMIO_VER);
+	u64 reg = sdxi_read64(sdxi, SDXI_MMIO_VERSION);
 
 	unpack_fields(&reg, sizeof(reg), &sdxi->sdxi_version, version_fields,
 		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
