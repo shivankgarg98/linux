@@ -227,24 +227,6 @@ struct sdxi_cxt {
 	dma_addr_t dummy_buffer_addr;
 };
 
-/* RKey Table Entry */
-struct rkey_ent {
-	u32 vl			: 1;	/* QW0 */
-	u32 iv			: 1;
-	u32 pv			: 1;
-	u32 ste			: 1;
-	u32 intr_num		: 11;
-	u32 rsvd1		: 1;
-	u32 req_sfunc		: 16;
-	u32 pasid		: 20;
-	u32 rsvd2		: 9;
-	u32 pr			: 1;
-	u32 ph			: 2;
-	u32 stag		: 16;	/* QW1 */
-	u32 rsvd3		: 16;
-	u32 rsvd4;
-} __packed;
-
 /* Error Log Entry */
 struct sdxi_err {
 	u32 vl			: 1;	/* QW0 */
