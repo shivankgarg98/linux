@@ -757,24 +757,27 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 
 	// 6. If restoring saved state, adjust as appropriate. (We're not.)
 
-	// 7. Initialize error log according to "Error Log Initialization".
-	err = sdxi_error_init(sdxi);
+	// MSI allocation is informed by the function's maximum
+	// supported contexts, which was discovered in 1.a. Need to do
+	// this before step 7, which claims an IRQ.
+	err = (ops && ops->irq_init) ? ops->irq_init(sdxi) : 0;
 	if (err)
 		goto admin_cxt_exit;
 
-	// 8. Configure and enable additional features such as MSI.
-	// MSI allocation is informed by the function's maximum
-	// supported contexts, which was discovered in 1.a.
-	err = (ops && ops->irq_init) ?
-		ops->irq_init(sdxi) : 0;
+	// 7. Initialize error log according to "Error Log Initialization".
+	err = sdxi_error_init(sdxi);
 	if (err)
-		goto error_exit;
+		goto irq_exit;
+
+	// 8. "Software may also need to configure and enable
+	// additional [features]". We've already performed MSI setup,
+	// nothing else for us to do here for now.
 
 	// 9. Set MMIO_CTL0.fn_gsr to GSRV_ACTIVE and wait for
 	// MMIO_STS0.fn_gsv to reach GSV_ACTIVE or GSV_ERROR.
 	err = sdxi_dev_start(sdxi);
 	if (err)
-		goto irq_exit;
+		goto error_exit;
 
 	// 10. Jump start the admin context. This step refers to
 	// "Starting A context and Context Signaling," where method #3
@@ -787,11 +790,11 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 
 	return 0;
 
+error_exit:
+	sdxi_error_exit(sdxi);
 irq_exit:
 	if (ops && ops->irq_exit)
 		ops->irq_exit(sdxi);
-error_exit:
-	sdxi_error_exit(sdxi);
 admin_cxt_exit:
 	sdxi_working_cxt_exit(admin_cxt);
 	return err;
