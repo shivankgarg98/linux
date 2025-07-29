@@ -73,9 +73,7 @@ enum {
 	SDXI_MMIO_VERSION_MINOR = GENMASK_ULL(7, 0),
 	SDXI_MMIO_VERSION_MAJOR = GENMASK_ULL(23, 16),
 
-	//// SDXI_MMIO_CXT_L2 bit definitions
-
-	// Pointer to level 2 context table (4KB-aligned).
+	// SDXI_MMIO_CXT_L2 fields
 	SDXI_MMIO_CXT_L2_PTR = GENMASK_ULL(63, 12),
 
 	//// SDXI_MMIO_ERR_CFG bit definitions
