@@ -36,6 +36,12 @@ enum {
 	// Interrupt on function-level error
 	SDXI_MMIO_CTL0_FN_ERR_INTR_EN = BIT_ULL(4),
 
+	// SDXI_MMIO_CTL2 fields
+	SDXI_MMIO_CTL2_MAX_BUFFER  = GENMASK_ULL(3, 0),
+	SDXI_MMIO_CTL2_MAX_AKEY_SZ = GENMASK_ULL(15, 12),
+	SDXI_MMIO_CTL2_MAX_CXT     = GENMASK_ULL(31, 16),
+	SDXI_MMIO_CTL2_OPB_000_AVL = GENMASK_ULL(63, 32),
+
 	//// SDXI_MMIO_STS0 bit definitions
 
 	// Overall function state.
