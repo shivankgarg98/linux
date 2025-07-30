@@ -547,9 +547,16 @@ static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 					sdxi_read64(sdxi, SDXI_MMIO_STS0));
 }
 
+static void sdxi_write_fn_gsr(struct sdxi_dev *sdxi, sdxi_fn_gsr_t cmd)
+{
+	u64 ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+
+	FIELD_MODIFY(SDXI_MMIO_CTL0_FN_GSR, &ctl0, cmd);
+	sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
+}
+
 static int sdxi_dev_start(struct sdxi_dev *sdxi)
 {
-	struct sdxi_mmio_ctl0 ctl0;
 	unsigned long deadline;
 	sdxi_fn_gsv_t status;
 
@@ -561,9 +568,7 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 		return -EIO;
 	}
 
-	ctl0 = sdxi_get_ctl0(sdxi);
-	ctl0.fn_gsr = SDXI_GSRV_ACTIVE;
-	sdxi_set_ctl0(sdxi, ctl0);
+	sdxi_write_fn_gsr(sdxi, SDXI_GSRV_ACTIVE);
 
 	deadline = jiffies + msecs_to_jiffies(1000);
 	do {
@@ -604,22 +609,19 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	bool reset_issued = false;
 
 	do {
-		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
 		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
 
 		sdxi_dbg(sdxi, "%s: function state: %s\n", __func__, gsv_str(status));
 
 		switch (status) {
 		case SDXI_GSV_ACTIVE:
-			ctl0.fn_gsr = SDXI_GSRV_STOP_SF;
-			sdxi_set_ctl0(sdxi, ctl0);
+			sdxi_write_fn_gsr(sdxi, SDXI_GSRV_STOP_SF);
 			break;
 		case SDXI_GSV_ERROR:
 			if (!reset_issued) {
 				sdxi_info(sdxi,
 					  "function in error state, issuing reset\n");
-				ctl0.fn_gsr = SDXI_GSRV_RESET;
-				sdxi_set_ctl0(sdxi, ctl0);
+				sdxi_write_fn_gsr(sdxi, SDXI_GSRV_RESET);
 				reset_issued = true;
 			} else {
 				fsleep(1000);
@@ -682,9 +684,11 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 		  sdxi->sdxi_version.major, sdxi->sdxi_version.minor);
 
 	if (sdxi_dev_supports_privileged_address_space(sdxi) && set_pr_bits) {
-		struct sdxi_mmio_ctl0 ctl0 = sdxi_get_ctl0(sdxi);
-		ctl0.fn_pr = true;
-		sdxi_set_ctl0(sdxi, ctl0);
+		u64 ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
+
+		FIELD_MODIFY(SDXI_MMIO_CTL0_FN_PR, &ctl0, 1);
+		sdxi_write64(sdxi, SDXI_MMIO_CTL0, ctl0);
+
 		sdxi->use_privileged_bits = true;
 		sdxi_dbg(sdxi,
 			 "Setting 'pr' bit on kernel-private control structures\n");
