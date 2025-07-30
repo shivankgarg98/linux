@@ -7,7 +7,6 @@ sdxi-objs += \
 	dma.o         \
 	error.o       \
 	ioctl.o       \
-	mmio.o        \
 	process.o     \
 	trace.o       \
 	util.o

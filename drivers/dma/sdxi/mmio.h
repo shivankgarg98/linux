@@ -135,21 +135,6 @@ union mmio_cap1_reg {
 	u64 data;
 } __packed __aligned(8);
 
-// Control registers.
-
-struct sdxi_mmio_ctl0 {
-	u32 fn_pasid;
-	u32 fn_grp_id;
-	u8 fn_gsr;
-	bool fn_pasid_vl;
-	bool fn_err_intr_en;
-	bool fn_pr;
-};
-
-void sdxi_mmio_ctl0_read(void __iomem *, struct sdxi_mmio_ctl0 *);
-
-void sdxi_mmio_ctl0_commit(void __iomem *, const struct sdxi_mmio_ctl0 *);
-
 /* function state control (ctl0.fn_gsr) constants */
 #define GSRV_STOP_SF			0x1
 #define GSRV_ACTIVE			0x3
