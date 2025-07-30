@@ -28,13 +28,13 @@ enum sdxi_reg {
 };
 
 enum {
-	//// SDXI_MMIO_CTL0 bit definitions
-
-	// Initiate function state transitions
-	SDXI_MMIO_CTL0_FN_GSR = GENMASK_ULL(1, 0),
-
-	// Interrupt on function-level error
+	// SDXI_MMIO_CTL0 fields
+	SDXI_MMIO_CTL0_FN_GSR         = GENMASK_ULL(1, 0),
+	SDXI_MMIO_CTL0_FN_PASID_VL    = BIT_ULL(2),
 	SDXI_MMIO_CTL0_FN_ERR_INTR_EN = BIT_ULL(4),
+	SDXI_MMIO_CTL0_FN_PASID       = GENMASK_ULL(27, 8),
+	SDXI_MMIO_CTL0_FN_PR          = BIT_ULL(31),             // SDXI 1.1
+	SDXI_MMIO_CTL0_FN_GRP_ID      = GENMASK_ULL(63, 32),
 
 	// SDXI_MMIO_CTL2 fields
 	SDXI_MMIO_CTL2_MAX_BUFFER  = GENMASK_ULL(3, 0),
