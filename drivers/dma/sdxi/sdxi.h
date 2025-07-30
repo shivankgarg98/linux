@@ -294,7 +294,6 @@ struct sdxi_dev {
 	void __iomem *dbs;		/* virt addr of doorbells */
 
 	sdxi_version_t sdxi_version;    /* SDXI version implemented by device */
-	struct sdxi_mmio_ctl0 ctl0;
 
 	/* hardware capabilities (from cap0 & cap1) */
 	u16 sfunc;			/* function's requester id */
@@ -338,17 +337,6 @@ struct sdxi_dev {
 				    // private to the kernel, not
 				    // exposed to user space.
 };
-
-static inline struct sdxi_mmio_ctl0 sdxi_get_ctl0(const struct sdxi_dev *sdxi)
-{
-	return sdxi->ctl0;
-}
-
-static inline void sdxi_set_ctl0(struct sdxi_dev *sdxi, struct sdxi_mmio_ctl0 ctl0)
-{
-	sdxi->ctl0 = ctl0;
-	sdxi_mmio_ctl0_commit(sdxi->ctrl_regs, &sdxi->ctl0);
-}
 
 static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
                                       sdxi_version_t v)
