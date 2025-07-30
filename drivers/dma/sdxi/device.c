@@ -657,7 +657,6 @@ static void sdxi_stop(struct sdxi_dev *sdxi)
 static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 {
 	const struct sdxi_dev_ops *ops = sdxi->dev_ops;
-	struct sdxi_cxt *admin_cxt;
 	u64 version;
 	u64 cxt_l2;
 	u64 cap0;
@@ -748,8 +747,8 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 	//
 	// The admin context will not consume descriptors until we
 	// write its doorbell later.
-	admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
-	if (!admin_cxt)
+	sdxi->admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
+	if (!sdxi->admin_cxt)
 		return -ENOMEM;
 
 	// 5. Mailbox: we don't use this facility and we assume the
@@ -784,9 +783,7 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 	// recommends writing an "appropriate" value to the doorbell
 	// register. We haven't queued any descriptors to the admin
 	// context at this point, so the appropriate value would be 0.
-	iowrite64(0, admin_cxt->db);
-
-	sdxi->admin_cxt = admin_cxt;
+	iowrite64(0, sdxi->admin_cxt->db);
 
 	return 0;
 
@@ -796,7 +793,7 @@ irq_exit:
 	if (ops && ops->irq_exit)
 		ops->irq_exit(sdxi);
 admin_cxt_exit:
-	sdxi_working_cxt_exit(admin_cxt);
+	sdxi_working_cxt_exit(sdxi->admin_cxt);
 	return err;
 }
 
