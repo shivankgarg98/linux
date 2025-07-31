@@ -13,7 +13,7 @@
 // The error log ring buffer size is configurable, but for now we fix
 // it to 64 entries (which is the spec minimum).
 #define ERROR_LOG_ENTRIES 64
-#define ERROR_LOG_SZ (ERROR_LOG_ENTRIES * sizeof(struct sdxi_err))
+#define ERROR_LOG_SZ (ERROR_LOG_ENTRIES * sizeof(struct sdxi_errlog_hd_ent))
 
 // The "unpacked" counterpart to ERRLOG_HD_ENT.
 struct errlog_entry {

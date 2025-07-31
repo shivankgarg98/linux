@@ -228,31 +228,6 @@ struct sdxi_cxt {
 	dma_addr_t dummy_buffer_addr;
 };
 
-/* Error Log Entry */
-struct sdxi_err {
-	u32 vl			: 1;	/* QW0 */
-	u32 rsvd1		: 7;
-	u32 step		: 6;
-	u32 rsvd2		: 2;
-	u32 type		: 11;
-	u32 rsvd3		: 5;
-	u32 cv			: 1;
-	u32 div			: 1;
-	u32 bv			: 1;
-	u32 rsvd4		: 1;
-	u32 buf			: 3;
-	u32 rsvd5		: 1;
-	u32 sub_step		: 4;
-	u32 re			: 3;
-	u32 rsvd6		: 1;
-	u32 cxt_num		: 16;
-	u64 desc_idx;
-	u32 rsvd7[7];
-	u32 err_class		: 16;
-	u32 rsvd8		: 16;
-	u32 vendor[4];
-} __packed;
-
 /* L1 Table Entry */
 struct cxt_l1_entry {
 	u64 vl			: 1;	/* QW0 */
