@@ -83,26 +83,34 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 	unpack_fields(&sdxi->err_log[index], sizeof(sdxi->err_log[0]),
 		      &ent, errlog_hd_ent_fields, SDXI_PACKING_QUIRKS);
 
-	if (ent.vl) {
-		sdxi_err(sdxi, "error log entry[%zu], MMIO_ERR_RD=%#llx:\n",
-			 index, err_rd);
-		sdxi_err(sdxi, "  step: 0x%x\n", ent.step);
-		sdxi_err(sdxi, "  type: 0x%x\n", ent.type);
-		sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", ent.cv, ent.div, ent.bv);
-		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)ent.sub_step);
-		sdxi_err(sdxi, "  sub_step: %s\n", sub_steps[index]);
-		index = min(ARRAY_SIZE(reactions) - 1, (size_t)ent.re);
-		sdxi_err(sdxi, "  re: %s\n", reactions[index]);
-		if (ent.bv)
-			sdxi_err(sdxi, "  buf: 0x%x\n", ent.buf);
-		if (ent.cv)
-			sdxi_err(sdxi, "  cxt_num: 0x%x\n", ent.cxt_num);
-		if (ent.div)
-			sdxi_err(sdxi, "  dsc_index: 0x%llx\n", ent.dsc_index);
-		sdxi_err(sdxi, "  err_class: 0x%x\n", ent.err_class);
-	} else {
-		sdxi_err(sdxi, "Not a valid error log entry!\n");
+	if (!ent.vl) {
+		dev_err_ratelimited(sdxi_to_dev(sdxi),
+				    "Ignoring error log entry with vl=0\n");
+		return;
 	}
+
+	if (ent.type != OP_TYPE_ERRLOG){
+		dev_err_ratelimited(sdxi_to_dev(sdxi),
+				    "Ignoring error log entry with type=%#hx\n",
+				    ent.type);
+		return;
+	}
+
+	sdxi_err(sdxi, "error log entry[%zu], MMIO_ERR_RD=%#llx:\n",
+		 index, err_rd);
+	sdxi_err(sdxi, "  step: 0x%x\n", ent.step);
+	sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", ent.cv, ent.div, ent.bv);
+	index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)ent.sub_step);
+	sdxi_err(sdxi, "  sub_step: %s\n", sub_steps[index]);
+	index = min(ARRAY_SIZE(reactions) - 1, (size_t)ent.re);
+	sdxi_err(sdxi, "  re: %s\n", reactions[index]);
+	if (ent.bv)
+		sdxi_err(sdxi, "  buf: 0x%x\n", ent.buf);
+	if (ent.cv)
+		sdxi_err(sdxi, "  cxt_num: 0x%x\n", ent.cxt_num);
+	if (ent.div)
+		sdxi_err(sdxi, "  dsc_index: 0x%llx\n", ent.dsc_index);
+	sdxi_err(sdxi, "  err_class: 0x%x\n", ent.err_class);
 }
 
 // Refer to "Error Log Processing by Software"
