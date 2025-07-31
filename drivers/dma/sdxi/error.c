@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // SDXI error reporting.
 
-#include <linux/array_size.h>
-#include <linux/device.h>
-#include <linux/dev_printk.h>
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
-#include <linux/minmax.h>
 #include <linux/packing.h>
 #include <linux/types.h>
 
