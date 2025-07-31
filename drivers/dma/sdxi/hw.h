@@ -30,6 +30,18 @@
 #include <linux/sizes.h>
 #include <linux/types.h>
 
+// ERRLOG_HD_ENT
+struct sdxi_errlog_hd_ent {
+	__le32 opcode;
+	__le16 misc0;
+	__le16 cxt_num;
+	__le64 dsc_index;
+	__u8   rsvd_0[28];
+	__le16 err_class;
+	__u8   rsvd_1[2];
+	__le32 vendor[4];
+} __packed;
+
 /**
  * struct sdxi_cxt_l2_ent - Context Level 2 Table Entry (CXT_L2_ENT).
  */
