@@ -41,6 +41,7 @@ struct sdxi_errlog_hd_ent {
 	__u8   rsvd_1[2];
 	__le32 vendor[4];
 } __packed;
+static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
 /**
  * struct sdxi_cxt_l2_ent - Context Level 2 Table Entry (CXT_L2_ENT).
