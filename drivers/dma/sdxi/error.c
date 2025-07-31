@@ -60,21 +60,107 @@ enum {
 	SDXI_PACKING_QUIRKS = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST,
 };
 
+// Refer to "(Flagged) Processing Step" and
+// "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "step"
+typedef enum {
+	ERRV_INT         = 1,
+	ERRV_CXT_L2      = 2,
+	ERRV_CXT_L1      = 3,
+	ERRV_CXT_CTL     = 4,
+	ERRV_CXT_STS     = 5,
+	ERRV_WRT_IDX     = 6,
+	ERRV_DSC_GEN     = 7,
+	ERRV_DSC_CSB     = 8,
+	ERRV_ATOMIC      = 9,
+	ERRV_DSC_BUF     = 10,
+	ERRV_DSC_AKEY    = 11,
+	ERRV_FN_RKEY     = 12,
+} errv_step_t;
+
+static const char *const processing_steps[] = {
+	[ERRV_INT]        = "Internal Error",
+	[ERRV_CXT_L2]     = "Context Level 2 Table Entry - Translate, Read, Validate",
+	[ERRV_CXT_L1]     = "Context Level 1 Table Entry - Translate, Read, Validate",
+	[ERRV_CXT_CTL]    = "Context Control - Translate, Read, Validate",
+	[ERRV_CXT_STS]    = "Context Status - Translate, Access, Validate",
+	[ERRV_WRT_IDX]    = "Write_Index - Translate, Read, Validate",
+	[ERRV_DSC_GEN]    = "Descriptor Entry - Translate, Access, Validate",
+	[ERRV_DSC_CSB]    = "Descriptor CST_BLK - Translate, Access, Validate",
+	[ERRV_ATOMIC]     = "Atomic Return Data - Translate, Access",
+	[ERRV_DSC_BUF]    = "Descriptor: Data Buffer - Translate, Access",
+	[ERRV_DSC_AKEY]   = "Descriptor AKey Lookup - Translate, Access, Validate",
+	[ERRV_FN_RKEY]    = "Function RKey Lookup - Translate, Read, Validate",
+};
+
+static const char *step_str(errv_step_t step)
+{
+	const char *str = "reserved";
+
+	switch (step) {
+	case ERRV_INT...ERRV_FN_RKEY:
+		str = processing_steps[step];
+		break;
+	}
+
+	return str;
+}
+
+// Refer to "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "sub_step"
+typedef enum {
+	SUB_STEP_OTHER    = 0,
+	SUB_STEP_ATF      = 1,
+	SUB_STEP_DAF      = 2,
+	SUB_STEP_DVF      = 3,
+} errv_sub_step_t;
+
+static const char * const processing_sub_steps[] = {
+	[SUB_STEP_OTHER]    = "Other/unknown",
+	[SUB_STEP_ATF]      = "Address Translation Failure",
+	[SUB_STEP_DAF]      = "Data Access Failure",
+	[SUB_STEP_DVF]      = "Data Validation Failure",
+};
+
+static const char *sub_step_str(errv_sub_step_t sub_step)
+{
+	const char *str = "reserved";
+
+	switch (sub_step) {
+	case SUB_STEP_OTHER...SUB_STEP_DVF:
+		str = processing_sub_steps[sub_step];
+		break;
+	}
+
+	return str;
+}
+
+// Refer to "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "re"
+typedef enum {
+	FN_REACT_INFORM      = 0,
+	FN_REACT_CXT_STOP    = 1,
+	FN_REACT_FN_STOP     = 2,
+} fn_reaction_t;
+
+static const char * const fn_reactions[] = {
+	[FN_REACT_INFORM]      = "Informative, nothing stopped",
+	[FN_REACT_CXT_STOP]    = "Context stopped",
+	[FN_REACT_FN_STOP]     = "Function stopped",
+};
+
+static const char *reaction_str(fn_reaction_t reaction)
+{
+	const char *str = "reserved";
+
+	switch (reaction) {
+	case FN_REACT_INFORM...FN_REACT_FN_STOP:
+		str = fn_reactions[reaction];
+		break;
+	}
+
+	return str;
+}
+
 static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 {
-	static const char * const sub_steps[] = {
-		"Other or Internal Error",
-		"Address Translation Failure",
-		"Data Access Failure",
-		"Data Validation Failure",
-		"Unknown/Reserved Type",
-	};
-	static const char * const reactions[] = {
-		"Informative Entry (nothing stopped)",
-		"SDXI Context Stopped",
-		"SDXI Function Stopped",
-		"Unknown/Reserved Reaction",
-	};
 	struct errlog_entry ent;
 	size_t index;
 
@@ -98,19 +184,18 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 
 	sdxi_err(sdxi, "error log entry[%zu], MMIO_ERR_RD=%#llx:\n",
 		 index, err_rd);
-	sdxi_err(sdxi, "  step: 0x%x\n", ent.step);
-	sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", ent.cv, ent.div, ent.bv);
-	index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)ent.sub_step);
-	sdxi_err(sdxi, "  sub_step: %s\n", sub_steps[index]);
-	index = min(ARRAY_SIZE(reactions) - 1, (size_t)ent.re);
-	sdxi_err(sdxi, "  re: %s\n", reactions[index]);
+	sdxi_err(sdxi, "  re: %#x (%s)\n", ent.re, reaction_str(ent.re));
+	sdxi_err(sdxi, "  step: %#x (%s)\n", ent.step, step_str(ent.step));
+	sdxi_err(sdxi, "  sub_step: %#x (%s)\n",
+		 ent.sub_step, sub_step_str(ent.sub_step));
+	sdxi_err(sdxi, "  cv: %u div: %u bv: %u\n", ent.cv, ent.div, ent.bv);
 	if (ent.bv)
-		sdxi_err(sdxi, "  buf: 0x%x\n", ent.buf);
+		sdxi_err(sdxi, "  buf: %u\n", ent.buf);
 	if (ent.cv)
-		sdxi_err(sdxi, "  cxt_num: 0x%x\n", ent.cxt_num);
+		sdxi_err(sdxi, "  cxt_num: %#x\n", ent.cxt_num);
 	if (ent.div)
-		sdxi_err(sdxi, "  dsc_index: 0x%llx\n", ent.dsc_index);
-	sdxi_err(sdxi, "  err_class: 0x%x\n", ent.err_class);
+		sdxi_err(sdxi, "  dsc_index: %#llx\n", ent.dsc_index);
+	sdxi_err(sdxi, "  err_class: %#x\n", ent.err_class);
 }
 
 // Refer to "Error Log Processing by Software"
