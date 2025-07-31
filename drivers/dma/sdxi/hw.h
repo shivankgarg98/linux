@@ -271,4 +271,20 @@ static inline cxt_sts_state_t sdxi_cxt_sts_state(const struct sdxi_cxt_sts *sts)
 	return FIELD_GET(SDXI_CXT_STS_STATE, state);
 }
 
+// Access key entry (AKEY_ENT)
+struct sdxi_akey_ent {
+	__le16 intr_num;
+#define SDXI_AKEY_ENT_VL BIT(0)
+#define SDXI_AKEY_ENT_PV BIT(2)
+	__le16 tgt_sfunc;
+	__le32 pasid;
+#define SDXI_AKEY_ENT_PASID GENMASK(19, 0)
+#define SDXI_AKEY_ENT_PR    BIT(29)
+	__le16 stag;
+	__u8   rsvd_0[2];
+	__le16 rkey;
+	__u8   rsvd_1[2];
+} __packed;
+static_assert(sizeof(struct sdxi_akey_ent) == 16);
+
 #endif /* LINUX_SDXI_HW_H */
