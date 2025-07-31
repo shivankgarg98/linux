@@ -7,6 +7,7 @@
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
 #include <linux/minmax.h>
+#include <linux/packing.h>
 #include <linux/types.h>
 
 #include "error.h"
@@ -17,6 +18,47 @@
 // it to 64 entries (which is the spec minimum).
 #define ERROR_LOG_ENTRIES 64
 #define ERROR_LOG_SZ (ERROR_LOG_ENTRIES * sizeof(struct sdxi_err))
+
+// The "unpacked" counterpart to ERRLOG_HD_ENT.
+struct errlog_entry {
+	u64 dsc_index;
+	u16 cxt_num;
+	u16 err_class;
+	u16 type;
+	u8 step;
+	u8 buf;
+	u8 sub_step;
+	u8 re;
+	bool vl;
+	bool cv;
+	bool div;
+	bool bv;
+};
+
+#define ERRLOG_ENTRY_FIELD(hi_, lo_, name_)				\
+	PACKED_FIELD(hi_, lo_, struct errlog_entry, name_)
+#define ERRLOG_ENTRY_FLAG(nr_, name_) \
+	ERRLOG_ENTRY_FIELD(nr_, nr_, name_)
+
+// Refer to "Error Log Header Entry (ERRLOG_HD_ENT)"
+static const struct packed_field_u16 errlog_hd_ent_fields[] = {
+	ERRLOG_ENTRY_FLAG(0, vl),
+	ERRLOG_ENTRY_FIELD(13, 8, step),
+	ERRLOG_ENTRY_FIELD(26, 16, type),
+	ERRLOG_ENTRY_FLAG(32, cv),
+	ERRLOG_ENTRY_FLAG(33, div),
+	ERRLOG_ENTRY_FLAG(34, bv),
+	ERRLOG_ENTRY_FIELD(38, 36, buf),
+	ERRLOG_ENTRY_FIELD(43, 40, sub_step),
+	ERRLOG_ENTRY_FIELD(46, 44, re),
+	ERRLOG_ENTRY_FIELD(63, 48, cxt_num),
+	ERRLOG_ENTRY_FIELD(127, 64, dsc_index),
+	ERRLOG_ENTRY_FIELD(367, 352, err_class),
+};
+
+enum {
+	SDXI_PACKING_QUIRKS = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST,
+};
 
 static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 {
@@ -33,27 +75,29 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 		"SDXI Function Stopped",
 		"Unknown/Reserved Reaction",
 	};
-	struct sdxi_err *err;
+	struct errlog_entry ent;
 	size_t index;
 
 	index = err_rd % ERROR_LOG_ENTRIES;
-	err = &sdxi->err_log[index];
 
-	if (err->vl) {
+	unpack_fields(&sdxi->err_log[index], sizeof(sdxi->err_log[0]),
+		      &ent, errlog_hd_ent_fields, SDXI_PACKING_QUIRKS);
+
+	if (ent.vl) {
 		sdxi_err(sdxi, "error log entry[%zu], MMIO_ERR_RD=%#llx:\n",
 			 index, err_rd);
-		sdxi_err(sdxi, "  step: 0x%x\n", err->step);
-		sdxi_err(sdxi, "  type: 0x%x\n", err->type);
-		sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", err->cv, err->div, err->bv);
-		sdxi_err(sdxi, "  buff: 0x%x\n", err->buf);
-		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)err->sub_step);
+		sdxi_err(sdxi, "  step: 0x%x\n", ent.step);
+		sdxi_err(sdxi, "  type: 0x%x\n", ent.type);
+		sdxi_err(sdxi, "  cv: %x div: %x bv: %x\n", ent.cv, ent.div, ent.bv);
+		sdxi_err(sdxi, "  buff: 0x%x\n", ent.buf);
+		index = min(ARRAY_SIZE(sub_steps) - 1, (size_t)ent.sub_step);
 		sdxi_err(sdxi, "  sub_step: %s\n", sub_steps[index]);
-		index = min(ARRAY_SIZE(reactions) - 1, (size_t)err->re);
+		index = min(ARRAY_SIZE(reactions) - 1, (size_t)ent.re);
 		sdxi_err(sdxi, "  re: %s\n", reactions[index]);
-		sdxi_err(sdxi, "  buff: 0x%x\n", err->buf);
-		sdxi_err(sdxi, "  cxt_num: 0x%x\n", err->cxt_num);
-		sdxi_err(sdxi, "  desc_idx: 0x%llx\n", err->desc_idx);
-		sdxi_err(sdxi, "  err_class: 0x%x\n", err->err_class);
+		sdxi_err(sdxi, "  buff: 0x%x\n", ent.buf);
+		sdxi_err(sdxi, "  cxt_num: 0x%x\n", ent.cxt_num);
+		sdxi_err(sdxi, "  desc_idx: 0x%llx\n", ent.dsc_index);
+		sdxi_err(sdxi, "  err_class: 0x%x\n", ent.err_class);
 	} else {
 		sdxi_err(sdxi, "Not a valid error log entry!\n");
 	}

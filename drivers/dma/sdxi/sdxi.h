@@ -317,7 +317,7 @@ struct sdxi_dev {
 
 	/* error log */
 	int error_irq;
-	struct sdxi_err *err_log;
+	struct sdxi_errlog_hd_ent *err_log;
 	dma_addr_t err_log_dma;
 
 	/* DMA engine */
