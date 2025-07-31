@@ -59,6 +59,7 @@ extern struct list_head sdxi_device_list;
 #define OP_TYPE_ADMIN           0x002
 #define OP_TYPE_ATOMIC          0x003
 #define OP_TYPE_INTR            0x004
+#define OP_TYPE_ERRLOG          0x7f7
 
 #define OP_DMA_NOP		0x01
 #define OP_DMA_WRT_IMM		0x02
