@@ -13525,7 +13525,7 @@ EXPORT_SYMBOL_GPL(kvm_arch_no_poll);
  */
 bool kvm_arch_supports_gmem_mmap(struct kvm *kvm)
 {
-	return !kvm_arch_has_private_mem(kvm);
+	return !kvm_arch_has_private_mem(kvm) || kvm->arch.vm_type == KVM_X86_SNP_VM;
 }
 
 #ifdef CONFIG_HAVE_KVM_ARCH_GMEM_PREPARE

@@ -361,6 +361,9 @@ static vm_fault_t kvm_gmem_fault_user_mapping(struct vm_fault *vmf)
 	struct folio *folio;
 	vm_fault_t ret = VM_FAULT_LOCKED;
 
+	if (!kvm_gmem_supports_mmap(inode))
+		return VM_FAULT_SIGBUS;
+
 	if (((loff_t)vmf->pgoff << PAGE_SHIFT) >= i_size_read(inode))
 		return VM_FAULT_SIGBUS;
 
@@ -438,7 +441,10 @@ static const struct vm_operations_struct kvm_gmem_vm_ops = {
 
 static int kvm_gmem_mmap(struct file *file, struct vm_area_struct *vma)
 {
-	if (!kvm_gmem_supports_mmap(file_inode(file)))
+	struct kvm_gmem *gmem = file->private_data;
+	struct kvm *kvm = gmem->kvm;
+
+	if (!kvm_gmem_supports_mmap(file_inode(file)) && kvm->arch.vm_type != KVM_X86_SNP_VM)
 		return -ENODEV;
 
 	if ((vma->vm_flags & (VM_SHARED | VM_MAYSHARE)) !=
