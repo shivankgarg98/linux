@@ -79,6 +79,8 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 	struct device *dev = sdxi_to_dev(sdxi);
 
 	if (cxt) {
+		u16 intr_num;
+
 		/* NB: More need to be done */
 		cxt->cce_addr = dma_map_single(dev, &cxt->cce, sizeof(cxt->cce),
 					       DMA_TO_DEVICE);
@@ -87,27 +89,18 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 			return;
 		}
 
-		/* akey handling */
-		cxt->akey_addr = dma_map_single(dev, cxt->akey,
-						cxt->akey_entries * sizeof(struct akey_entry),
-						DMA_TO_DEVICE);
-		if (dma_mapping_error(dev, cxt->akey_addr))  {
-			sdxi_err(sdxi, "dma_map for akey table failed\n");
-			dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce),
-					 DMA_TO_DEVICE);
-			return;
-		}
-
 		l1_entry->cxt_ctrl_ptr = cxt->cce_addr >> L1_CXT_CTRL_PTR_SHIFT;
-		l1_entry->akey_tbl_ptr = cxt->akey_addr >> L1_CXT_AKEY_PTR_SHIFT;
-		l1_entry->akey_tbl_size = (cxt->akey_entries * sizeof(struct akey_entry) >> 12) - 1;
+		l1_entry->akey_tbl_ptr = cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT;
+		l1_entry->akey_tbl_size = akey_table_order(cxt->akey_table);
 		l1_entry->opb_000_enb = sdxi->op_grp_cap;
 		l1_entry->vl = 1;
 		l1_entry->ka = 1;
 		l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
 		l1_entry->max_buf = 11;
 
-		cxt->akey[0].vl = 1;
+		intr_num = __le16_to_cpu(cxt->akey_table->entry[0].intr_num);
+		FIELD_MODIFY(SDXI_AKEY_ENT_VL, &intr_num, 1);
+		cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
 	} else {
 		memset(l1_entry, 0, sizeof(*l1_entry));
 	}
@@ -202,13 +195,8 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 {
 	struct sdxi_cxt *cxt;
 	u16 id, l2_idx, l1_idx;
-	struct akey_entry *akey;
-	int entries = DEFAULT_AKEY_NUM;
 
 	if (sdxi->cxt_count >= sdxi->max_cxts)
-		return NULL;
-
-	if (entries > sdxi->max_akeys)
 		return NULL;
 
 	/* search for an empty context slot */
@@ -240,8 +228,11 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 	if (!cxt)
 		return NULL;
 
-	akey = kcalloc(entries, sizeof(struct akey_entry), GFP_KERNEL);
-	if (!akey) {
+	cxt->akey_table = dma_alloc_coherent(sdxi_to_dev(sdxi),
+					     sizeof(*cxt->akey_table),
+					     &cxt->akey_table_dma,
+					     GFP_KERNEL | __GFP_ZERO);
+	if (!cxt->akey_table) {
 		kfree(cxt);
 		return NULL;
 	}
@@ -249,8 +240,6 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 	INIT_LIST_HEAD(&cxt->list);
 	cxt->sdxi = sdxi;
 	cxt->id = id;
-	cxt->akey_entries = entries;
-	cxt->akey = akey;
 	cxt->db_base = sdxi->dbs_bar + id * sdxi->db_stride;
 	cxt->db = sdxi->dbs + id * sdxi->db_stride;
 	cxt->privileged = privileged;
@@ -272,7 +261,8 @@ static void free_cxt(struct sdxi_cxt *cxt)
 
 	sdxi->cxt_count--;
 	list_del(&cxt->list);
-	kfree(cxt->akey);
+	dma_free_coherent(sdxi_to_dev(sdxi), sizeof(*cxt->akey_table),
+			  cxt->akey_table, cxt->akey_table_dma);
 	kfree(cxt);
 
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
@@ -350,9 +340,6 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 	cleanup_cxt_tables(sdxi, cxt);
 	sdxi_cxt_release_dummy_buffer(cxt, sdxi_to_dev(sdxi));
 	dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce), DMA_TO_DEVICE);
-	dma_unmap_single(dev, cxt->akey_addr,
-			 cxt->akey_entries * sizeof(struct akey_entry),
-			 DMA_TO_DEVICE);
 	free_cxt(cxt);
 
 	mutex_unlock(&sdxi->cxt_lock);

@@ -158,6 +158,9 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 {
 	struct sdxi_create_cxt_args *args = data;
 	struct sdxi_cxt *cxt;
+	bool privileged;
+	u16 intr_num;
+	u32 pasid;
 	int err = 0;
 
 	// I doubt the utility of this field and think we should get
@@ -192,10 +195,15 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 	args->doorbell_mmap_base = SDXI_MMAP_TYPE_DOORBELL;
 
 	/* setup akey */
-	cxt->akey[1].vl = 1;
-	cxt->akey[1].pv = 1;
-	cxt->akey[1].pasid = p->pasid;
-	cxt->akey[1].pr = cxt->privileged && cxt->sdxi->use_privileged_bits;
+	privileged = cxt->privileged && cxt->sdxi->use_privileged_bits;
+	pasid = (FIELD_PREP(SDXI_AKEY_ENT_PASID, p->pasid) |
+		     FIELD_PREP(SDXI_AKEY_ENT_PR, privileged));
+	intr_num = (FIELD_PREP(SDXI_AKEY_ENT_VL, 1) |
+		    FIELD_PREP(SDXI_AKEY_ENT_PV, 1));
+	cxt->akey_table->entry[1] = (struct sdxi_akey_ent) {
+		.intr_num = cpu_to_le16(intr_num),
+		.pasid = cpu_to_le32(pasid),
+	};
 
 	mutex_unlock(&p->mutex);
 

@@ -34,8 +34,8 @@ TRACE_EVENT(sdxi_create_cxt,
 		    __entry->cxt_id = cxt->id;
 		    __entry->cce = &(cxt->cce);
 		    __entry->cce_dma_addr = cxt->cce_addr;
-		    __entry->akey = cxt->akey;
-		    __entry->akey_dma_addr = cxt->akey_addr;
+		    __entry->akey = cxt->akey_table;
+		    __entry->akey_dma_addr = cxt->akey_table_dma;
 		    ),
 	    TP_printk("cxt %d created (dev=0x%04x)\n"
 		      "  cce addr:  v=0x%p:d=0x%llx\n"

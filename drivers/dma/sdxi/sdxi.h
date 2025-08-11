@@ -225,9 +225,8 @@ struct sdxi_cxt {
 	struct sdxi_cxt_ctl cce __aligned(64);
 	dma_addr_t cce_addr;		/* cce dma addr */
 
-	int akey_entries;
-	struct akey_entry *akey;
-	dma_addr_t akey_addr;		/* akey dma addr */
+	struct sdxi_akey_table *akey_table;
+	dma_addr_t akey_table_dma;
 
 	struct sdxi_sq *sq;
 
