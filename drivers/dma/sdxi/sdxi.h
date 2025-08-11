@@ -181,24 +181,6 @@ struct sdxi_dma_chan {
 	struct sdxi_cxt *cxt;
 };
 
-struct akey_entry {
-	u32 vl			: 1;	/* QW0 */
-	u32 iv			: 1;
-	u32 pv			: 1;
-	u32 ste			: 1;
-	u32 intr_num		: 11;
-	u32 rsvd1		: 1;
-	u32 tgt_sfunc		: 16;
-	u32 pasid		: 20;
-	u32 rsvd2		: 9;
-	u32 pr			: 1;
-	u32 ph			: 2;
-	u32 stag		: 16;	/* QW1 */
-	u32 rsvd3		: 16;
-	u32 rkey		: 16;
-	u32 rsvd4		: 16;
-} __packed;
-
 // The size of the AKey table is flexible, from 4KB to 1MB. Always use
 // the minimum size for now.
 struct sdxi_akey_table {
