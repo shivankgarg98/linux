@@ -262,8 +262,7 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 		size = sq->cxt_status_size;
 		return sdxi_cxt_struct_mmap(process, vma, size, sq->cxt_status);
 	case SDXI_MMAP_TYPE_WRITE_INDEX:
-		size = sq->write_index_size;
-		return sdxi_cxt_struct_mmap(process, vma, size, sq->write_index);
+		return sdxi_cxt_struct_mmap(process, vma, PAGE_SIZE, sq->write_index);
 	case SDXI_MMAP_TYPE_DESC_RING:
 		size = sq->ring_size;
 		return sdxi_cxt_struct_mmap(process, vma, size, sq->desc_ring);
