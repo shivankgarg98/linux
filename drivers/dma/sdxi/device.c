@@ -796,6 +796,11 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	sdxi->dev_ops = ops;
 
+	sdxi->write_index_pool = dmam_pool_create("write index", sdxi_to_dev(sdxi),
+						  sizeof(__le64), sizeof(__le64), 0);
+	if (!sdxi->write_index_pool)
+		return -ENOMEM;
+
 	err = sdxi_fn_activate(sdxi);
 	if (err)
 		return err;

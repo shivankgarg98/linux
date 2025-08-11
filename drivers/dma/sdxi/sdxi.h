@@ -12,6 +12,7 @@
 
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
+#include <linux/dmapool.h>
 #include <linux/dmaengine.h>
 #include <linux/idr.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
@@ -139,7 +140,6 @@ struct sdxi_sq {
 	size_t csb_size;
 	dma_addr_t csb_dma;
 
-	u32 write_index_size;
 	u64 *write_index;
 	dma_addr_t write_index_dma;
 
@@ -284,6 +284,8 @@ struct sdxi_dev {
 	struct cxt_l1_entry *l1_table_array[L2_TABLE_ENTRIES];
 	/* all contexts, on-demand, access with [l2_idx][l1_idx] */
 	struct sdxi_cxt **cxt_array[L2_TABLE_ENTRIES];
+
+	struct dma_pool *write_index_pool;
 
 	/* error log */
 	int error_irq;

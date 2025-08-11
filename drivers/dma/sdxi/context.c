@@ -159,15 +159,10 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	if (dma_mapping_error(dev, sq->cxt_status_dma))
 		goto free_cxt_status;
 
-	/* alloc write index (NB: use page size) */
-	sq->write_index_size = PAGE_SIZE;
-	sq->write_index = kzalloc(sq->write_index_size, GFP_KERNEL);
+	sq->write_index = dma_pool_zalloc(sdxi->write_index_pool, GFP_KERNEL,
+					  &sq->write_index_dma);
 	if (!sq->write_index)
 		goto unmap_cxt_status;
-	sq->write_index_dma = dma_map_single(dev, sq->write_index, sq->write_index_size,
-					     DMA_TO_DEVICE);
-	if (dma_mapping_error(dev, sq->write_index_dma))
-		goto free_write_index;
 
 	/* final setup */
 	if (cxt->id == SDXI_ADMIN_CXT_ID)
@@ -204,8 +199,6 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 	return sq;
 
-free_write_index:
-	kfree(sq->write_index);
 unmap_cxt_status:
 	dma_unmap_single(dev, sq->cxt_status_dma,
 			 sq->cxt_status_size, DMA_FROM_DEVICE);
@@ -227,7 +220,8 @@ free_sq:
 void sdxi_sq_free(struct sdxi_sq *sq)
 {
 	struct sdxi_cxt *cxt = sq->cxt;
-	struct device *dev = sdxi_to_dev(cxt->sdxi);
+	struct sdxi_dev *sdxi = cxt->sdxi;
+	struct device *dev = sdxi_to_dev(sdxi);
 
 	if (!cxt)
 		return;
@@ -236,9 +230,7 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 
 	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
-	dma_unmap_single(dev, sq->write_index_dma,
-			 sq->write_index_size, DMA_TO_DEVICE);
-	kfree(sq->write_index);
+	dma_pool_free(sdxi->write_index_pool, sq->write_index, sq->write_index_dma);
 	dma_unmap_single(dev, sq->cxt_status_dma,
 			 sq->cxt_status_size, DMA_FROM_DEVICE);
 	kfree(sq->cxt_status);
