@@ -9,3 +9,10 @@ config SDXI
 	  controller. This controller provides DMA capabilities, plus other
 	  advanced data processing features, that can offload the work for
 	  CPUs.
+
+config SDXI_DEBUG
+	bool "SDXI driver debug"
+	default DMADEVICES_DEBUG
+	depends on SDXI != n
+	help
+	  Enable debug output from the SDXI driver.
