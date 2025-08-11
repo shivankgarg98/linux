@@ -199,6 +199,19 @@ struct akey_entry {
 	u32 rsvd4		: 16;
 } __packed;
 
+// The size of the AKey table is flexible, from 4KB to 1MB. Always use
+// the minimum size for now.
+struct sdxi_akey_table {
+	struct sdxi_akey_ent entry[SZ_4K / sizeof(struct sdxi_akey_ent)];
+};
+
+// For encoding the akey table size in CXT_L1_ENT's akey_sz.
+static inline u8 akey_table_order(const struct sdxi_akey_table *tbl)
+{
+	static_assert(sizeof(struct sdxi_akey_table) == SZ_4K);
+	return 0;
+}
+
 /* Context */
 struct sdxi_cxt {
 	struct list_head list;
