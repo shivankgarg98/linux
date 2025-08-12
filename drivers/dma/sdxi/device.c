@@ -797,7 +797,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	sdxi->dev_ops = ops;
 
 	// FIXME: reduce size and align to sizeof(__le64)
-	sdxi->write_index_pool = dmam_pool_create("write index", sdxi_to_dev(sdxi),
+	sdxi->write_index_pool = dmam_pool_create("Write_Index", sdxi_to_dev(sdxi),
 						  PAGE_SIZE, PAGE_SIZE, 0);
 	if (!sdxi->write_index_pool)
 		return -ENOMEM;
