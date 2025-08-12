@@ -81,7 +81,7 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	u64 dest;
 
 	/* check context status */
-	if (sq->cxt_status->state != CXT_STATE_RUNNING) {
+	if (sdxi_cxt_sts_state(sq->cxt_sts) != CXTV_RUN) {
 		sdxi_err(sdxi, "Context is not running\n");
 		return -EINVAL;
 	}
@@ -165,10 +165,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto unmap_cxt_status;
 
 	/* final setup */
-	if (cxt->id == SDXI_ADMIN_CXT_ID)
-		sq->cxt_status->state = CXT_STATE_RUNNING;
-	else if (cxt->id == SDXI_DMA_CXT_ID)
-		sq->cxt_status->state = CXT_STATE_RUNNING;
+	if (cxt->id == SDXI_ADMIN_CXT_ID || cxt->id == SDXI_DMA_CXT_ID)
+		sq->cxt_status->state = FIELD_PREP(SDXI_CXT_STS_STATE, CXTV_RUN);
 
 	cxt->cce = (struct sdxi_cxt_ctl) {
 		.ds_ring_ptr = cpu_to_le64(sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR_MASK),
