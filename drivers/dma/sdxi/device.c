@@ -98,7 +98,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 		l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
 		l1_entry->max_buf = 11;
 
-		intr_num = __le16_to_cpu(cxt->akey_table->entry[0].intr_num);
+		intr_num = le16_to_cpu(cxt->akey_table->entry[0].intr_num);
 		FIELD_MODIFY(SDXI_AKEY_ENT_VL, &intr_num, 1);
 		cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
 	} else {
