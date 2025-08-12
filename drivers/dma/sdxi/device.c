@@ -802,8 +802,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	sdxi->write_index_pool = dmam_pool_create("Write_Index", sdxi_to_dev(sdxi),
 						  PAGE_SIZE, PAGE_SIZE, 0);
 	sdxi->cxt_sts_pool = dmam_pool_create("CXT_STS", sdxi_to_dev(sdxi),
-					      sizeof(struct sdxi_cxt_sts),
-					      sizeof(struct sdxi_cxt_sts), 0);
+					      PAGE_SIZE, PAGE_SIZE, 0);
 	if (!sdxi->write_index_pool || !sdxi->cxt_sts_pool)
 		return -ENOMEM;
 

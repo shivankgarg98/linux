@@ -259,8 +259,7 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 	case SDXI_MMAP_TYPE_DOORBELL:
 		return sdxi_cxt_doorbell_mmap(process, vma);
 	case SDXI_MMAP_TYPE_CXT_STATUS:
-		size = sq->cxt_status_size;
-		return sdxi_cxt_struct_mmap(process, vma, size, sq->cxt_status);
+		return sdxi_cxt_struct_mmap(process, vma, PAGE_SIZE, sq->cxt_sts);
 	case SDXI_MMAP_TYPE_WRITE_INDEX:
 		return sdxi_cxt_struct_mmap(process, vma, PAGE_SIZE, sq->write_index);
 	case SDXI_MMAP_TYPE_DESC_RING:
