@@ -272,6 +272,11 @@ static inline cxt_sts_state_t sdxi_cxt_sts_state(const struct sdxi_cxt_sts *sts)
 	return FIELD_GET(SDXI_CXT_STS_STATE, state);
 }
 
+static inline u64 sdxi_cxt_sts_read_index(const struct sdxi_cxt_sts *sts)
+{
+	return le64_to_cpu(READ_ONCE(sts->read_index));
+}
+
 // Access key entry (AKEY_ENT)
 struct sdxi_akey_ent {
 	__le16 intr_num;
