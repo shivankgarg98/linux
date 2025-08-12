@@ -286,6 +286,7 @@ struct sdxi_dev {
 	struct sdxi_cxt **cxt_array[L2_TABLE_ENTRIES];
 
 	struct dma_pool *write_index_pool;
+	struct dma_pool *cxt_sts_pool;
 
 	/* error log */
 	int error_irq;
