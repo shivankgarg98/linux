@@ -189,21 +189,21 @@ static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
 struct sdxi_cxt_ctl {
 	__le64 ds_ring_ptr;
 
-#define SDXI_CXT_CTL_VALID_BIT        BIT_ULL(0)
-#define SDXI_CXT_CTL_QOS_MASK         GENMASK_ULL(3, 2)
-#define SDXI_CXT_CTL_SE_BIT           BIT_ULL(4)
-#define SDXI_CXT_CTL_CSA_BIT          BIT_ULL(5)
-#define SDXI_CXT_CTL_DS_RING_PTR_MASK GENMASK_ULL(63, 6)
+#define SDXI_CXT_CTL_VL             BIT_ULL(0)
+#define SDXI_CXT_CTL_QOS            GENMASK_ULL(3, 2)
+#define SDXI_CXT_CTL_SE             BIT_ULL(4)
+#define SDXI_CXT_CTL_CSA            BIT_ULL(5)
+#define SDXI_CXT_CTL_DS_RING_PTR    GENMASK_ULL(63, 6)
 
 	__le32 ds_ring_sz;
 	__u8 rsvd_0[4];
 	__le64 cxt_sts_ptr;
 
-#define SDXI_CXT_CTL_CXT_STS_PTR_MASK GENMASK_ULL(63, 4)
+#define SDXI_CXT_CTL_CXT_STS_PTR    GENMASK_ULL(63, 4)
 
 	__le64 write_index_ptr;
 
-#define SDXI_CXT_CTL_WRITE_INDEX_PTR_MASK GENMASK_ULL(63, 3)
+#define SDXI_CXT_CTL_WRITE_INDEX_PTR GENMASK_ULL(63, 3)
 
 	__u8 rsvd_1[32];
 } __packed;

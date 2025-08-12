@@ -163,10 +163,10 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		sq->cxt_sts->state = FIELD_PREP(SDXI_CXT_STS_STATE, CXTV_RUN);
 
 	cxt->cce = (struct sdxi_cxt_ctl) {
-		.ds_ring_ptr = cpu_to_le64(sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR_MASK),
+		.ds_ring_ptr = cpu_to_le64(sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR),
 		.ds_ring_sz = cpu_to_le32(sq->ring_size >> 6),
-		.cxt_sts_ptr = cpu_to_le64(sq->cxt_sts_dma & SDXI_CXT_CTL_CXT_STS_PTR_MASK),
-		.write_index_ptr = cpu_to_le64(sq->write_index_dma & SDXI_CXT_CTL_WRITE_INDEX_PTR_MASK),
+		.cxt_sts_ptr = cpu_to_le64(sq->cxt_sts_dma & SDXI_CXT_CTL_CXT_STS_PTR),
+		.write_index_ptr = cpu_to_le64(sq->write_index_dma & SDXI_CXT_CTL_WRITE_INDEX_PTR),
 	};
 
 	/* turn it on now */
@@ -174,8 +174,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	cxt->sq = sq;
 	dma_wmb();
 	WRITE_ONCE(cxt->cce.ds_ring_ptr,
-		   cpu_to_le64((sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR_MASK) |
-			       SDXI_CXT_CTL_VALID_BIT));
+		   cpu_to_le64((sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR) |
+			       SDXI_CXT_CTL_VL));
 
 	pr_debug("sq created, id=%d, cce=%p\n"
 		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
