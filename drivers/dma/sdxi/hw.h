@@ -244,6 +244,7 @@ struct sdxi_cxt_ctl {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_ctl) == 64);
 
+// Context Status (CXT_STS)
 struct sdxi_cxt_sts {
 	__u8 state;
 #define SDXI_CXT_STS_STATE GENMASK(3, 0)
