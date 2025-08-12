@@ -796,7 +796,9 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	sdxi->dev_ops = ops;
 
-	// FIXME: reduce size and align to sizeof(__le64)
+	// FIXME: the PAGE_SIZE for the pools' object size+align is a
+	// temporary hack for the uAPI's sake. These should be
+	// reverted to the real object sizes once that's dealt with.
 	sdxi->write_index_pool = dmam_pool_create("Write_Index", sdxi_to_dev(sdxi),
 						  PAGE_SIZE, PAGE_SIZE, 0);
 	if (!sdxi->write_index_pool)
