@@ -87,7 +87,7 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	}
 
 	/* no more room for any descriptor */
-	if (*sq->write_index + 1 - le64_to_cpu(sq->cxt_status->read_index) > sq->ring_entries) {
+	if (*sq->write_index + 1 - sdxi_cxt_sts_read_index(sq->cxt_sts) > sq->ring_entries) {
 		sdxi_err(sdxi, "desc ring is full\n");
 		return -EINVAL;
 	}
@@ -149,29 +149,23 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	if (dma_mapping_error(dev, sq->csb_dma))
 		goto free_csb;
 
-	/* alloc cxt status (NB: use page size) */
-	sq->cxt_status_size = PAGE_SIZE;
-	sq->cxt_status = kzalloc(sq->cxt_status_size, GFP_KERNEL);
-	if (!sq->cxt_status)
+	sq->cxt_sts = dma_pool_zalloc(sdxi->cxt_sts_pool, GFP_KERNEL, &sq->cxt_sts_dma);
+	if (!sq->cxt_sts)
 		goto unmap_csb;
-	sq->cxt_status_dma = dma_map_single(dev, sq->cxt_status, sq->cxt_status_size,
-					    DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, sq->cxt_status_dma))
-		goto free_cxt_status;
 
 	sq->write_index = dma_pool_zalloc(sdxi->write_index_pool, GFP_KERNEL,
 					  &sq->write_index_dma);
 	if (!sq->write_index)
-		goto unmap_cxt_status;
+		goto free_cxt_sts;
 
 	/* final setup */
 	if (cxt->id == SDXI_ADMIN_CXT_ID || cxt->id == SDXI_DMA_CXT_ID)
-		sq->cxt_status->state = FIELD_PREP(SDXI_CXT_STS_STATE, CXTV_RUN);
+		sq->cxt_sts->state = FIELD_PREP(SDXI_CXT_STS_STATE, CXTV_RUN);
 
 	cxt->cce = (struct sdxi_cxt_ctl) {
 		.ds_ring_ptr = cpu_to_le64(sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR_MASK),
 		.ds_ring_sz = cpu_to_le32(sq->ring_size >> 6),
-		.cxt_sts_ptr = cpu_to_le64(sq->cxt_status_dma & SDXI_CXT_CTL_CXT_STS_PTR_MASK),
+		.cxt_sts_ptr = cpu_to_le64(sq->cxt_sts_dma & SDXI_CXT_CTL_CXT_STS_PTR_MASK),
 		.write_index_ptr = cpu_to_le64(sq->write_index_dma & SDXI_CXT_CTL_WRITE_INDEX_PTR_MASK),
 	};
 
@@ -190,18 +184,15 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		 cxt->id, &(cxt->cce),
 		 sq->desc_ring, virt_to_phys(sq->desc_ring),
 		 sq->write_index, virt_to_phys(sq->write_index),
-		 sq->cxt_status, virt_to_phys(sq->cxt_status));
+		 sq->cxt_sts, virt_to_phys(sq->cxt_sts));
 
 	/* dump SQ info */
 	trace_sdxi_create_sq(cxt, sq);
 
 	return sq;
 
-unmap_cxt_status:
-	dma_unmap_single(dev, sq->cxt_status_dma,
-			 sq->cxt_status_size, DMA_FROM_DEVICE);
-free_cxt_status:
-	kfree(sq->cxt_status);
+free_cxt_sts:
+	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
 unmap_csb:
 	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
 free_csb:
@@ -229,9 +220,7 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
 	dma_pool_free(sdxi->write_index_pool, sq->write_index, sq->write_index_dma);
-	dma_unmap_single(dev, sq->cxt_status_dma,
-			 sq->cxt_status_size, DMA_FROM_DEVICE);
-	kfree(sq->cxt_status);
+	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
 	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
 	kfree(sq->csb);
 	dma_unmap_single(dev, sq->ring_dma, sq->ring_size, DMA_BIDIRECTIONAL);

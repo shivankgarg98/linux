@@ -79,8 +79,8 @@ TRACE_EVENT(sdxi_create_sq,
 		    __entry->desc_ring_addr = sq->ring_dma;
 		    __entry->write_index = sq->write_index;
 		    __entry->write_index_addr = sq->write_index_dma;
-		    __entry->cxt_status = sq->cxt_status;
-		    __entry->cxt_status_addr = sq->cxt_status_dma;
+		    __entry->cxt_status = sq->cxt_sts;
+		    __entry->cxt_status_addr = sq->cxt_sts_dma;
 		    ),
 	    TP_printk("sq created (cxt=%d, dev=0x%04x)\n"
 		      "  desc ring addr:   v=0x%p:d=0x%llx\n"

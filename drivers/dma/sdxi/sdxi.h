@@ -143,9 +143,8 @@ struct sdxi_sq {
 	u64 *write_index;
 	dma_addr_t write_index_dma;
 
-	u32 cxt_status_size;
-	struct sdxi_cxt_sts *cxt_status;
-	dma_addr_t cxt_status_dma;
+	struct sdxi_cxt_sts *cxt_sts;
+	dma_addr_t cxt_sts_dma;
 
 	/* NB: define doorbell here */
 };
