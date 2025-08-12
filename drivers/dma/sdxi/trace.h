@@ -32,8 +32,8 @@ TRACE_EVENT(sdxi_create_cxt,
 	    TP_fast_assign(
 		    __entry->sfunc = sdxi->sfunc;
 		    __entry->cxt_id = cxt->id;
-		    __entry->cce = &(cxt->cce);
-		    __entry->cce_dma_addr = cxt->cce_addr;
+		    __entry->cce = cxt->cxt_ctl;
+		    __entry->cce_dma_addr = cxt->cxt_ctl_dma;
 		    __entry->akey = cxt->akey_table;
 		    __entry->akey_dma_addr = cxt->akey_table_dma;
 		    ),

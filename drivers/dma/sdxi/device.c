@@ -12,6 +12,7 @@
 #include <linux/device.h>
 #include <linux/dma-direction.h>
 #include <linux/dma-mapping.h>
+#include <linux/dmapool.h>
 #include <linux/log2.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
@@ -76,20 +77,10 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 			     struct cxt_l1_entry *l1_entry,
 			     struct sdxi_cxt *cxt)
 {
-	struct device *dev = sdxi_to_dev(sdxi);
-
 	if (cxt) {
 		u16 intr_num;
 
-		/* NB: More need to be done */
-		cxt->cce_addr = dma_map_single(dev, &cxt->cce, sizeof(cxt->cce),
-					       DMA_TO_DEVICE);
-		if (dma_mapping_error(dev, cxt->cce_addr)) {
-			sdxi_err(sdxi, "dma_map for cxt ctrl addr failed\n");
-			return;
-		}
-
-		l1_entry->cxt_ctrl_ptr = cxt->cce_addr >> L1_CXT_CTRL_PTR_SHIFT;
+		l1_entry->cxt_ctrl_ptr = cxt->cxt_ctl_dma >> L1_CXT_CTRL_PTR_SHIFT;
 		l1_entry->akey_tbl_ptr = cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT;
 		l1_entry->akey_tbl_size = akey_table_order(cxt->akey_table);
 		l1_entry->opb_000_enb = sdxi->op_grp_cap;
@@ -308,8 +299,13 @@ static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 	if (!cxt)
 		goto drop_cxt_lock;
 
-	if (sdxi_cxt_setup_dummy_buffer(cxt, dev))
+	cxt->cxt_ctl = dma_pool_zalloc(sdxi->cxt_ctl_pool, GFP_KERNEL,
+				       &cxt->cxt_ctl_dma);
+	if (!cxt->cxt_ctl)
 		goto release_cxt;
+
+	if (sdxi_cxt_setup_dummy_buffer(cxt, dev))
+		goto release_cxt_ctl;
 
 	if (config_cxt_tables(sdxi, cxt))
 		goto release_dummy;
@@ -320,6 +316,8 @@ static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 
 release_dummy:
 	sdxi_cxt_release_dummy_buffer(cxt, dev);
+release_cxt_ctl:
+	dma_pool_free(sdxi->cxt_ctl_pool, cxt->cxt_ctl, cxt->cxt_ctl_dma);
 release_cxt:
 	free_cxt(cxt);
 drop_cxt_lock:
@@ -331,7 +329,6 @@ drop_cxt_lock:
 void sdxi_cxt_free(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
-	struct device *dev = sdxi_to_dev(sdxi);
 
 	trace_sdxi_free_cxt(sdxi, cxt);
 
@@ -339,7 +336,7 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 
 	cleanup_cxt_tables(sdxi, cxt);
 	sdxi_cxt_release_dummy_buffer(cxt, sdxi_to_dev(sdxi));
-	dma_unmap_single(dev, cxt->cce_addr, sizeof(cxt->cce), DMA_TO_DEVICE);
+	dma_pool_free(sdxi->cxt_ctl_pool, cxt->cxt_ctl, cxt->cxt_ctl_dma);
 	free_cxt(cxt);
 
 	mutex_unlock(&sdxi->cxt_lock);

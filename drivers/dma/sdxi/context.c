@@ -172,11 +172,9 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 				 sq->cxt_sts_dma >> 4);
 	ds_ring_sz = sq->ring_size >> 6;
 
-	cxt->cce = (struct sdxi_cxt_ctl) {
-		.write_index_ptr = cpu_to_le64(write_index_ptr),
-		.cxt_sts_ptr     = cpu_to_le64(cxt_sts_ptr),
-		.ds_ring_sz      = cpu_to_le32(ds_ring_sz),
-	};
+	cxt->cxt_ctl->write_index_ptr = cpu_to_le64(write_index_ptr);
+	cxt->cxt_ctl->cxt_sts_ptr     = cpu_to_le64(cxt_sts_ptr);
+	cxt->cxt_ctl->ds_ring_sz      = cpu_to_le32(ds_ring_sz);
 
 	/* turn it on now */
 	sq->cxt = cxt;
@@ -184,13 +182,13 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	ds_ring_ptr = (FIELD_PREP(SDXI_CXT_CTL_DS_RING_PTR, sq->ring_dma >> 6) |
 		       FIELD_PREP(SDXI_CXT_CTL_VL, 1));
 	dma_wmb();
-	WRITE_ONCE(cxt->cce.ds_ring_ptr, cpu_to_le64(ds_ring_ptr));
+	WRITE_ONCE(cxt->cxt_ctl->ds_ring_ptr, cpu_to_le64(ds_ring_ptr));
 
-	pr_debug("sq created, id=%d, cce=%p\n"
+	pr_debug("sq created, id=%d, cxt_ctl=%p\n"
 		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
 		 "  write index addr: v=0x%p:d=0x%llx\n"
 		 "  cxt status addr: v=0x%p:d=0x%llx\n",
-		 cxt->id, &(cxt->cce),
+		 cxt->id, cxt->cxt_ctl,
 		 sq->desc_ring, virt_to_phys(sq->desc_ring),
 		 sq->write_index, virt_to_phys(sq->write_index),
 		 sq->cxt_sts, virt_to_phys(sq->cxt_sts));
@@ -225,8 +223,6 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 		return;
 
 	trace_sdxi_free_sq(cxt, sq);
-
-	memset(&cxt->cce, 0, sizeof(cxt->cce));
 
 	dma_pool_free(sdxi->write_index_pool, sq->write_index, sq->write_index_dma);
 	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);

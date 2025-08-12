@@ -203,8 +203,8 @@ struct sdxi_cxt {
 	resource_size_t db_base;	/* doorbell MMIO base addr */
 	void __iomem *db;		/* doorbell virt addr */
 
-	struct sdxi_cxt_ctl cce __aligned(64);
-	dma_addr_t cce_addr;		/* cce dma addr */
+	struct sdxi_cxt_ctl *cxt_ctl;
+	dma_addr_t cxt_ctl_dma;
 
 	struct sdxi_akey_table *akey_table;
 	dma_addr_t akey_table_dma;
