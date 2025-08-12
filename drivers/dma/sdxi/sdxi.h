@@ -286,6 +286,7 @@ struct sdxi_dev {
 
 	struct dma_pool *write_index_pool;
 	struct dma_pool *cxt_sts_pool;
+	struct dma_pool *cxt_ctl_pool;
 
 	/* error log */
 	int error_irq;
