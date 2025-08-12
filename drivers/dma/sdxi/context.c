@@ -117,7 +117,11 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
 	struct device *dev = sdxi_to_dev(sdxi);
+	u64 write_index_ptr;
 	struct sdxi_sq *sq;
+	u64 ds_ring_ptr;
+	u64 cxt_sts_ptr;
+	u32 ds_ring_sz;
 
 	/* alloc desc_ring */
 	if (ring_entries > sdxi->max_ring_entries) {
@@ -162,20 +166,25 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	if (cxt->id == SDXI_ADMIN_CXT_ID || cxt->id == SDXI_DMA_CXT_ID)
 		sq->cxt_sts->state = FIELD_PREP(SDXI_CXT_STS_STATE, CXTV_RUN);
 
+	write_index_ptr = FIELD_PREP(SDXI_CXT_CTL_WRITE_INDEX_PTR,
+				     sq->write_index_dma >> 3);
+	cxt_sts_ptr = FIELD_PREP(SDXI_CXT_CTL_CXT_STS_PTR,
+				 sq->cxt_sts_dma >> 4);
+	ds_ring_sz = sq->ring_size >> 6;
+
 	cxt->cce = (struct sdxi_cxt_ctl) {
-		.ds_ring_ptr = cpu_to_le64(sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR),
-		.ds_ring_sz = cpu_to_le32(sq->ring_size >> 6),
-		.cxt_sts_ptr = cpu_to_le64(sq->cxt_sts_dma & SDXI_CXT_CTL_CXT_STS_PTR),
-		.write_index_ptr = cpu_to_le64(sq->write_index_dma & SDXI_CXT_CTL_WRITE_INDEX_PTR),
+		.write_index_ptr = cpu_to_le64(write_index_ptr),
+		.cxt_sts_ptr     = cpu_to_le64(cxt_sts_ptr),
+		.ds_ring_sz      = cpu_to_le32(ds_ring_sz),
 	};
 
 	/* turn it on now */
 	sq->cxt = cxt;
 	cxt->sq = sq;
+	ds_ring_ptr = (FIELD_PREP(SDXI_CXT_CTL_DS_RING_PTR, sq->ring_dma >> 6) |
+		       FIELD_PREP(SDXI_CXT_CTL_VL, 1));
 	dma_wmb();
-	WRITE_ONCE(cxt->cce.ds_ring_ptr,
-		   cpu_to_le64((sq->ring_dma & SDXI_CXT_CTL_DS_RING_PTR) |
-			       SDXI_CXT_CTL_VL));
+	WRITE_ONCE(cxt->cce.ds_ring_ptr, cpu_to_le64(ds_ring_ptr));
 
 	pr_debug("sq created, id=%d, cce=%p\n"
 		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
