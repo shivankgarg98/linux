@@ -366,9 +366,6 @@ void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
 int sdxi_chardev_init(void);
 void sdxi_chardev_exit(void);
 
-// Misc utility functions
-const char *cxt_sts_state_str(cxt_sts_state_t state);
-
 static inline u64 sdxi_read64(const struct sdxi_dev *sdxi, enum sdxi_reg reg)
 {
 	return ioread64(sdxi->ctrl_regs + reg);

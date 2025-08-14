@@ -387,6 +387,31 @@ err_cxt_id:
 	return NULL;
 }
 
+static const char *cxt_sts_state_str(cxt_sts_state_t state)
+{
+	static const char *const context_states[] = {
+		[CXTV_STOP_SW]  = "stopped (software)",
+		[CXTV_RUN]      = "running",
+		[CXTV_STOPG_SW] = "stopping (software)",
+		[CXTV_STOP_FN]  = "stopped (function)",
+		[CXTV_STOPG_FN] = "stopping (function)",
+		[CXTV_ERR_FN]   = "error",
+	};
+	const char *str = "unknown";
+
+	switch (state) {
+	case CXTV_STOP_SW:
+	case CXTV_RUN:
+	case CXTV_STOPG_SW:
+	case CXTV_STOP_FN:
+	case CXTV_STOPG_FN:
+	case CXTV_ERR_FN:
+		str = context_states[state];
+	}
+
+	return str;
+}
+
 static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 {
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
