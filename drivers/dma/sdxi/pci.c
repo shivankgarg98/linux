@@ -179,7 +179,7 @@ static void sdxi_device_free(struct sdxi_dev *sdxi)
 	kfree(sdxi);
 }
 
-const struct sdxi_dev_ops sdxi_pci_dev_ops = {
+static const struct sdxi_dev_ops sdxi_pci_dev_ops = {
 	.irq_init = sdxi_pci_irq_init,
 	.irq_exit = sdxi_pci_irq_exit,
 	.supports_privileged_addrspace = sdxi_pci_supports_privileged_addrspace,
