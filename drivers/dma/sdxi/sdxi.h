@@ -248,9 +248,9 @@ struct cxt_l1_entry {
  *  address spaces, e.g. via PCIe's PASID Privileged Mode.
  */
 struct sdxi_dev_ops {
-	int (*irq_init)(struct sdxi_dev *);
-	void (*irq_exit)(struct sdxi_dev *);
-	bool (*supports_privileged_addrspace)(struct sdxi_dev *);
+	int (*irq_init)(struct sdxi_dev *sdxi);
+	void (*irq_exit)(struct sdxi_dev *sdxi);
+	bool (*supports_privileged_addrspace)(struct sdxi_dev *sdxi);
 };
 
 struct sdxi_dev {
