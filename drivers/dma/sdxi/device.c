@@ -77,24 +77,25 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 			     struct cxt_l1_entry *l1_entry,
 			     struct sdxi_cxt *cxt)
 {
-	if (cxt) {
-		u16 intr_num;
+	u16 intr_num;
 
-		l1_entry->cxt_ctrl_ptr = cxt->cxt_ctl_dma >> L1_CXT_CTRL_PTR_SHIFT;
-		l1_entry->akey_tbl_ptr = cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT;
-		l1_entry->akey_tbl_size = akey_table_order(cxt->akey_table);
-		l1_entry->opb_000_enb = sdxi->op_grp_cap;
-		l1_entry->vl = 1;
-		l1_entry->ka = 1;
-		l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
-		l1_entry->max_buf = 11;
-
-		intr_num = le16_to_cpu(cxt->akey_table->entry[0].intr_num);
-		FIELD_MODIFY(SDXI_AKEY_ENT_VL, &intr_num, 1);
-		cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
-	} else {
+	if (!cxt) {
 		memset(l1_entry, 0, sizeof(*l1_entry));
+		return;
 	}
+
+	l1_entry->cxt_ctrl_ptr = cxt->cxt_ctl_dma >> L1_CXT_CTRL_PTR_SHIFT;
+	l1_entry->akey_tbl_ptr = cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT;
+	l1_entry->akey_tbl_size = akey_table_order(cxt->akey_table);
+	l1_entry->opb_000_enb = sdxi->op_grp_cap;
+	l1_entry->vl = 1;
+	l1_entry->ka = 1;
+	l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
+	l1_entry->max_buf = 11;
+
+	intr_num = le16_to_cpu(cxt->akey_table->entry[0].intr_num);
+	FIELD_MODIFY(SDXI_AKEY_ENT_VL, &intr_num, 1);
+	cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
 }
 
 static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
