@@ -387,7 +387,7 @@ err_cxt_id:
 	return NULL;
 }
 
-static const char *cxt_sts_state_str(cxt_sts_state_t state)
+static const char *cxt_sts_state_str(enum cxt_sts_state state)
 {
 	static const char *const context_states[] = {
 		[CXTV_STOP_SW]  = "stopped (software)",
@@ -420,7 +420,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_sts;
 	struct sdxi_desc desc;
 	u16 cxtid = target_cxt->id;
-	cxt_sts_state_t state = sdxi_cxt_sts_state(sts);
+	enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
 
 	sdxi_dbg(sdxi, "%s entry: context state: %s",
 		 __func__, cxt_sts_state_str(state));
@@ -432,7 +432,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
 
 	do {
-		cxt_sts_state_t state = sdxi_cxt_sts_state(sts);
+		enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
 
 		sdxi_dbg(sdxi, "context %u state: %s", cxtid,
 			 cxt_sts_state_str(state));

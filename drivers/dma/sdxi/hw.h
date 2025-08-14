@@ -219,16 +219,16 @@ struct sdxi_cxt_sts {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_sts) == 16);
 
-typedef enum {
+enum cxt_sts_state {
 	CXTV_STOP_SW  = 0x0,
 	CXTV_RUN      = 0x1,
 	CXTV_STOPG_SW = 0x2,
 	CXTV_STOP_FN  = 0x4,
 	CXTV_STOPG_FN = 0x6,
 	CXTV_ERR_FN   = 0xf,
-} cxt_sts_state_t;
+};
 
-static inline cxt_sts_state_t sdxi_cxt_sts_state(const struct sdxi_cxt_sts *sts)
+static inline enum cxt_sts_state sdxi_cxt_sts_state(const struct sdxi_cxt_sts *sts)
 {
 	u8 state;
 
