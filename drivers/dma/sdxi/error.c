@@ -58,7 +58,7 @@ enum {
 
 // Refer to "(Flagged) Processing Step" and
 // "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "step"
-typedef enum {
+enum errv_step {
 	ERRV_INT         = 1,
 	ERRV_CXT_L2      = 2,
 	ERRV_CXT_L1      = 3,
@@ -71,7 +71,7 @@ typedef enum {
 	ERRV_DSC_BUF     = 10,
 	ERRV_DSC_AKEY    = 11,
 	ERRV_FN_RKEY     = 12,
-} errv_step_t;
+};
 
 static const char *const processing_steps[] = {
 	[ERRV_INT]        = "Internal Error",
@@ -88,7 +88,7 @@ static const char *const processing_steps[] = {
 	[ERRV_FN_RKEY]    = "Function RKey Lookup - Translate, Read, Validate",
 };
 
-static const char *step_str(errv_step_t step)
+static const char *step_str(enum errv_step step)
 {
 	const char *str = "reserved";
 
@@ -102,12 +102,12 @@ static const char *step_str(errv_step_t step)
 }
 
 // Refer to "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "sub_step"
-typedef enum {
+enum errv_sub_step {
 	SUB_STEP_OTHER    = 0,
 	SUB_STEP_ATF      = 1,
 	SUB_STEP_DAF      = 2,
 	SUB_STEP_DVF      = 3,
-} errv_sub_step_t;
+};
 
 static const char * const processing_sub_steps[] = {
 	[SUB_STEP_OTHER]    = "Other/unknown",
@@ -116,7 +116,7 @@ static const char * const processing_sub_steps[] = {
 	[SUB_STEP_DVF]      = "Data Validation Failure",
 };
 
-static const char *sub_step_str(errv_sub_step_t sub_step)
+static const char *sub_step_str(enum errv_sub_step sub_step)
 {
 	const char *str = "reserved";
 
@@ -130,11 +130,11 @@ static const char *sub_step_str(errv_sub_step_t sub_step)
 }
 
 // Refer to "Error Log Header Entry (ERRLOG_HD_ENT)", subfield "re"
-typedef enum {
+enum fn_reaction {
 	FN_REACT_INFORM      = 0,
 	FN_REACT_CXT_STOP    = 1,
 	FN_REACT_FN_STOP     = 2,
-} fn_reaction_t;
+};
 
 static const char * const fn_reactions[] = {
 	[FN_REACT_INFORM]      = "Informative, nothing stopped",
@@ -142,7 +142,7 @@ static const char * const fn_reactions[] = {
 	[FN_REACT_FN_STOP]     = "Function stopped",
 };
 
-static const char *reaction_str(fn_reaction_t reaction)
+static const char *reaction_str(enum fn_reaction reaction)
 {
 	const char *str = "reserved";
 
@@ -171,9 +171,9 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 		return;
 	}
 
-	if (ent.type != OP_TYPE_ERRLOG){
+	if (ent.type != OP_TYPE_ERRLOG) {
 		dev_err_ratelimited(sdxi_to_dev(sdxi),
-				    "Ignoring error log entry with type=%#hx\n",
+				    "Ignoring error log entry with type=%#x\n",
 				    ent.type);
 		return;
 	}
