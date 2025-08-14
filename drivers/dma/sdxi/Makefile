@@ -11,7 +11,6 @@ sdxi-objs += \
 	error.o       \
 	ioctl.o       \
 	process.o     \
-	trace.o       \
-	util.o
+	trace.o
 
 sdxi-$(CONFIG_PCI_MSI) += pci.o
