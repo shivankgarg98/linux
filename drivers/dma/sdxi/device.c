@@ -221,8 +221,7 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 
 	cxt->akey_table = dma_alloc_coherent(sdxi_to_dev(sdxi),
 					     sizeof(*cxt->akey_table),
-					     &cxt->akey_table_dma,
-					     GFP_KERNEL | __GFP_ZERO);
+					     &cxt->akey_table_dma, GFP_KERNEL);
 	if (!cxt->akey_table) {
 		kfree(cxt);
 		return NULL;
@@ -739,8 +738,7 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 
 	// 2.a-2.b. Allocate and zero the 4KB Context Level 2 Table
 	sdxi->l2_table = dmam_alloc_coherent(sdxi_to_dev(sdxi), L2_TABLE_SIZE,
-					     &sdxi->l2_dma,
-					     GFP_KERNEL | __GFP_ZERO);
+					     &sdxi->l2_dma, GFP_KERNEL);
 	if (!sdxi->l2_table)
 		return -ENOMEM;
 
