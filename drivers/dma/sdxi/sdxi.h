@@ -312,9 +312,9 @@ struct sdxi_dev {
 };
 
 static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
-                                      sdxi_version_t v)
+				       sdxi_version_t v)
 {
-       return sdxi_version_ge(sdxi->sdxi_version, v);
+	return sdxi_version_ge(sdxi->sdxi_version, v);
 }
 
 
