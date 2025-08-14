@@ -93,7 +93,7 @@ static const char *step_str(enum errv_step step)
 	const char *str = "reserved";
 
 	switch (step) {
-	case ERRV_INT...ERRV_FN_RKEY:
+	case ERRV_INT ... ERRV_FN_RKEY:
 		str = processing_steps[step];
 		break;
 	}
@@ -121,7 +121,7 @@ static const char *sub_step_str(enum errv_sub_step sub_step)
 	const char *str = "reserved";
 
 	switch (sub_step) {
-	case SUB_STEP_OTHER...SUB_STEP_DVF:
+	case SUB_STEP_OTHER ... SUB_STEP_DVF:
 		str = processing_sub_steps[sub_step];
 		break;
 	}
@@ -147,7 +147,7 @@ static const char *reaction_str(enum fn_reaction reaction)
 	const char *str = "reserved";
 
 	switch (reaction) {
-	case FN_REACT_INFORM...FN_REACT_FN_STOP:
+	case FN_REACT_INFORM ... FN_REACT_FN_STOP:
 		str = fn_reactions[reaction];
 		break;
 	}
