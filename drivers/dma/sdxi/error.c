@@ -271,8 +271,7 @@ int sdxi_error_init(struct sdxi_dev *sdxi)
 
 	// 3. Allocate memory for the error log ring buffer, initialize to zero.
 	sdxi->err_log = dma_alloc_coherent(sdxi_to_dev(sdxi), ERROR_LOG_SZ,
-					   &sdxi->err_log_dma,
-					   GFP_KERNEL | __GFP_ZERO);
+					   &sdxi->err_log_dma, GFP_KERNEL);
 	if (!sdxi->err_log)
 		return -ENOMEM;
 
