@@ -490,14 +490,14 @@ struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 	return NULL;
 }
 
-typedef enum sdxi_fn_gsv {
+enum sdxi_fn_gsv {
 	SDXI_GSV_STOP,
 	SDXI_GSV_INIT,
 	SDXI_GSV_ACTIVE,
 	SDXI_GSV_STOPG_SF,
 	SDXI_GSV_STOPG_HD,
 	SDXI_GSV_ERROR,
-} sdxi_fn_gsv_t;
+};
 
 static const char *const gsv_strings[] = {
 	[SDXI_GSV_STOP]     = "stopped",
@@ -508,7 +508,7 @@ static const char *const gsv_strings[] = {
 	[SDXI_GSV_ERROR]    = "error",
 };
 
-static const char *gsv_str(sdxi_fn_gsv_t gsv)
+static const char *gsv_str(enum sdxi_fn_gsv gsv)
 {
 	if ((size_t)gsv < ARRAY_SIZE(gsv_strings))
 		return gsv_strings[(size_t)gsv];
@@ -518,20 +518,20 @@ static const char *gsv_str(sdxi_fn_gsv_t gsv)
 	return "unknown";
 }
 
-typedef enum sdxi_fn_gsr {
+enum sdxi_fn_gsr {
 	SDXI_GSRV_RESET,
 	SDXI_GSRV_STOP_SF,
 	SDXI_GSRV_STOP_HD,
 	SDXI_GSRV_ACTIVE,
-} sdxi_fn_gsr_t;
+};
 
-static sdxi_fn_gsv_t sdxi_dev_gsv(const struct sdxi_dev *sdxi)
+static enum sdxi_fn_gsv sdxi_dev_gsv(const struct sdxi_dev *sdxi)
 {
-	return (sdxi_fn_gsv_t)FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
+	return (enum sdxi_fn_gsv)FIELD_GET(SDXI_MMIO_STS0_FN_GSV,
 					sdxi_read64(sdxi, SDXI_MMIO_STS0));
 }
 
-static void sdxi_write_fn_gsr(struct sdxi_dev *sdxi, sdxi_fn_gsr_t cmd)
+static void sdxi_write_fn_gsr(struct sdxi_dev *sdxi, enum sdxi_fn_gsr cmd)
 {
 	u64 ctl0 = sdxi_read64(sdxi, SDXI_MMIO_CTL0);
 
@@ -542,7 +542,7 @@ static void sdxi_write_fn_gsr(struct sdxi_dev *sdxi, sdxi_fn_gsr_t cmd)
 static int sdxi_dev_start(struct sdxi_dev *sdxi)
 {
 	unsigned long deadline;
-	sdxi_fn_gsv_t status;
+	enum sdxi_fn_gsv status;
 
 	status = sdxi_dev_gsv(sdxi);
 	if (status != SDXI_GSV_STOP) {
@@ -593,7 +593,7 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 	bool reset_issued = false;
 
 	do {
-		sdxi_fn_gsv_t status = sdxi_dev_gsv(sdxi);
+		enum sdxi_fn_gsv status = sdxi_dev_gsv(sdxi);
 
 		sdxi_dbg(sdxi, "%s: function state: %s\n", __func__, gsv_str(status));
 
