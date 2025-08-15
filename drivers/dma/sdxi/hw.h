@@ -100,14 +100,17 @@ static_assert(sizeof(struct sdxi_cxt_l2_table) == 4096);
 // Context level 1 table entry (CXT_L1_ENT)
 struct sdxi_cxt_l1_ent {
 	__le64 cxt_ctl_ptr;
-#define SDXI_CXT_L1_ENT_VL_BIT           BIT_ULL(0)
-#define SDXI_CXT_L1_ENT_KA_BIT           BIT_ULL(1)
-#define SDXI_CXT_L1_ENT_PV_BIT           BIT_ULL(2)
-#define SDXI_CXT_L1_ENT_CXT_CTL_PTR_MASK GENMASK_ULL(63, 6)
+#define SDXI_CXT_L1_ENT_VL             BIT_ULL(0)
+#define SDXI_CXT_L1_ENT_KA             BIT_ULL(1)
+#define SDXI_CXT_L1_ENT_PV             BIT_ULL(2)
+#define SDXI_CXT_L1_ENT_PR             BIT_ULL(5)
+#define SDXI_CXT_L1_ENT_CXT_CTL_PTR    GENMASK_ULL(63, 6)
 	__le64 akey_ptr;
-#define SDXI_CXT_L1_ENT_AKEY_SZ_MASK     GENMASK_ULL(3, 0)
-#define SDXI_CXT_L1_ENT_AKEY_PTR_MASK    GENMASK_ULL(63, 12)
+#define SDXI_CXT_L1_ENT_AKEY_SZ        GENMASK_ULL(3, 0)
+#define SDXI_CXT_L1_ENT_AKEY_PTR       GENMASK_ULL(63, 12)
 	__le32 misc0;
+#define SDXI_CXT_L1_ENT_PASID          GENMASK(19, 0)
+#define SDXI_CXT_L1_ENT_MAX_BUFFER     GENMASK(23, 20)
 	__le32 opb_000_enb;
 	__u8 rsvd_0[8];
 } __packed;
