@@ -221,24 +221,6 @@ struct sdxi_cxt {
 	dma_addr_t dummy_buffer_addr;
 };
 
-/* L1 Table Entry */
-struct cxt_l1_entry {
-	u64 vl			: 1;	/* QW0 */
-	u64 ka			: 1;
-	u64 pv			: 1;
-	u64 rsvd1		: 2;
-	u64 pr			: 1;
-	u64 cxt_ctrl_ptr	: 58;
-	u64 akey_tbl_size	: 4;	/* QW1 */
-	u64 rsvd2		: 8;
-	u64 akey_tbl_ptr	: 52;
-	u64 cxt_pasid		: 20;	/* QW2 */
-	u64 max_buf		: 4;
-	u64 rsvd3		: 8;
-	u64 opb_000_enb		: 32;
-	u64 rsvd4;			/* QW3 */
-} __packed;
-
 /**
  * struct sdxi_dev_ops - Bus-specific methods for SDXI devices.
  *
