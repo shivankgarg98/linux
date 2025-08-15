@@ -50,7 +50,7 @@ MODULE_PARM_DESC(force_pr_for_user_contexts,
 
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
-			     struct cxt_l1_entry *l1_table)
+			     struct sdxi_cxt_l1_ent *l1_table)
 {
 	struct device *dev = sdxi_to_dev(sdxi);
 	dma_addr_t l1_addr;
@@ -74,24 +74,39 @@ static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 }
 
 static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
-			     struct cxt_l1_entry *l1_entry,
+			     struct sdxi_cxt_l1_ent *l1_entry,
 			     struct sdxi_cxt *cxt)
 {
+	u64 cxt_ctl_ptr;
+	u64 akey_ptr;
 	u16 intr_num;
+	u32 misc0;
+	bool pr;
 
 	if (!cxt) {
 		memset(l1_entry, 0, sizeof(*l1_entry));
 		return;
 	}
 
-	l1_entry->cxt_ctrl_ptr = cxt->cxt_ctl_dma >> L1_CXT_CTRL_PTR_SHIFT;
-	l1_entry->akey_tbl_ptr = cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT;
-	l1_entry->akey_tbl_size = akey_table_order(cxt->akey_table);
-	l1_entry->opb_000_enb = sdxi->op_grp_cap;
-	l1_entry->vl = 1;
-	l1_entry->ka = 1;
-	l1_entry->pr = sdxi->use_privileged_bits ? cxt->privileged : 0;
-	l1_entry->max_buf = 11;
+	pr = sdxi->use_privileged_bits && cxt->privileged;
+
+	cxt_ctl_ptr = (FIELD_PREP(SDXI_CXT_L1_ENT_VL, 1) |
+		       FIELD_PREP(SDXI_CXT_L1_ENT_KA, 1) |
+		       FIELD_PREP(SDXI_CXT_L1_ENT_PR, pr) |
+		       FIELD_PREP(SDXI_CXT_L1_ENT_CXT_CTL_PTR,
+				  cxt->cxt_ctl_dma >> L1_CXT_CTRL_PTR_SHIFT));
+	akey_ptr = (FIELD_PREP(SDXI_CXT_L1_ENT_AKEY_SZ,
+			       akey_table_order(cxt->akey_table)) |
+		    FIELD_PREP(SDXI_CXT_L1_ENT_AKEY_PTR,
+			       cxt->akey_table_dma >> L1_CXT_AKEY_PTR_SHIFT));
+	misc0 = FIELD_PREP(SDXI_CXT_L1_ENT_MAX_BUFFER, 11);
+
+	*l1_entry = (struct sdxi_cxt_l1_ent) {
+		.cxt_ctl_ptr = cpu_to_le64(cxt_ctl_ptr),
+		.akey_ptr = cpu_to_le64(akey_ptr),
+		.misc0 = cpu_to_le32(misc0),
+		.opb_000_enb = cpu_to_le32(sdxi->op_grp_cap),
+	};
 
 	intr_num = le16_to_cpu(cxt->akey_table->entry[0].intr_num);
 	FIELD_MODIFY(SDXI_AKEY_ENT_VL, &intr_num, 1);
@@ -99,13 +114,13 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 }
 
 static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
-				     struct cxt_l1_entry *l1_table,
+				     struct sdxi_cxt_l1_ent *l1_table,
 				     struct sdxi_cxt *cxt,
 				     bool clear)
 {
 	u16 id;
 	struct sdxi_cxt_l2_ent *l2_entry;
-	struct cxt_l1_entry *l1_entry;
+	struct sdxi_cxt_l1_ent *l1_entry;
 	struct sdxi_dev *sdxi = cxt->sdxi;
 
 	if (!cxt || !l1_table)
@@ -137,7 +152,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
 	u16 l2_idx;
-	struct cxt_l1_entry *l1_table;
+	struct sdxi_cxt_l1_ent *l1_table;
 
 	if (!cxt)
 		return -EINVAL;
@@ -152,7 +167,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 
 		gfp_flags = GFP_KERNEL | __GFP_ZERO;
 		order = get_order(L1_TABLE_SIZE);
-		l1_table = (struct cxt_l1_entry *)__get_free_pages(gfp_flags,
+		l1_table = (struct sdxi_cxt_l1_ent *)__get_free_pages(gfp_flags,
 								   order);
 
 		if (!l1_table)
@@ -171,7 +186,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 			       struct sdxi_cxt *cxt)
 {
 	u16 l2_idx;
-	struct cxt_l1_entry *l1_table;
+	struct sdxi_cxt_l1_ent *l1_table;
 
 	if (!cxt)
 		return;
