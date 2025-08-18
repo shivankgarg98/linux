@@ -30,7 +30,7 @@
 #include <linux/sizes.h>
 #include <linux/types.h>
 
-// ERRLOG_HD_ENT
+// Error Log Header Entry (ERRLOG_HD_ENT)
 struct sdxi_errlog_hd_ent {
 	__le32 opcode;
 	__le16 misc0;
@@ -43,23 +43,11 @@ struct sdxi_errlog_hd_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
-/**
- * struct sdxi_cxt_l2_ent - Context Level 2 Table Entry (CXT_L2_ENT).
- */
+// Context Level 2 Table Entry (CXT_L2_ENT)
 struct sdxi_cxt_l2_ent {
-	/**
-	 * @lv01_ptr: Address of L1 table, with a validity bit.
-	 *
-	 * Bit 0:      (vl) Valid.
-	 * Bits 11-01: (rsvd) Reserved.
-	 * Bits 63-12: (lv01_ptr) Pointer to the start of a Context Level 1
-	 *             table, 4K-aligned.
-	 */
 	__le64 lv01_ptr;
-
 #define SDXI_CXT_L2_ENT_LV01_PTR GENMASK_ULL(63, 12)
 #define SDXI_CXT_L2_ENT_VL       BIT_ULL(0)
-
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
 
@@ -116,28 +104,11 @@ struct sdxi_cxt_l1_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l1_ent) == 32);
 
-/**
- * struct sdxi_cst_blk - Completion status block (CST_BLK).
- */
+// Completion status block (CST_BLK)
 struct sdxi_cst_blk {
-	/**
-	 * @signal: Completion signal value.
-	 */
 	__le64 signal;
-
-	/**
-	 * @flags: Flags.
-	 *
-	 * Bits 30-0: (rsvd) Reserved.
-	 * Bit 31:    (er) Error recorded.
-	 */
 	__le32 flags;
-
 #define SDXI_CST_BLK_ER_BIT BIT(31)
-
-	/**
-	 * @rsvd_0: Reserved.
-	 */
 	__u8 rsvd_0[20];
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
@@ -152,23 +123,17 @@ static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
 // Context control block (CXT_CTL)
 struct sdxi_cxt_ctl {
 	__le64 ds_ring_ptr;
-
 #define SDXI_CXT_CTL_VL             BIT_ULL(0)
 #define SDXI_CXT_CTL_QOS            GENMASK_ULL(3, 2)
 #define SDXI_CXT_CTL_SE             BIT_ULL(4)
 #define SDXI_CXT_CTL_CSA            BIT_ULL(5)
 #define SDXI_CXT_CTL_DS_RING_PTR    GENMASK_ULL(63, 6)
-
 	__le32 ds_ring_sz;
 	__u8 rsvd_0[4];
 	__le64 cxt_sts_ptr;
-
 #define SDXI_CXT_CTL_CXT_STS_PTR    GENMASK_ULL(63, 4)
-
 	__le64 write_index_ptr;
-
 #define SDXI_CXT_CTL_WRITE_INDEX_PTR GENMASK_ULL(63, 3)
-
 	__u8 rsvd_1[32];
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_ctl) == 64);
