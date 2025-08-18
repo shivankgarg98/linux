@@ -118,25 +118,4 @@ enum {
 	SDXI_MMIO_ERR_STS_ERR_BIT = BIT_ULL(3),
 };
 
-/* Capability 1 Register */
-union mmio_cap1_reg {
-	struct {
-		u64 max_buffer		:4;
-		u64 rkey_cap		:1;
-		u64 rm			:1;
-		u64 mmio64		:1;
-		u64 rsvd0		:1;
-		u64 max_errlog_sz	:4;
-		u64 max_akey_sz		:4;
-		u64 max_cxt		:16;
-		u64 opb_000_cap		:32;
-	};
-	u64 data;
-} __packed __aligned(8);
-
-/* function state control (ctl0.fn_gsr) constants */
-#define GSRV_STOP_SF			0x1
-#define GSRV_ACTIVE			0x3
-
-
 #endif // DMA_SDXI_MMIO_H
