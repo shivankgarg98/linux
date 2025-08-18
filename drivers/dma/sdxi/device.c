@@ -459,7 +459,6 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		case CXTV_STOP_SW:
 		case CXTV_STOP_FN:
 			return;
-			break;
 		case CXTV_RUN:
 		case CXTV_STOPG_SW:
 		case CXTV_STOPG_FN:
@@ -470,7 +469,6 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 			sdxi_err(sdxi, "context %u in unknown state %u\n",
 				 cxtid, state);
 			return;
-			break;
 		}
 	} while (time_before(jiffies, deadline));
 
@@ -601,11 +599,9 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 		case SDXI_GSV_ACTIVE:
 			sdxi_dbg(sdxi, "activated\n");
 			return 0;
-			break;
 		case SDXI_GSV_ERROR:
 			sdxi_err(sdxi, "went to error state\n");
 			return -EIO;
-			break;
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOP:
 			// transitional states, wait
@@ -614,7 +610,6 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 		default:
 			sdxi_err(sdxi, "unexpected gsv %u, giving up\n", status);
 			return -EIO;
-			break;
 		}
 	} while (time_before(jiffies, deadline));
 
@@ -650,7 +645,6 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 			break;
 		case SDXI_GSV_STOP:
 			return 0;
-			break;
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOPG_SF:
 		case SDXI_GSV_STOPG_HD:
@@ -662,7 +656,6 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 		default:
 			sdxi_err(sdxi, "unknown gsv %u, giving up\n", status);
 			return -EIO;
-			break;
 		}
 	} while (time_before(jiffies, deadline));
 
@@ -745,7 +738,7 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 	sdxi_write64(sdxi, SDXI_MMIO_CTL2, ctl2);
 
 	sdxi_dbg(sdxi,
-		 "sfunc:%#hx descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
+		 "sfunc:%#x descmax:%llu dbstride:%#x akeymax:%u cxtmax:%u opgrps:%#x\n",
 		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
 		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
 
@@ -881,6 +874,7 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 		// When a context is released its entry in the table should be NULL.
 		for (size_t j = 0; j < L1_TABLE_ENTRIES; ++j) {
 			struct sdxi_cxt *cxt = sdxi->cxt_array[i][j];
+
 			if (!cxt)
 				continue;
 			if (cxt->id != 0) // admin context shutdown is last
