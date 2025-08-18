@@ -96,7 +96,6 @@ enum {
 	// RKey functionality enabled, also functions as validity bit
 	// for ptr and sz.
 	SDXI_MMIO_RKEY_EN = BIT_ULL(0),
-	
 
 	//// SDXI_MMIO_ERR_CTL bit definitions
 
