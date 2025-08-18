@@ -26,11 +26,11 @@
 #define CREATE_TRACE_POINTS
 #include "trace.h"
 
-static bool dma_engine = false;
+static bool dma_engine;
 module_param(dma_engine, bool, 0644);
 MODULE_PARM_DESC(dma_engine, "Enable DMA engine interface (default: false)");
 
-static bool set_pr_bits = false;
+static bool set_pr_bits;
 module_param(set_pr_bits, bool, 0644);
 MODULE_PARM_DESC(set_pr_bits,
 		 "Set the 'pr' bits on kernel-private SDXI "
@@ -39,7 +39,7 @@ MODULE_PARM_DESC(set_pr_bits,
 		 "(e.g. PCIe PASID Privileged Mode) "
 		 "(default: false)");
 
-static bool force_pr_for_user_contexts = false;
+static bool force_pr_for_user_contexts;
 module_param(force_pr_for_user_contexts, bool, 0644);
 MODULE_PARM_DESC(force_pr_for_user_contexts,
 		 "Force-enable the 'pr' bit for user contexts. "
@@ -623,7 +623,6 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 	sdxi_err(sdxi, "activation timed out, current status %u\n",
 		sdxi_dev_gsv(sdxi));
 	return -ETIMEDOUT;
-	
 }
 
 // Get the device to the GSV_STOP state.
