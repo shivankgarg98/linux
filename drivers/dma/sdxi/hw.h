@@ -116,6 +116,7 @@ struct sdxi_cxt_sts {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_sts) == 16);
 
+// Valid values for FIELD_GET(SDXI_CXT_STS_STATE, sdxi_cxt_sts.state)
 enum cxt_sts_state {
 	CXTV_STOP_SW  = 0x0,
 	CXTV_RUN      = 0x1,
