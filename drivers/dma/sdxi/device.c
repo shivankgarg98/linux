@@ -441,7 +441,6 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		 __func__, cxt_sts_state_str(state));
 
 	build_admin_stop_new(&desc, 0, 0, cxtid, cxtid, 0);
-	mb();
 	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
 
 	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
@@ -521,7 +520,6 @@ struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 			return NULL;
 
 		build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
-		mb();
 		sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
 
 		return cxt;
