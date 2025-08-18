@@ -74,6 +74,13 @@ static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 	iowrite64(value, cxt->db);
 }
 
+static void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
+{
+	*cst_blk = (struct sdxi_cst_blk) {
+		.signal = cpu_to_le64(signal),
+	};
+}
+
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 			bool csb, u64 init_signal)
 {

@@ -88,13 +88,6 @@ struct sdxi_cst_blk {
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
 
-static inline void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
-{
-	*cst_blk = (struct sdxi_cst_blk) {
-		.signal = cpu_to_le64(signal),
-	};
-}
-
 // Context control block (CXT_CTL)
 struct sdxi_cxt_ctl {
 	__le64 ds_ring_ptr;
