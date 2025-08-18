@@ -51,31 +51,6 @@ struct sdxi_cxt_l2_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l2_ent) == 8);
 
-static inline void sdxi_cxt_l2_ent_set(struct sdxi_cxt_l2_ent *ent,
-				       dma_addr_t addr, bool valid)
-{
-	WARN_ON(!IS_ALIGNED(addr, SZ_4K));
-	u64 tmp = FIELD_PREP(SDXI_CXT_L2_ENT_LV01_PTR, addr >> ilog2(SZ_4K)) |
-		  FIELD_PREP(SDXI_CXT_L2_ENT_VL, valid);
-
-	// We're potentially releasing the entry to the hw, ensure
-	// the valid bit update follows any prior stores.
-	dma_wmb();
-	WRITE_ONCE(ent->lv01_ptr, cpu_to_le64(tmp));
-}
-
-static inline dma_addr_t
-sdxi_cxt_l2_ent_lv01_ptr(const struct sdxi_cxt_l2_ent *ent)
-{
-	return FIELD_GET(SDXI_CXT_L2_ENT_LV01_PTR, le64_to_cpu(ent->lv01_ptr)) << ilog2(SZ_4K);
-}
-
-static inline bool
-sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
-{
-	return FIELD_GET(SDXI_CXT_L2_ENT_VL, le64_to_cpu(ent->lv01_ptr));
-}
-
 /*
  * The level 2 table is 4KB and has 512 level 1 pointer entries.
  */
