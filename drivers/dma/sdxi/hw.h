@@ -130,7 +130,6 @@ static inline enum cxt_sts_state sdxi_cxt_sts_state(const struct sdxi_cxt_sts *s
 {
 	u8 state;
 
-	dma_rmb();
 	state = READ_ONCE(sts->state);
 	return FIELD_GET(SDXI_CXT_STS_STATE, state);
 }
