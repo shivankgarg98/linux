@@ -67,7 +67,7 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
 }
 
-static inline void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
+static void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 {
 	struct sdxi_cxt *cxt = sq->cxt;
 
