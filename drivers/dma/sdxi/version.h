@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef DMA_SDXI_VERSION_H
 #define DMA_SDXI_VERSION_H
 
@@ -8,8 +9,8 @@ typedef struct {
 	u8 minor;
 } sdxi_version_t;
 
-#define SDXI_VERSION_1_0 (sdxi_version_t){ .major = 1, .minor = 0, }
-#define SDXI_VERSION_1_1 (sdxi_version_t){ .major = 1, .minor = 1, }
+#define SDXI_VERSION_1_0 ((sdxi_version_t){ .major = 1, .minor = 0, })
+#define SDXI_VERSION_1_1 ((sdxi_version_t){ .major = 1, .minor = 1, })
 
 static inline u16 sdxi_version_as_u16(sdxi_version_t v)
 {
