@@ -226,7 +226,7 @@ static void sdxi_pci_remove(struct pci_dev *pdev)
 }
 
 static const struct pci_device_id sdxi_id_table[] = {
-	{ PCI_DEVICE_CLASS(PCI_CLASS_ACCEL_SDXI, 0xffffff) },
+	{ PCI_DEVICE_CLASS(PCI_CLASS_ACCELERATOR_SDXI, 0xffffff) },
 	{0, }
 };
 MODULE_DEVICE_TABLE(pci, sdxi_id_table);
