@@ -37,7 +37,7 @@
 #define MMIO_CTL_REGS_BAR		0x0
 #define MMIO_DOORBELL_BAR		0x2
 
-static bool enabled = false;
+static bool enabled;
 module_param(enabled, bool, 0644);
 MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
