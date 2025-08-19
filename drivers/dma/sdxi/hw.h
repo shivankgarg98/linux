@@ -25,6 +25,7 @@
 #include <linux/bits.h>
 #include <linux/build_bug.h>
 #include <linux/log2.h>
+#include <linux/stddef.h>
 #include <linux/types.h>
 
 // Context Level 2 Table Entry (CXT_L2_ENT)
@@ -135,6 +136,19 @@ struct sdxi_errlog_hd_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
+// Descriptor Common Header and Footer (DSC_GENERIC)
+struct sdxi_dsc_generic {
+	union {
+		struct {
+			__le32 opcode;
+			__u8 operation[52];
+			__le64 csb_ptr;
+		};
+		__le64 qw[8]; // Used for serialization to the ring.
+	};
+} __packed;
+static_assert(sizeof(struct sdxi_dsc_generic) == 64);
+
 // Completion status block (CST_BLK)
 struct sdxi_cst_blk {
 	__le64 signal;
@@ -143,5 +157,55 @@ struct sdxi_cst_blk {
 	__u8 rsvd_0[20];
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
+
+#define define_sdxi_dsc(name_, op_body_)                    \
+	struct name_ {                                      \
+		union {                                     \
+			struct sdxi_dsc_generic generic;    \
+			struct {                            \
+				__le32 opcode;              \
+				union {                     \
+					__u8 operation[52]; \
+					op_body_ __packed;  \
+				};                          \
+				__le64 csb_ptr;             \
+			};                                  \
+		};                                          \
+	};                                                  \
+	static_assert(sizeof(struct name_) ==               \
+		      sizeof(struct sdxi_dsc_generic));     \
+	static_assert(offsetof(struct name_, csb_ptr) ==    \
+		      offsetof(struct sdxi_dsc_generic, csb_ptr))
+
+
+
+// DmaBaseGrp: DSC_DMAB_NOP
+define_sdxi_dsc(sdxi_dsc_dmab_nop, struct {});
+
+// DmaBaseGrp: DSC_DMAB_COPY
+define_sdxi_dsc(sdxi_dsc_dmab_copy,
+		struct {
+			__le32 size;
+			__u8 attr;
+			__u8 rsvd_0[3];
+			__le16 akey0;
+			__le16 akey1;
+			__le64 addr0;
+			__le64 addr1;
+			__u8 rsvd_1[24];
+		});
+
+// AdminGrp: DSC_CXT_START
+define_sdxi_dsc(sdxi_dsc_cxt_start,
+		struct {
+			__u8 rsvd_0;
+			__u8 vflags;
+			__le16 vf_num;
+			__le16 cxt_start;
+			__le16 cxt_end;
+			__u8 rsvd_1[4];
+			__le64 db_value;
+			__u8 rsvd_2[32];
+		});
 
 #endif /* LINUX_SDXI_HW_H */
