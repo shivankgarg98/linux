@@ -460,12 +460,22 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	struct sdxi_desc desc;
 	u16 cxtid = target_cxt->id;
 	enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
+	int err;
 
 	sdxi_dbg(sdxi, "%s entry: context state: %s",
 		 __func__, cxt_sts_state_str(state));
 
 	build_admin_stop_new(&desc, 0, 0, cxtid, cxtid, 0);
-	sdxi_sq_submit_desc(admin_cxt->sq, &desc, false, 0);
+	err = sdxi_enqueue((__le64 *)&desc, 1,
+			   (__le64 *)admin_cxt->sq->desc_ring,
+			   admin_cxt->sq->ring_entries,
+			   &admin_cxt->sq->cxt_sts->read_index,
+			   admin_cxt->sq->write_index, admin_cxt->db);
+	if (err) {
+		sdxi_err(sdxi, "error %d shutting down context %u\n",
+			 err, cxtid);
+		return;
+	}
 
 	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
 
