@@ -19,15 +19,11 @@
 #ifndef LINUX_SDXI_HW_H
 #define LINUX_SDXI_HW_H
 
-#include <asm/barrier.h>
 #include <asm/byteorder.h>
-#include <linux/align.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
-#include <linux/bug.h>
 #include <linux/build_bug.h>
 #include <linux/log2.h>
-#include <linux/sizes.h>
 #include <linux/types.h>
 
 // Error Log Header Entry (ERRLOG_HD_ENT)
