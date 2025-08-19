@@ -20,6 +20,7 @@
 #include <linux/ptrace.h>
 
 #include "context.h"
+#include "enqueue.h"
 #include "hw.h"
 #include "error.h"
 #include "sdxi.h"
@@ -839,6 +840,7 @@ admin_cxt_exit:
 
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
+	struct sdxi_cxt *admin_cxt;
 	struct sdxi_cxt *dma_cxt;
 	struct sdxi_desc desc;
 	int err;
@@ -871,7 +873,14 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	sdxi->dma_cxt = dma_cxt;
 
 	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_DMA_CXT_ID, 0);
-	sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
+	admin_cxt = sdxi->admin_cxt;
+	err = sdxi_enqueue((__le64 *)&desc, 1,
+			   (__le64 *)admin_cxt->sq->desc_ring,
+			   admin_cxt->sq->ring_entries,
+			   &admin_cxt->sq->cxt_sts->read_index,
+			   admin_cxt->sq->write_index, admin_cxt->db);
+	if (err)
+		goto fn_stop; // any other unwind? shouldn't this all be gated by dma_engine?
 
 	// Set up DMA engine provider.
 	if (dma_engine)
