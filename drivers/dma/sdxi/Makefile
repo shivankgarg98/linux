@@ -8,6 +8,7 @@ sdxi-objs += \
 	context.o     \
 	device.o      \
 	dma.o         \
+	enqueue.o     \
 	error.o       \
 	ioctl.o       \
 	process.o     \
