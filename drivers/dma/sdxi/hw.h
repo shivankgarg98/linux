@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
 /*
- * Data structures and constants defined in the SDXI specification,
- * with low-level accessors.
+ * Control structures and constants defined in the SDXI specification,
+ * with low-level accessors. The ordering of the structures here
+ * follows the order of their definitions in the SDXI spec.
  *
  * Names of structures, members, and subfields (bit ranges within
  * members) are written to match the spec, generally. E.g. struct
@@ -25,19 +26,6 @@
 #include <linux/build_bug.h>
 #include <linux/log2.h>
 #include <linux/types.h>
-
-// Error Log Header Entry (ERRLOG_HD_ENT)
-struct sdxi_errlog_hd_ent {
-	__le32 opcode;
-	__le16 misc0;
-	__le16 cxt_num;
-	__le64 dsc_index;
-	__u8   rsvd_0[28];
-	__le16 err_class;
-	__u8   rsvd_1[2];
-	__le32 vendor[4];
-} __packed;
-static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
 // Context Level 2 Table Entry (CXT_L2_ENT)
 struct sdxi_cxt_l2_ent {
@@ -74,15 +62,6 @@ struct sdxi_cxt_l1_ent {
 	__u8 rsvd_0[8];
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l1_ent) == 32);
-
-// Completion status block (CST_BLK)
-struct sdxi_cst_blk {
-	__le64 signal;
-	__le32 flags;
-#define SDXI_CST_BLK_ER_BIT BIT(31)
-	__u8 rsvd_0[20];
-} __packed;
-static_assert(sizeof(struct sdxi_cst_blk) == 32);
 
 // Context control block (CXT_CTL)
 struct sdxi_cxt_ctl {
@@ -142,5 +121,27 @@ struct sdxi_akey_ent {
 	__u8   rsvd_1[2];
 } __packed;
 static_assert(sizeof(struct sdxi_akey_ent) == 16);
+
+// Error Log Header Entry (ERRLOG_HD_ENT)
+struct sdxi_errlog_hd_ent {
+	__le32 opcode;
+	__le16 misc0;
+	__le16 cxt_num;
+	__le64 dsc_index;
+	__u8   rsvd_0[28];
+	__le16 err_class;
+	__u8   rsvd_1[2];
+	__le32 vendor[4];
+} __packed;
+static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
+
+// Completion status block (CST_BLK)
+struct sdxi_cst_blk {
+	__le64 signal;
+	__le32 flags;
+#define SDXI_CST_BLK_ER_BIT BIT(31)
+	__u8 rsvd_0[20];
+} __packed;
+static_assert(sizeof(struct sdxi_cst_blk) == 32);
 
 #endif /* LINUX_SDXI_HW_H */
