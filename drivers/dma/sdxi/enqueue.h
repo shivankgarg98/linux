@@ -9,6 +9,6 @@ int sdxi_enqueue(__le64 *const enq_entries, // Ptr to entries to enqueue
 		 u64 ring_size, // (Ring Size in bytes)/64
 		 __le64 const volatile * const Read_Index, // Ptr to Read_Index location
 		 __le64 volatile * const Write_Index, // Ptr to Write_Index location
-		 __le64 volatile * const Door_Bell); // Ptr to Ring Doorbell location
+		 __le64 __iomem * Door_Bell); // Ptr to Ring Doorbell location
 
 #endif /* DMA_SDXI_ENQUEUE_H */

@@ -38,6 +38,7 @@
 #include <asm/rwonce.h>
 #include <linux/atomic.h>
 #include <linux/errno.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/types.h>
 
 #include "enqueue.h"
@@ -81,7 +82,7 @@ int sdxi_enqueue(__le64 *const enq_entries,                // Ptr to entries to 
 		 u64 ring_size,                            // (Ring Size in bytes)/64
 		 __le64 const volatile * const Read_Index, // Ptr to Read_Index location
 		 __le64 volatile * const Write_Index,      // Ptr to Write_Index location
-		 __le64 volatile * const Door_Bell)        // Ptr to Ring Doorbell location
+		 __le64 __iomem * Door_Bell)        // Ptr to Ring Doorbell location
 {
 	u64 old_write_idx;
 	u64 new_idx;
@@ -124,7 +125,7 @@ int sdxi_enqueue(__le64 *const enq_entries,                // Ptr to entries to 
 	update_ring(enq_entries, enq_num, ring_base, ring_size, old_write_idx);
 
 	// Door_Bell write required; only needs ordering wrt update of Write_Index.
-	WRITE_ONCE(*Door_Bell, cpu_to_le64(new_idx));
+	iowrite64(new_idx, Door_Bell);
 
 	return 0;
 }
