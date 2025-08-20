@@ -64,6 +64,12 @@ struct sdxi_cxt_l1_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_l1_ent) == 32);
 
+#define SDXI_L1_TABLE_ENTRIES 128
+struct sdxi_cxt_l1_table {
+	struct sdxi_cxt_l1_ent entry[SDXI_L1_TABLE_ENTRIES];
+};
+static_assert(sizeof(struct sdxi_cxt_l1_table) == 4096);
+
 // Context control block (CXT_CTL)
 struct sdxi_cxt_ctl {
 	__le64 ds_ring_ptr;
