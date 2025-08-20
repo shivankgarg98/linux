@@ -66,8 +66,6 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 
 	/* submit to sdxi context */
 	cxt = dma_desc->cxt;
-	memset(cxt->dummy_buffer, 0, 4096);
-	((int *)cxt->dummy_buffer)[0] = 1;
 	sq = cxt->sq;
 
 	if (sdxi_cmd->len > MAX_DMA_COPY_BYTES)

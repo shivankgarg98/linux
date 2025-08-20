@@ -298,38 +298,9 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
 }
 
-static int sdxi_cxt_setup_dummy_buffer(struct sdxi_cxt *cxt, struct device *dev)
-{
-	unsigned long *buf;
-	dma_addr_t addr;
-
-	buf = (unsigned long *)get_zeroed_page(GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	addr = dma_map_single(dev, buf, PAGE_SIZE, DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, addr))
-		goto free_buf;
-
-	cxt->dummy_buffer = buf;
-	cxt->dummy_buffer_addr = addr;
-	return 0;
-
-free_buf:
-	free_page((unsigned long)buf);
-	return -ENOMEM;
-}
-
-static void sdxi_cxt_release_dummy_buffer(struct sdxi_cxt *cxt, struct device *dev)
-{
-	dma_unmap_single(dev, cxt->dummy_buffer_addr, PAGE_SIZE, DMA_FROM_DEVICE);
-	free_page((unsigned long)cxt->dummy_buffer);
-}
-
 /* alloc context resources and populate context table */
 static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 {
-	struct device *dev = sdxi_to_dev(sdxi);
 	struct sdxi_cxt *cxt;
 
 	mutex_lock(&sdxi->cxt_lock);
@@ -343,18 +314,13 @@ static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 	if (!cxt->cxt_ctl)
 		goto release_cxt;
 
-	if (sdxi_cxt_setup_dummy_buffer(cxt, dev))
-		goto release_cxt_ctl;
-
 	if (config_cxt_tables(sdxi, cxt))
-		goto release_dummy;
+		goto release_cxt_ctl;
 
 	trace_sdxi_create_cxt(sdxi, cxt);
 	mutex_unlock(&sdxi->cxt_lock);
 	return cxt;
 
-release_dummy:
-	sdxi_cxt_release_dummy_buffer(cxt, dev);
 release_cxt_ctl:
 	dma_pool_free(sdxi->cxt_ctl_pool, cxt->cxt_ctl, cxt->cxt_ctl_dma);
 release_cxt:
@@ -374,7 +340,6 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt)
 	mutex_lock(&sdxi->cxt_lock);
 
 	cleanup_cxt_tables(sdxi, cxt);
-	sdxi_cxt_release_dummy_buffer(cxt, sdxi_to_dev(sdxi));
 	dma_pool_free(sdxi->cxt_ctl_pool, cxt->cxt_ctl, cxt->cxt_ctl_dma);
 	free_cxt(cxt);
 

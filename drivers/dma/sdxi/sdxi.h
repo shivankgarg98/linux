@@ -209,10 +209,6 @@ struct sdxi_cxt {
 	struct sdxi_dma_chan sdxi_dma_chan;
 
 	struct sdxi_process *process;	/* process reprsentation */
-
-	/* FOR DEBUG */
-	unsigned long *dummy_buffer;
-	dma_addr_t dummy_buffer_addr;
 };
 
 /**
