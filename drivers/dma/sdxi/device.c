@@ -74,27 +74,14 @@ static bool sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
 
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
-			     struct sdxi_cxt_l1_table *l1_table)
+			     dma_addr_t l1_table_dma)
 {
-	struct device *dev = sdxi_to_dev(sdxi);
-	dma_addr_t l1_addr;
+	/* We shouldn't be updating a live entry. */
+	if (WARN_ON_ONCE(sdxi_cxt_l2_ent_vl(l2_entry)))
+		return;
 
-	if (l1_table) {
-		/* already set, nothing to do. NB: maybe do checking */
-		if (sdxi_cxt_l2_ent_vl(l2_entry))
-			return;
-
-		l1_addr = dma_map_single(dev, l1_table, L1_TABLE_SIZE,
-					 DMA_TO_DEVICE);
-		if (dma_mapping_error(dev, l1_addr)) {
-			sdxi_err(sdxi, "dma_map_single for L1 table failed\n");
-			return;
-		}
-
-		sdxi_cxt_l2_ent_set(l2_entry, l1_addr, true);
-	} else {
-		memset(l2_entry, 0, sizeof(*l2_entry));
-	}
+	/* FIXME: combine sdxi_cxt_l2_ent_set() and this function */
+	sdxi_cxt_l2_ent_set(l2_entry, l1_table_dma, true);
 }
 
 static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
@@ -137,20 +124,6 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 	cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
 }
 
-static void install_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
-				     struct sdxi_cxt_l1_table *l1_table,
-				     struct sdxi_cxt *cxt)
-{
-	struct sdxi_cxt_l2_ent *l2_entry;
-	struct sdxi_cxt_l1_ent *l1_entry;
-
-	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(cxt->id)];
-	l1_entry = &l1_table->entry[ID_TO_L1_INDEX(cxt->id)];
-
-	set_cxt_l2_entry(cxt->sdxi, l2_entry, l1_table);
-	set_cxt_l1_entry(cxt->sdxi, l1_entry, cxt);
-}
-
 static void clear_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 				    struct sdxi_cxt_l1_table *l1_table,
 				    struct sdxi_cxt *cxt)
@@ -173,43 +146,44 @@ static void clear_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 
 	memset(l2_entry, 0, sizeof(*l2_entry));
 
-	// assumes we're freeing a single page
-	static_assert(L1_TABLE_SIZE == PAGE_SIZE);
-	dma_unmap_single(sdxi_to_dev(sdxi), l1_dma,
-			 L1_TABLE_SIZE, DMA_TO_DEVICE);
-	free_page((unsigned long)l1_table);
+	dma_free_coherent(sdxi_to_dev(sdxi), sizeof(*l1_table),
+			  l1_table, l1_dma);
 }
 
 static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
-	u16 l2_idx;
 	struct sdxi_cxt_l1_table *l1_table;
-
-	if (!cxt)
-		return -EINVAL;
+	struct sdxi_cxt_l1_ent *l1_entry;
+	u16 l2_idx;
+	u8 l1_idx;
 
 	l2_idx = ID_TO_L2_INDEX(cxt->id);
+	l1_idx = ID_TO_L1_INDEX(cxt->id);
 
-	/* allocate l1 table if needed */
+	// Allocate L1 table if not present.
 	l1_table = sdxi->l1_table_array[l2_idx];
 	if (!l1_table) {
-		gfp_t gfp_flags;
-		unsigned long order;
+		struct sdxi_cxt_l2_ent *l2_entry;
+		dma_addr_t l1_table_dma;
 
-		gfp_flags = GFP_KERNEL | __GFP_ZERO;
-		order = get_order(L1_TABLE_SIZE);
-		l1_table = (struct sdxi_cxt_l1_table *)__get_free_pages(gfp_flags,
-								   order);
-
+		l1_table = dma_alloc_coherent(sdxi_to_dev(sdxi),
+					      sizeof(*l1_table),
+					      &l1_table_dma, GFP_KERNEL);
 		if (!l1_table)
 			return -ENOMEM;
 
+		// Track the L1 table vaddr.
 		sdxi->l1_table_array[l2_idx] = l1_table;
+
+		// Install the new entry in the L2 table.
+		l2_entry = &sdxi->l2_table->entry[l2_idx];
+		set_cxt_l2_entry(sdxi, l2_entry, l1_table_dma);
 	}
 
-	/* configure l2 and l1 entries */
-	install_cxt_table_entries(sdxi->l2_table, l1_table, cxt);
+	// Populate the L1 entry.
+	l1_entry = &l1_table->entry[l1_idx];
+	set_cxt_l1_entry(cxt->sdxi, l1_entry, cxt);
 
 	return 0;
 }
@@ -227,6 +201,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 
 	l1_table = sdxi->l1_table_array[l2_idx];
 	/* clear l1 entry */
+	// FIXME combine clear_cxt_table_entries and this function
 	clear_cxt_table_entries(sdxi->l2_table, l1_table, cxt);
 }
 
