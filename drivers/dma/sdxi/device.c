@@ -169,9 +169,9 @@ static void clear_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 	if (memchr_inv(l1_table, 0, L1_TABLE_SIZE))
 		return;
 
-	// FIXME: Clear l2_entry
-
 	l1_dma = sdxi_cxt_l2_ent_lv01_ptr(l2_entry);
+
+	memset(l2_entry, 0, sizeof(*l2_entry));
 
 	// assumes we're freeing a single page
 	static_assert(L1_TABLE_SIZE == PAGE_SIZE);
