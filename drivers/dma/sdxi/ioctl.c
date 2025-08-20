@@ -31,6 +31,39 @@ static struct device *sdxi_device;
 /*********************/
 /* SUPPORT FUNCTIONS */
 /*********************/
+
+/* NB: This might not be the best way of doing things. We want
+ * to allocate a new context for user space. However the question
+ * is which sdxi_device will host it? Right now this function just
+ * pick from the first in sdxi_device_list. But it certainly can
+ * be improved. Also move this function to sdxi.c file.
+ */
+static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
+{
+	struct list_head *curr;
+	struct sdxi_dev *sdxi;
+	struct sdxi_cxt *cxt;
+	struct sdxi_desc desc;
+
+	if (list_empty(&sdxi_device_list))
+		return NULL;
+
+	list_for_each(curr, &sdxi_device_list) {
+		sdxi = list_entry(curr, struct sdxi_dev, list);
+
+		cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
+		if (!cxt)
+			return NULL;
+
+		build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
+		sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
+
+		return cxt;
+	}
+
+	return NULL;
+}
+
 static int sdxi_cxt_doorbell_mmap(struct sdxi_process *process,
 				  struct vm_area_struct *vma)
 {

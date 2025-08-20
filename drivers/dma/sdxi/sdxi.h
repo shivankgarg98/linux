@@ -332,7 +332,6 @@ void sdxi_cxt_free(struct sdxi_cxt *cxt);
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id);
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
-struct sdxi_cxt *sdxi_working_cxt_alloc(void);
 
 /* Submission Queue */
 struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_size);
