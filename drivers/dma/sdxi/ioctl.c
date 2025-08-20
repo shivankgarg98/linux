@@ -17,6 +17,7 @@
 #include <uapi/linux/sdxi.h>
 
 #include "context.h"
+#include "enqueue.h"
 #include "ioctl.h"
 #include "process.h"
 #include "sdxi.h"
@@ -38,34 +39,44 @@ static struct device *sdxi_device;
  */
 static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 {
+	struct sdxi_cxt *admin_cxt;
 	struct sdxi_desc desc;
 	struct sdxi_dev *sdxi;
 	struct sdxi_cxt *cxt;
 	struct pci_dev *pdev;
+	int err;
 
 	// This is a temporary hack until the main device init code is
 	// reworked to create a chardev for each SDXI function.
 	pdev = pci_get_class(PCI_CLASS_ACCELERATOR_SDXI, NULL);
 	if (!pdev)
-		return NULL;
+		return ERR_PTR(-ENODEV);
 
 	sdxi = pci_get_drvdata(pdev);
-
-	cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
-	if (!cxt)
-		goto put_pdev;
-
-	build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
-	sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
 
 	// It would be better to keep the device refcount elevated until
 	// context exit, but we anticipate rewriting this
 	// significantly anyway.
 	pci_dev_put(pdev);
+
+	cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
+	if (!cxt)
+		return ERR_PTR(-ENOMEM);
+
+	build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
+	admin_cxt = sdxi->admin_cxt;
+	err = sdxi_enqueue((__le64 *)&desc, 1,
+			   (__le64 *)admin_cxt->sq->desc_ring,
+			   admin_cxt->sq->ring_entries,
+			   &admin_cxt->sq->cxt_sts->read_index,
+			   admin_cxt->sq->write_index, admin_cxt->db);
+	if (err)
+		goto cxt_exit;
+
 	return cxt;
-put_pdev:
-	pci_dev_put(pdev);
-	return NULL;
+cxt_exit:
+	sdxi_working_cxt_exit(cxt);
+	return ERR_PTR(err);
 }
 
 static int sdxi_cxt_doorbell_mmap(struct sdxi_process *process,
