@@ -5,11 +5,6 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-struct sdxi_get_version_args {
-	__u32 major_version;		/* from SDXI */
-	__u32 minor_version;		/* from SDXI */
-};
-
 /* For sdxi_get_dev_info_args.dev_supported_op_grps */
 #define SDXI_DMA_OP_GROUP		(1U << 0)
 #define SDXI_ADMIN_OP_GROUP	(1U << 1)
@@ -17,13 +12,6 @@ struct sdxi_get_version_args {
 #define SDXI_INTR_OP_GROUP	(1U << 3)
 #define SDXI_CONN_OP_GROUP	(1U << 4)
 #define SDXI_VENDOR_OP_GROUP	(1U << 5)
-
-struct sdxi_get_dev_info_args {
-	__u32 dev_max_buff_size;	/* from SDXI */
-	__u64 dev_supported_op_grps;	/* from SDXI */
-	__u32 cxt_max_ring_entries;	/* from SDXI */
-	__u32 cxt_max_akey_entries;	/* from SDXI */
-};
 
 /* For sdxi_create_cxt_args.cxt_type */
 #define SDXI_CXT_TYPE_USER	0x0
@@ -51,12 +39,6 @@ struct sdxi_close_cxt_args {
 #define SDXI_IOR(nr, type)		_IOR(SDXI_IOCTL_BASE, nr, type)
 #define SDXI_IOW(nr, type)		_IOW(SDXI_IOCTL_BASE, nr, type)
 #define SDXI_IOWR(nr, type)		_IOWR(SDXI_IOCTL_BASE, nr, type)
-
-#define SDXI_GET_VERSION			\
-		SDXI_IOR(0x01, struct sdxi_get_version_args)
-
-#define SDXI_GET_DEV_INFO			\
-		SDXI_IOR(0x02, struct sdxi_get_dev_info_args)
 
 #define SDXI_CREATE_CXT			\
 		SDXI_IOWR(0x03, struct sdxi_create_cxt_args)

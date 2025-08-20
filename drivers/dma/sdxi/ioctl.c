@@ -128,60 +128,6 @@ static int sdxi_cxt_struct_mmap(struct sdxi_process *process,
 	return ret;
 }
 
-
-static int sdxi_ioctl_get_version(struct file *filep, struct sdxi_process *p,
-				  void *data)
-{
-	struct sdxi_get_version_args *args = data;
-
-	args->major_version = SDXI_IOCTL_MAJOR_VER;
-	args->minor_version = SDXI_IOCTL_MINOR_VER;
-
-	return 0;
-}
-
-static int sdxi_ioctl_get_dev_info(struct file *filep, struct sdxi_process *p,
-				   void *data)
-{
-	struct sdxi_get_dev_info_args *args = data;
-	struct list_head *curr;
-	struct sdxi_dev *sdxi;
-	u32 min_value;
-	bool first = true;
-
-	memset(args, 0, sizeof(*args));
-
-	if (list_empty(&sdxi_device_list))
-		return 0;
-
-	list_for_each(curr, &sdxi_device_list) {
-		sdxi = list_entry(curr, struct sdxi_dev, list);
-
-		if (!first) {
-			min_value = min_t(u32, sdxi->max_ring_entries,
-					  args->cxt_max_ring_entries);
-			args->cxt_max_ring_entries = min_value;
-
-			min_value = min_t(u32, sdxi->max_akeys,
-					  args->cxt_max_akey_entries);
-			args->cxt_max_akey_entries = min_value;
-
-			/* NB: handle dev_supported_op_grps */
-		} else {
-			args->cxt_max_ring_entries = sdxi->max_ring_entries;
-			args->cxt_max_akey_entries = sdxi->max_akeys;
-			args->dev_supported_op_grps = SDXI_DMA_OP_GROUP |
-				SDXI_ADMIN_OP_GROUP |
-				SDXI_ATOMIC_OP_GROUP |
-				SDXI_INTR_OP_GROUP;
-
-			first = false;
-		}
-	}
-
-	return 0;
-}
-
 static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 				 void *data)
 {
@@ -307,12 +253,6 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static struct sdxi_ioctl_desc sdxi_ioctls[] = {
 	// FIXME: empty entry at 0
-	SDXI_IOCTL_DEF(SDXI_GET_VERSION,
-		       sdxi_ioctl_get_version, 0),
-
-	SDXI_IOCTL_DEF(SDXI_GET_DEV_INFO,
-		       sdxi_ioctl_get_dev_info, 0),
-
 	SDXI_IOCTL_DEF(SDXI_CREATE_CXT,
 		       sdxi_ioctl_create_cxt, 0),
 
