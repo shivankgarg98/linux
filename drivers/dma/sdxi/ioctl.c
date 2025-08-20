@@ -12,6 +12,8 @@
 #include <linux/file.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
 #include <uapi/linux/sdxi.h>
 
 #include "context.h"
@@ -28,35 +30,41 @@ static struct device *sdxi_device;
 /* SUPPORT FUNCTIONS */
 /*********************/
 
-/* NB: This might not be the best way of doing things. We want
- * to allocate a new context for user space. However the question
- * is which sdxi_device will host it? Right now this function just
- * pick from the first in sdxi_device_list. But it certainly can
- * be improved. Also move this function to sdxi.c file.
+/* NB: This might not be the best way of doing things. We want to
+ * allocate a new context for user space. However the question is
+ * which sdxi_device will host it? Right now this function just uses
+ * the first SDXI device returned by pci_get_class(). But it certainly
+ * can be improved.
  */
 static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 {
-	struct list_head *curr;
+	struct sdxi_desc desc;
 	struct sdxi_dev *sdxi;
 	struct sdxi_cxt *cxt;
-	struct sdxi_desc desc;
+	struct pci_dev *pdev;
 
-	if (list_empty(&sdxi_device_list))
+	// This is a temporary hack until the main device init code is
+	// reworked to create a chardev for each SDXI function.
+	pdev = pci_get_class(PCI_CLASS_ACCELERATOR_SDXI, NULL);
+	if (!pdev)
 		return NULL;
 
-	list_for_each(curr, &sdxi_device_list) {
-		sdxi = list_entry(curr, struct sdxi_dev, list);
+	sdxi = pci_get_drvdata(pdev);
 
-		cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
-		if (!cxt)
-			return NULL;
+	cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
+	if (!cxt)
+		goto put_pdev;
 
-		build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
-		sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
+	build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
+	sdxi_sq_submit_desc(sdxi->admin_cxt->sq, &desc, false, 0);
 
-		return cxt;
-	}
-
+	// It would be better to keep the device refcount elevated until
+	// context exit, but we anticipate rewriting this
+	// significantly anyway.
+	pci_dev_put(pdev);
+	return cxt;
+put_pdev:
+	pci_dev_put(pdev);
 	return NULL;
 }
 
