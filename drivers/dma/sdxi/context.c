@@ -157,17 +157,15 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		goto free_desc_ring;
 
 	/* alloc completion status block */
-	sq->csb_size = ring_entries * sizeof(*sq->csb);
-	sq->csb = kzalloc(sq->csb_size, GFP_KERNEL);
+	sq->csb_size = ring_entries * sizeof(sq->csb[0]);
+	sq->csb = dma_alloc_coherent(dev, sq->csb_size, &sq->csb_dma,
+				     GFP_KERNEL);
 	if (!sq->csb)
 		goto unmap_desc_ring;
-	sq->csb_dma = dma_map_single(dev, sq->csb, sq->csb_size, DMA_FROM_DEVICE);
-	if (dma_mapping_error(dev, sq->csb_dma))
-		goto free_csb;
 
 	sq->cxt_sts = dma_pool_zalloc(sdxi->cxt_sts_pool, GFP_KERNEL, &sq->cxt_sts_dma);
 	if (!sq->cxt_sts)
-		goto unmap_csb;
+		goto free_csb;
 
 	sq->write_index = dma_pool_zalloc(sdxi->write_index_pool, GFP_KERNEL,
 					  &sq->write_index_dma);
@@ -212,10 +210,8 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 free_cxt_sts:
 	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
-unmap_csb:
-	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
 free_csb:
-	kfree(sq->csb);
+	dma_free_coherent(dev, sq->csb_size, sq->csb, sq->csb_dma);
 unmap_desc_ring:
 	dma_unmap_single(dev, sq->ring_dma, sq->ring_size, DMA_BIDIRECTIONAL);
 free_desc_ring:
@@ -238,8 +234,7 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 
 	dma_pool_free(sdxi->write_index_pool, sq->write_index, sq->write_index_dma);
 	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
-	dma_unmap_single(dev, sq->csb_dma, sq->csb_size, DMA_FROM_DEVICE);
-	kfree(sq->csb);
+	dma_free_coherent(dev, sq->csb_size, sq->csb, sq->csb_dma);
 	dma_unmap_single(dev, sq->ring_dma, sq->ring_size, DMA_BIDIRECTIONAL);
 	kfree(sq->desc_ring);
 
