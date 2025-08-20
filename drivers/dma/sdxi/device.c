@@ -74,7 +74,7 @@ static bool sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
 
 static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt_l2_ent *l2_entry,
-			     struct sdxi_cxt_l1_ent *l1_table)
+			     struct sdxi_cxt_l1_table *l1_table)
 {
 	struct device *dev = sdxi_to_dev(sdxi);
 	dma_addr_t l1_addr;
@@ -138,7 +138,7 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 }
 
 static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
-				     struct sdxi_cxt_l1_ent *l1_table,
+				     struct sdxi_cxt_l1_table *l1_table,
 				     struct sdxi_cxt *cxt,
 				     bool clear)
 {
@@ -152,7 +152,7 @@ static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 
 	id = cxt->id;
 	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(id)];
-	l1_entry = l1_table + ID_TO_L1_INDEX(id);
+	l1_entry = &l1_table->entry[ID_TO_L1_INDEX(id)];
 
 	if (!clear) {
 		set_cxt_l2_entry(sdxi, l2_entry, l1_table);
@@ -176,7 +176,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 			     struct sdxi_cxt *cxt)
 {
 	u16 l2_idx;
-	struct sdxi_cxt_l1_ent *l1_table;
+	struct sdxi_cxt_l1_table *l1_table;
 
 	if (!cxt)
 		return -EINVAL;
@@ -191,7 +191,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 
 		gfp_flags = GFP_KERNEL | __GFP_ZERO;
 		order = get_order(L1_TABLE_SIZE);
-		l1_table = (struct sdxi_cxt_l1_ent *)__get_free_pages(gfp_flags,
+		l1_table = (struct sdxi_cxt_l1_table *)__get_free_pages(gfp_flags,
 								   order);
 
 		if (!l1_table)
@@ -210,7 +210,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 			       struct sdxi_cxt *cxt)
 {
 	u16 l2_idx;
-	struct sdxi_cxt_l1_ent *l1_table;
+	struct sdxi_cxt_l1_table *l1_table;
 
 	if (!cxt)
 		return;
