@@ -41,8 +41,6 @@ static bool enabled;
 module_param(enabled, bool, 0644);
 MODULE_PARM_DESC(enabled, "Enable SDXI feature support (default: false)");
 
-LIST_HEAD(sdxi_device_list);
-
 static struct pci_dev *sdxi_to_pci_dev(const struct sdxi_dev *sdxi)
 {
 	return to_pci_dev(sdxi_to_dev(sdxi));
@@ -168,14 +166,12 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 
 	mutex_init(&sdxi->cxt_lock);
 	INIT_LIST_HEAD(&sdxi->cxt_list);
-	list_add_tail(&sdxi->list, &sdxi_device_list);
 
 	return sdxi;
 }
 
 static void sdxi_device_free(struct sdxi_dev *sdxi)
 {
-	list_del(&sdxi->list);
 	kfree(sdxi);
 }
 
