@@ -349,6 +349,4 @@ static inline void sdxi_write64(struct sdxi_dev *sdxi, enum sdxi_reg reg, u64 va
 	iowrite64(val, sdxi->ctrl_regs + reg);
 }
 
-
-
 #endif /* __SDXI_H */
