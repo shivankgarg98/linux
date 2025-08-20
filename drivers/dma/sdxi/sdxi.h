@@ -148,7 +148,6 @@ struct sdxi_tasklet_data {
 };
 
 struct sdxi_cmd {
-	struct list_head entry;
 	struct work_struct work;
 	struct sdxi_cxt *cxt;
 	int ret;
