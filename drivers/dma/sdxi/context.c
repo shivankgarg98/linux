@@ -49,7 +49,7 @@ void build_admin_stop_new(struct sdxi_desc *desc, bool vf, u16 vf_num,
 
 void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 		    u8 dst_attr, u16 src_akey, u16 dst_akey,
-		    u64 src_addr, u64 dst_addr, u64 csb_ptr)
+		    u64 src_addr, u64 dst_addr)
 {
 	memset(desc, 0, sizeof(*desc));
 
@@ -63,7 +63,6 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	desc->body[4] = upper_32_bits(src_addr);
 	desc->body[5] = lower_32_bits(dst_addr);
 	desc->body[6] = upper_32_bits(dst_addr);
-	desc->csb_ptr = csb_ptr ? csb_ptr : 0x1;
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
 }
 

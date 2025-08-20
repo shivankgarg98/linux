@@ -74,7 +74,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 		return 1;
 
 	build_dma_copy(&desc, sdxi_cmd->len, 0, 0, 0, 0, sdxi_cmd->src_addr,
-		       sdxi_cmd->dst_addr, cxt->dummy_buffer_addr);
+		       sdxi_cmd->dst_addr);
 
 	/* Submit the command */
 	sdxi_cmd->index = sdxi_sq_submit_desc(sq, &desc, true, 0xFF);
