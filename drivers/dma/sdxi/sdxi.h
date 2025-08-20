@@ -134,7 +134,7 @@ struct sdxi_sq {
 	size_t csb_size;
 	dma_addr_t csb_dma;
 
-	u64 *write_index;
+	__le64 *write_index;
 	dma_addr_t write_index_dma;
 
 	struct sdxi_cxt_sts *cxt_sts;
@@ -195,7 +195,7 @@ struct sdxi_cxt {
 	bool privileged;
 
 	resource_size_t db_base;	/* doorbell MMIO base addr */
-	void __iomem *db;		/* doorbell virt addr */
+	__le64 __iomem *db;		/* doorbell virt addr */
 
 	struct sdxi_cxt_ctl *cxt_ctl;
 	dma_addr_t cxt_ctl_dma;
