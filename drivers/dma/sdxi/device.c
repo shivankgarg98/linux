@@ -137,39 +137,47 @@ static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
 	cxt->akey_table->entry[0].intr_num = cpu_to_le16(intr_num);
 }
 
-static void config_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
+static void install_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 				     struct sdxi_cxt_l1_table *l1_table,
-				     struct sdxi_cxt *cxt,
-				     bool clear)
+				     struct sdxi_cxt *cxt)
 {
-	u16 id;
+	struct sdxi_cxt_l2_ent *l2_entry;
+	struct sdxi_cxt_l1_ent *l1_entry;
+
+	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(cxt->id)];
+	l1_entry = &l1_table->entry[ID_TO_L1_INDEX(cxt->id)];
+
+	set_cxt_l2_entry(cxt->sdxi, l2_entry, l1_table);
+	set_cxt_l1_entry(cxt->sdxi, l1_entry, cxt);
+}
+
+static void clear_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
+				    struct sdxi_cxt_l1_table *l1_table,
+				    struct sdxi_cxt *cxt)
+{
 	struct sdxi_cxt_l2_ent *l2_entry;
 	struct sdxi_cxt_l1_ent *l1_entry;
 	struct sdxi_dev *sdxi = cxt->sdxi;
+	dma_addr_t l1_dma;
 
-	if (!cxt || !l1_table)
+	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(cxt->id)];
+	l1_entry = &l1_table->entry[ID_TO_L1_INDEX(cxt->id)];
+
+	memset(l1_entry, 0, sizeof(*l1_entry));
+
+	// If this L1 table has been completely zeroed then free it.
+	if (memchr_inv(l1_table, 0, L1_TABLE_SIZE))
 		return;
 
-	id = cxt->id;
-	l2_entry = &l2_table->entry[ID_TO_L2_INDEX(id)];
-	l1_entry = &l1_table->entry[ID_TO_L1_INDEX(id)];
+	// FIXME: Clear l2_entry
 
-	if (!clear) {
-		set_cxt_l2_entry(sdxi, l2_entry, l1_table);
-		set_cxt_l1_entry(sdxi, l1_entry, cxt);
-	} else {
-		memset(l1_entry, 0, sizeof(*l1_entry));
-		// If this table has been completely zeroed then free it and unmap it
-		if (!memchr_inv(l1_table, 0, L1_TABLE_SIZE)) {
-			dma_addr_t l1_dma = sdxi_cxt_l2_ent_lv01_ptr(l2_entry);
+	l1_dma = sdxi_cxt_l2_ent_lv01_ptr(l2_entry);
 
-			// assumes we're freeing a single page
-			static_assert(L1_TABLE_SIZE == PAGE_SIZE);
-			dma_unmap_single(sdxi_to_dev(sdxi), l1_dma,
-					 L1_TABLE_SIZE, DMA_TO_DEVICE);
-			free_page((unsigned long)l1_table);
-		}
-	}
+	// assumes we're freeing a single page
+	static_assert(L1_TABLE_SIZE == PAGE_SIZE);
+	dma_unmap_single(sdxi_to_dev(sdxi), l1_dma,
+			 L1_TABLE_SIZE, DMA_TO_DEVICE);
+	free_page((unsigned long)l1_table);
 }
 
 static int config_cxt_tables(struct sdxi_dev *sdxi,
@@ -201,7 +209,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 	}
 
 	/* configure l2 and l1 entries */
-	config_cxt_table_entries(sdxi->l2_table, l1_table, cxt, false);
+	install_cxt_table_entries(sdxi->l2_table, l1_table, cxt);
 
 	return 0;
 }
@@ -219,7 +227,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 
 	l1_table = sdxi->l1_table_array[l2_idx];
 	/* clear l1 entry */
-	config_cxt_table_entries(sdxi->l2_table, l1_table, cxt, true);
+	clear_cxt_table_entries(sdxi->l2_table, l1_table, cxt);
 }
 
 static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
