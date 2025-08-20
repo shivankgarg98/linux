@@ -267,7 +267,6 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 		return NULL;
 	}
 
-	INIT_LIST_HEAD(&cxt->list);
 	cxt->sdxi = sdxi;
 	cxt->id = id;
 	cxt->db_base = sdxi->dbs_bar + id * sdxi->db_stride;
@@ -275,7 +274,6 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 	cxt->privileged = privileged;
 
 	sdxi->cxt_array[l2_idx][l1_idx] = cxt;
-	list_add(&cxt->list, &sdxi->cxt_list);
 	sdxi->cxt_count++;
 
 	return cxt;
@@ -290,7 +288,6 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	l1_idx = ID_TO_L1_INDEX(cxt->id);
 
 	sdxi->cxt_count--;
-	list_del(&cxt->list);
 	dma_free_coherent(sdxi_to_dev(sdxi), sizeof(*cxt->akey_table),
 			  cxt->akey_table, cxt->akey_table_dma);
 	kfree(cxt);

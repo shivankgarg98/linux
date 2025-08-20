@@ -165,7 +165,6 @@ static struct sdxi_dev *sdxi_device_alloc(struct device *dev)
 	sdxi->dev = dev;
 
 	mutex_init(&sdxi->cxt_lock);
-	INIT_LIST_HEAD(&sdxi->cxt_list);
 
 	return sdxi;
 }

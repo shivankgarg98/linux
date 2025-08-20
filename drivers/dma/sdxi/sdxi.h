@@ -189,7 +189,6 @@ static inline u8 akey_table_order(const struct sdxi_akey_table *tbl)
 
 /* Context */
 struct sdxi_cxt {
-	struct list_head list;
 	struct sdxi_dev *sdxi;	/* owner */
 	unsigned int id;
 	bool privileged;
@@ -245,7 +244,6 @@ struct sdxi_dev {
 
 	/* context management */
 	struct mutex cxt_lock;		/* context protection */
-	struct list_head cxt_list;
 	int cxt_count;
 	struct sdxi_cxt_l2_table *l2_table;
 	dma_addr_t l2_dma;
