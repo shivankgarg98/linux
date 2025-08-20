@@ -8,20 +8,16 @@
  */
 
 #include <linux/cdev.h>
-#include <linux/compat.h>
 #include <linux/device.h>
 #include <linux/file.h>
-#include <linux/anon_inodes.h>
 #include <linux/fs.h>
-#include <linux/highmem.h>
 #include <linux/miscdevice.h>
-#include <linux/amd-iommu.h>
 #include <uapi/linux/sdxi.h>
 
+#include "context.h"
 #include "ioctl.h"
 #include "process.h"
 #include "sdxi.h"
-#include "context.h"
 
 static const char sdxi_dev_name[] = "sdxi";
 static int sdxi_char_dev_major = -1;
