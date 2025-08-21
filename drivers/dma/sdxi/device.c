@@ -72,8 +72,7 @@ static bool sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
 	return FIELD_GET(SDXI_CXT_L2_ENT_VL, le64_to_cpu(ent->lv01_ptr));
 }
 
-static void set_cxt_l2_entry(struct sdxi_dev *sdxi,
-			     struct sdxi_cxt_l2_ent *l2_entry,
+static void set_cxt_l2_entry(struct sdxi_cxt_l2_ent *l2_entry,
 			     dma_addr_t l1_table_dma)
 {
 	/* We shouldn't be updating a live entry. */
@@ -178,7 +177,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 
 		// Install the new entry in the L2 table.
 		l2_entry = &sdxi->l2_table->entry[l2_idx];
-		set_cxt_l2_entry(sdxi, l2_entry, l1_table_dma);
+		set_cxt_l2_entry(l2_entry, l1_table_dma);
 	}
 
 	// Populate the L1 entry.
