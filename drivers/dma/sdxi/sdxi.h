@@ -10,6 +10,7 @@
 #ifndef __SDXI_H
 #define __SDXI_H
 
+#include <linux/dev_printk.h>
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
 #include <linux/dmapool.h>
