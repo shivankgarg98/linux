@@ -49,19 +49,6 @@ MODULE_PARM_DESC(force_pr_for_user_contexts,
 		 "validation only. "
 		 "(default: false)");
 
-static void sdxi_cxt_l2_ent_set(struct sdxi_cxt_l2_ent *ent,
-				dma_addr_t addr, bool valid)
-{
-	WARN_ON(!IS_ALIGNED(addr, SZ_4K));
-	u64 tmp = FIELD_PREP(SDXI_CXT_L2_ENT_LV01_PTR, addr >> ilog2(SZ_4K)) |
-		  FIELD_PREP(SDXI_CXT_L2_ENT_VL, valid);
-
-	// We're potentially releasing the entry to the hw, ensure
-	// the valid bit update follows any prior stores.
-	dma_wmb();
-	WRITE_ONCE(ent->lv01_ptr, cpu_to_le64(tmp));
-}
-
 static dma_addr_t sdxi_cxt_l2_ent_lv01_ptr(const struct sdxi_cxt_l2_ent *ent)
 {
 	return FIELD_GET(SDXI_CXT_L2_ENT_LV01_PTR, le64_to_cpu(ent->lv01_ptr)) << ilog2(SZ_4K);
@@ -75,12 +62,23 @@ static bool sdxi_cxt_l2_ent_vl(const struct sdxi_cxt_l2_ent *ent)
 static void set_cxt_l2_entry(struct sdxi_cxt_l2_ent *l2_entry,
 			     dma_addr_t l1_table_dma)
 {
+	u64 lv01_ptr;
+
 	/* We shouldn't be updating a live entry. */
 	if (WARN_ON_ONCE(sdxi_cxt_l2_ent_vl(l2_entry)))
 		return;
+	/* L1 tables must be 4K-aligned. */
+	if (WARN_ON_ONCE(!IS_ALIGNED(l1_table_dma, SZ_4K)))
+		return;
 
-	/* FIXME: combine sdxi_cxt_l2_ent_set() and this function */
-	sdxi_cxt_l2_ent_set(l2_entry, l1_table_dma, true);
+	lv01_ptr = (FIELD_PREP(SDXI_CXT_L2_ENT_LV01_PTR,
+				   l1_table_dma >> ilog2(SZ_4K)) |
+		    FIELD_PREP(SDXI_CXT_L2_ENT_VL, 1));
+
+	// Ensure the valid bit update follows prior updates to other
+	// control structures.
+	dma_wmb();
+	WRITE_ONCE(l2_entry->lv01_ptr, cpu_to_le64(lv01_ptr));
 }
 
 static void set_cxt_l1_entry(struct sdxi_dev *sdxi,
