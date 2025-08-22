@@ -183,8 +183,6 @@ static_assert(sizeof(struct sdxi_cst_blk) == 32);
 	static_assert(offsetof(struct name_, csb_ptr) ==    \
 		      offsetof(struct sdxi_dsc_generic, csb_ptr))
 
-
-
 // DmaBaseGrp: DSC_DMAB_NOP
 define_sdxi_dsc(sdxi_dsc_dmab_nop, struct {});
 
