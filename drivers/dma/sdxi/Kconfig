@@ -16,3 +16,8 @@ config SDXI_DEBUG
 	help
 	  Enable debug output from the SDXI driver. This is an option
 	  for use by developers and most users should say N here.
+
+config SDXI_KUNIT_TEST
+       tristate "SDXI unit tests" if !KUNIT_ALL_TESTS
+       depends on SDXI && KUNIT
+       default KUNIT_ALL_TESTS

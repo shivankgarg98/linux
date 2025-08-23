@@ -142,19 +142,6 @@ struct sdxi_errlog_hd_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
-// Descriptor Common Header and Footer (DSC_GENERIC)
-struct sdxi_dsc_generic {
-	union {
-		struct {
-			__le32 opcode;
-			__u8 operation[52];
-			__le64 csb_ptr;
-		};
-		__le64 qw[8]; // Used for serialization to the ring.
-	};
-} __packed;
-static_assert(sizeof(struct sdxi_dsc_generic) == 64);
-
 // Completion status block (CST_BLK)
 struct sdxi_cst_blk {
 	__le64 signal;
@@ -164,52 +151,98 @@ struct sdxi_cst_blk {
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
 
-#define define_sdxi_dsc(name_, op_body_)                    \
-	struct name_ {                                      \
-		union {                                     \
-			struct sdxi_dsc_generic generic;    \
-			struct {                            \
-				__le32 opcode;              \
-				union {                     \
-					__u8 operation[52]; \
-					op_body_ __packed;  \
-				};                          \
-				__le64 csb_ptr;             \
-			};                                  \
-		};                                          \
-	};                                                  \
-	static_assert(sizeof(struct name_) ==               \
-		      sizeof(struct sdxi_dsc_generic));     \
-	static_assert(offsetof(struct name_, csb_ptr) ==    \
-		      offsetof(struct sdxi_dsc_generic, csb_ptr))
+// Size of the "body" of each descriptor between the common opcode and
+// csb_ptr fields.
+#define DSC_OPERATION_BYTES 52
 
-// DmaBaseGrp: DSC_DMAB_NOP
-define_sdxi_dsc(sdxi_dsc_dmab_nop, struct {});
+#define define_sdxi_dsc(tag_, name_, op_body_)				\
+	struct tag_ {							\
+		__le32 opcode;						\
+		op_body_						\
+		__le64 csb_ptr;						\
+	} name_;							\
+	static_assert(sizeof (struct tag_) ==				\
+		      sizeof(struct sdxi_dsc_generic));			\
+	static_assert(offsetof(struct tag_, csb_ptr) ==			\
+		      offsetof(struct sdxi_dsc_generic, csb_ptr));
 
-// DmaBaseGrp: DSC_DMAB_COPY
-define_sdxi_dsc(sdxi_dsc_dmab_copy,
-		struct {
-			__le32 size;
-			__u8 attr;
-			__u8 rsvd_0[3];
-			__le16 akey0;
-			__le16 akey1;
-			__le64 addr0;
-			__le64 addr1;
-			__u8 rsvd_1[24];
-		});
+struct sdxi_desc_new {
+	union {
+		__le64 qw[8];
 
-// AdminGrp: DSC_CXT_START
-define_sdxi_dsc(sdxi_dsc_cxt_start,
-		struct {
+		// DSC_GENERIC - common header and footer
+		struct_group_tagged(sdxi_dsc_generic, generic,
+			__le32 opcode;
+#define SDXI_DSC_VL  BIT(0)
+#define SDXI_DSC_SE  BIT(1)
+#define SDXI_DSC_FE  BIT(2)
+#define SDXI_DSC_CH  BIT(3)
+#define SDXI_DSC_CSR BIT(4)
+#define SDXI_DSC_RB  BIT(5)
+#define SDXI_DSC_FLAGS   GENMASK(5, 0)
+#define SDXI_DSC_SUBTYPE GENMASK(15, 8)
+#define SDXI_DSC_TYPE    GENMASK(26, 16)
+			__u8 operation[DSC_OPERATION_BYTES];
+			__le64 csb_ptr;
+#define SDXI_DSC_NP BIT_ULL(0)
+#define SDXI_DSC_CSB_PTR GENMASK_ULL(63, 5)
+		);
+
+		// DmaBaseGrp: DSC_DMAB_NOP
+		define_sdxi_dsc(sdxi_dsc_dmab_nop, nop,
+			__u8 rsvd_0[DSC_OPERATION_BYTES];
+		);
+
+#define SDXI_DSC_OP_TYPE_DMAB 0x001
+#define SDXI_DSC_OP_SUBTYPE_COPY 0x03
+		// DmaBaseGrp: DSC_DMAB_COPY
+		define_sdxi_dsc(sdxi_dsc_dmab_copy, copy,
+				__le32 size;
+				__u8 attr;
+				__u8 rsvd_0[3];
+				__le16 akey0;
+				__le16 akey1;
+				__le64 addr0;
+				__le64 addr1;
+				__u8 rsvd_1[24];
+				);
+
+#define SDXI_DSC_OP_TYPE_INTR 0x004
+#define SDXI_DSC_OP_SUBTYPE_INTR 0x00
+		// IntrGrp: DSC_INTR
+		define_sdxi_dsc(sdxi_dsc_intr, intr,
+			__u8 rsvd_0[8];
+			__le16 akey;
+			__u8 rsvd_1[42];
+		);
+
+#define SDXI_DSC_OP_TYPE_ADMIN 0x002
+#define SDXI_DSC_OP_SUBTYPE_CXT_START_NM 0x03
+#define SDXI_DSC_OP_SUBTYPE_CXT_START_RS 0x08
+		// AdminGrp: DSC_CXT_START
+		define_sdxi_dsc(sdxi_dsc_cxt_start, cxt_start,
+				__u8 rsvd_0;
+				__u8 vflags;
+				__le16 vf_num;
+				__le16 cxt_start;
+				__le16 cxt_end;
+				__u8 rsvd_1[4];
+				__le64 db_value;
+				__u8 rsvd_2[32];
+				);
+
+#define SDXI_DSC_OP_SUBTYPE_CXT_STOP     0x04
+		// AdminGrp: DSC_CXT_STOP
+		define_sdxi_dsc(sdxi_dsc_cxt_stop, cxt_stop,
 			__u8 rsvd_0;
 			__u8 vflags;
 			__le16 vf_num;
 			__le16 cxt_start;
 			__le16 cxt_end;
-			__u8 rsvd_1[4];
-			__le64 db_value;
-			__u8 rsvd_2[32];
-		});
+			__u8 rsvd_1[44];
+		);
+	};
+};
+static_assert(sizeof(struct sdxi_desc_new) == 64);
 
 #endif /* LINUX_SDXI_HW_H */

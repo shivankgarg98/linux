@@ -2,10 +2,14 @@
 
 ccflags-$(CONFIG_SDXI_DEBUG) += -DDEBUG
 
+# temp hack for noisy UML builds w/clang
+# subdir-ccflags-y += -Wno-null-pointer-arithmetic
+
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
 	context.o     \
+	descriptor.o  \
 	device.o      \
 	dma.o         \
 	enqueue.o     \
@@ -15,3 +19,5 @@ sdxi-objs += \
 	trace.o
 
 sdxi-$(CONFIG_PCI_MSI) += pci.o
+
+obj-$(CONFIG_SDXI_KUNIT_TEST) += descriptor_kunit.o
