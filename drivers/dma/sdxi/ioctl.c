@@ -17,6 +17,7 @@
 #include <uapi/linux/sdxi.h>
 
 #include "context.h"
+#include "descriptor.h"
 #include "enqueue.h"
 #include "ioctl.h"
 #include "process.h"
@@ -39,8 +40,9 @@ static struct device *sdxi_device;
  */
 static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 {
+	struct sdxi_cxt_start params;
 	struct sdxi_cxt *admin_cxt;
-	struct sdxi_desc desc;
+	struct sdxi_desc_new desc;
 	struct sdxi_dev *sdxi;
 	struct sdxi_cxt *cxt;
 	struct pci_dev *pdev;
@@ -63,9 +65,16 @@ static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 	if (!cxt)
 		return ERR_PTR(-ENOMEM);
 
-	build_admin_start_new(&desc, 0, 0, cxt->id, cxt->id, 0);
+	params = (typeof(params)) {
+		.range = sdxi_cxt_range(cxt->id),
+	};
+
+	err = sdxi_encode_cxt_start(&desc, &params);
+	if (err)
+		goto cxt_exit;
+
 	admin_cxt = sdxi->admin_cxt;
-	err = sdxi_enqueue((__le64 *)&desc, 1,
+	err = sdxi_enqueue(&desc.qw[0], 1,
 			   (__le64 *)admin_cxt->sq->desc_ring,
 			   admin_cxt->sq->ring_entries,
 			   &admin_cxt->sq->cxt_sts->read_index,
