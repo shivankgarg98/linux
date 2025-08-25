@@ -190,7 +190,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	dma_wmb();
 	WRITE_ONCE(cxt->cxt_ctl->ds_ring_ptr, cpu_to_le64(ds_ring_ptr));
 
-	pr_debug("sq created, id=%d, cxt_ctl=%p\n"
+	sdxi_dbg(sdxi, "sq created, id=%d, cxt_ctl=%p\n"
 		 "  desc ring addr:   v=0x%p:d=%pad\n"
 		 "  write index addr: v=0x%p:d=%pad\n"
 		 "  cxt status addr: v=0x%p:d=%pad\n",
