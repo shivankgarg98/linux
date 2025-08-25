@@ -20,6 +20,7 @@
 #include <linux/ptrace.h>
 
 #include "context.h"
+#include "descriptor.h"
 #include "enqueue.h"
 #include "hw.h"
 #include "error.h"
@@ -399,16 +400,19 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	struct sdxi_cxt *admin_cxt = target_cxt->sdxi->admin_cxt;
 	struct sdxi_dev *sdxi = target_cxt->sdxi;
 	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_sts;
-	struct sdxi_desc desc;
+	struct sdxi_desc_new desc;
 	u16 cxtid = target_cxt->id;
+	struct sdxi_cxt_stop params = {
+		.range = sdxi_cxt_range(cxtid),
+	};
 	enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
 	int err;
 
 	sdxi_dbg(sdxi, "%s entry: context state: %s",
 		 __func__, cxt_sts_state_str(state));
 
-	build_admin_stop_new(&desc, 0, 0, cxtid, cxtid, 0);
-	err = sdxi_enqueue((__le64 *)&desc, 1,
+	err = sdxi_encode_cxt_stop(&desc, &params);
+	err = sdxi_enqueue(&desc.qw[0], 1,
 			   (__le64 *)admin_cxt->sq->desc_ring,
 			   admin_cxt->sq->ring_entries,
 			   &admin_cxt->sq->cxt_sts->read_index,
