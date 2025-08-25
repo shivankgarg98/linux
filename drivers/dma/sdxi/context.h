@@ -20,26 +20,6 @@
 		(d)->subtype = (s);		\
 	} while (0)
 
-#define DESC_ADM_BUILD_VF(d, vf, vf_num)				\
-	do {								\
-		if (vf) {						\
-			(d)->body[0] |= ((vf_num) & 0xFFFF) << 16;	\
-			(d)->body[0] |= (1 << 15);			\
-		}							\
-	} while (0)
-
-#define DESC_ADM_BUILD_CXT(d, start, end)		\
-	do {						\
-		(d)->body[1] |= ((start) & 0xFFFF);	\
-		(d)->body[1] |= ((end) & 0xFFFF) << 16;	\
-	} while (0)
-
-#define DESC_ADM_BUILD_AKEY(d, num, mask)			\
-	do {							\
-		(d)->body[2] |= ((num) & 0xFFFF);		\
-		(d)->body[2] |= ((mask) & 0xFFFF) << 16;	\
-	} while (0)
-
 void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 		    u8 dst_attr, u16 src_akey, u16 dst_akey,
 		    u64 src_addr, u64 dst_dst);
