@@ -191,13 +191,13 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	WRITE_ONCE(cxt->cxt_ctl->ds_ring_ptr, cpu_to_le64(ds_ring_ptr));
 
 	pr_debug("sq created, id=%d, cxt_ctl=%p\n"
-		 "  desc ring addr:   v=0x%p:d=0x%llx\n"
-		 "  write index addr: v=0x%p:d=0x%llx\n"
-		 "  cxt status addr: v=0x%p:d=0x%llx\n",
+		 "  desc ring addr:   v=0x%p:d=%pad\n"
+		 "  write index addr: v=0x%p:d=%pad\n"
+		 "  cxt status addr: v=0x%p:d=%pad\n",
 		 cxt->id, cxt->cxt_ctl,
-		 sq->desc_ring, virt_to_phys(sq->desc_ring),
-		 sq->write_index, virt_to_phys(sq->write_index),
-		 sq->cxt_sts, virt_to_phys(sq->cxt_sts));
+		 sq->desc_ring, &sq->ring_dma,
+		 sq->write_index, &sq->write_index_dma,
+		 sq->cxt_sts, &sq->cxt_sts_dma);
 
 	/* dump SQ info */
 	trace_sdxi_create_sq(cxt, sq);
