@@ -764,9 +764,10 @@ admin_cxt_exit:
 
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
+	struct sdxi_cxt_start params;
 	struct sdxi_cxt *admin_cxt;
+	struct sdxi_desc_new desc;
 	struct sdxi_cxt *dma_cxt;
-	struct sdxi_desc desc;
 	int err;
 
 	sdxi->dev_ops = ops;
@@ -788,6 +789,8 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	if (err)
 		return err;
 
+	admin_cxt = sdxi->admin_cxt;
+
 	dma_cxt = sdxi_working_cxt_init(sdxi, SDXI_DMA_CXT_ID);
 	if (!dma_cxt) {
 		err = -EINVAL;
@@ -796,9 +799,14 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	sdxi->dma_cxt = dma_cxt;
 
-	build_admin_start_new(&desc, 0, 0, SDXI_DMA_CXT_ID, SDXI_DMA_CXT_ID, 0);
-	admin_cxt = sdxi->admin_cxt;
-	err = sdxi_enqueue((__le64 *)&desc, 1,
+	params = (typeof(params)) {
+		.range = sdxi_cxt_range(dma_cxt->id),
+	};
+	err = sdxi_encode_cxt_start(&desc, &params);
+	if (err)
+		goto fn_stop;
+
+	err = sdxi_enqueue(&desc.qw[0], 1,
 			   (__le64 *)admin_cxt->sq->desc_ring,
 			   admin_cxt->sq->ring_entries,
 			   &admin_cxt->sq->cxt_sts->read_index,
