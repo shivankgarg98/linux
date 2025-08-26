@@ -569,8 +569,26 @@ static int kvm_gmem_migrate_folio(struct address_space *mapping,
 				  struct folio *dst, struct folio *src,
 				  enum migrate_mode mode)
 {
-	WARN_ON_ONCE(1);
-	return -EINVAL;
+	struct list_head *gmem_list = &mapping->i_private_list;
+	struct kvm_gmem *gmem;
+	pgoff_t start, end;
+	int ret;
+
+	start = src->index;
+	end = start + folio_nr_pages(src);
+
+	filemap_invalidate_lock(mapping);
+
+	list_for_each_entry(gmem, gmem_list, entry)
+		kvm_gmem_invalidate_begin(gmem, start, end);
+
+	ret = filemap_migrate_folio(mapping, dst, src, mode);
+
+	list_for_each_entry(gmem, gmem_list, entry)
+			kvm_gmem_invalidate_end(gmem, start, end);
+
+	filemap_invalidate_unlock(mapping);
+	return ret;
 }
 
 static int kvm_gmem_error_folio(struct address_space *mapping, struct folio *folio)
@@ -653,7 +671,11 @@ static struct inode *kvm_gmem_inode_make_secure_inode(const char *name,
 	inode->i_mode |= S_IFREG;
 	inode->i_size = size;
 	mapping_set_gfp_mask(inode->i_mapping, GFP_HIGHUSER);
-	mapping_set_inaccessible(inode->i_mapping);
+	/* TODO: https://lore.kernel.org/lkml/20240711180305.15626-1-pbonzini@redhat.com
+	 * Selectively avoid setting AS_INACCESSIBLE flag for non-coco VMs (like pKVM)
+	 * to support migration. To add it back for coco vm.
+	 * how to handle it truncate_inode_partial_folio without AS_INACCESSIBLE flag
+	 */
 	/* Unmovable mappings are supposed to be marked unevictable as well. */
 	WARN_ON_ONCE(!mapping_unevictable(inode->i_mapping));
 
