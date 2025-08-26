@@ -198,9 +198,9 @@ static void sdxi_print_err(struct sdxi_dev *sdxi, u64 err_rd)
 static irqreturn_t sdxi_irq_thread(int irq, void *data)
 {
 	struct sdxi_dev *sdxi = data;
-	u64 err_sts;
 	u64 write_index;
 	u64 read_index;
+	u64 err_sts;
 
 	// 1. Check MMIO_ERR_STS and perform any required remediation.
 	err_sts = sdxi_read64(sdxi, SDXI_MMIO_ERR_STS);
