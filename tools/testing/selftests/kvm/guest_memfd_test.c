@@ -78,6 +78,103 @@ static void test_mmap_supported(int fd, size_t page_size, size_t total_size)
 #define TEST_REQUIRE_NUMA_MULTIPLE_NODES()	\
 	TEST_REQUIRE(numa_available() != -1 && numa_max_node() >= 1)
 
+static void test_migrate_folio(int fd, size_t page_size, size_t total_size)
+{
+	int i, page_count = 4;
+	void **addr = malloc(sizeof(void *) * page_count);
+	int *status = malloc(sizeof(int) * page_count);
+	int *nodes = malloc(sizeof(int) * page_count);
+	char *mem;
+	int ret;
+
+	TEST_REQUIRE_NUMA_MULTIPLE_NODES();
+
+	/* Clean slate: deallocate all file space, if any */
+	ret = fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, 0, total_size);
+
+	mem = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	TEST_ASSERT(mem != MAP_FAILED, "mmap for migration test should succeed");
+
+	/* Bind pages to node 0 initially */
+	unsigned long nodemask = 1; /* node 0 */
+	unsigned long maxnode = 8;
+
+	ret = syscall(__NR_mbind, mem, page_size * page_count, MPOL_BIND,
+		      &nodemask, maxnode, 0);
+	TEST_ASSERT(!ret, "mbind to node 0 should succeed");
+
+	/* Write pattern to trigger page allocation */
+	for (i = 0; i < page_count; i++) {
+		memset(mem + i * page_size, (char)i, page_size);
+		addr[i] = mem + i * page_size;
+		nodes[i] = 1;  /* target node 1 */
+		status[i] = -123;
+	}
+
+	/* Verify pages are on node 0 before migration */
+	ret = numa_move_pages(0, page_count, addr, NULL, status, 0);
+	TEST_ASSERT(ret == 0, "numa_move_pages status check should succeed");
+	
+	printf("Before migration:\n");
+	for (i = 0; i < page_count; i++) {
+		printf("  Page %d: node %d\n", i, status[i]);
+		TEST_ASSERT(status[i] == 0, "Page %d should be on node 0, got %d", 
+			    i, status[i]);
+	}
+
+	/* Migrate pages from node 0 to node 1 */
+	ret = numa_move_pages(0, page_count, addr, nodes, status, MPOL_MF_MOVE);
+	if (ret < 0) {
+		printf("numa_move_pages failed: %d (%s)\n", errno, strerror(errno));
+	} else {
+		printf("numa_move_pages succeeded: %d\n", ret);
+		
+		/* Check migration status for each page */
+		for (i = 0; i < page_count; i++) {
+			if (status[i] < 0) {
+				printf("  Page %d: migration failed with %d\n", 
+				       i, status[i]);
+			}
+		}
+	}
+
+	/* Verify pages location after migration attempt */
+	ret = numa_move_pages(0, page_count, addr, NULL, status, 0);
+	TEST_ASSERT(ret == 0, "numa_move_pages status check should succeed");
+	
+	printf("After migration:\n");
+	for (i = 0; i < page_count; i++) {
+		printf("  Page %d: node %d\n", i, status[i]);
+	}
+
+	/* Verify data*/
+	for (i = 0; i < page_count; i++) {
+		char expected = (char)i;
+		char actual = mem[i * page_size];
+		
+		if (actual != expected) {
+			printf("*** Page %d contents corrupted: expected %d, got %d\n", 
+			       i, expected, actual);
+			TEST_ASSERT(false, "Data corruption detected");
+		}
+		
+		for (int j = 0; j < 16; j++) {
+			actual = mem[i * page_size + j];
+			if (actual != expected) {
+				printf("*** Page %d offset %d corrupted: expected %d, got %d\n",
+				       i, j, expected, actual);
+				TEST_ASSERT(false, "Data corruption detected");
+			}
+		}
+	}
+
+	printf("page migrated successfully\n");
+	free(addr);
+	free(status);
+	free(nodes);
+	munmap(mem, total_size);
+}
+
 static void test_mbind(int fd, size_t page_size, size_t total_size)
 {
 	unsigned long nodemask = 1; /* nid: 0 */
@@ -407,6 +504,7 @@ static void test_guest_memfd(unsigned long vm_type)
 		test_fault_overflow(fd, page_size, total_size);
 		test_mbind(fd, page_size, total_size);
 		test_numa_allocation(fd, page_size, total_size);
+		test_migrate_folio(fd, page_size, total_size);
 	} else {
 		test_mmap_not_supported(fd, page_size, total_size);
 	}
