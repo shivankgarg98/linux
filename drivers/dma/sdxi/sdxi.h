@@ -131,10 +131,6 @@ struct sdxi_sq {
 	struct sdxi_desc *desc_ring;
 	dma_addr_t ring_dma;
 
-	struct sdxi_cst_blk *csb;
-	size_t csb_size;
-	dma_addr_t csb_dma;
-
 	__le64 *write_index;
 	dma_addr_t write_index_dma;
 

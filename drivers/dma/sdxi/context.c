@@ -52,18 +52,14 @@ static void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
 	iowrite64(value, cxt->db);
 }
 
-static void sdxi_cst_blk_set(struct sdxi_cst_blk *cst_blk, u64 signal)
-{
-	*cst_blk = (struct sdxi_cst_blk) {
-		.signal = cpu_to_le64(signal),
-	};
-}
-
 u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 			bool csb, u64 init_signal)
 {
 	struct sdxi_dev *sdxi = sq->cxt->sdxi;
 	u64 dest;
+
+	if (WARN_ON_ONCE(csb))
+		return -EINVAL;
 
 	/* check context status */
 	if (sdxi_cxt_sts_state(sq->cxt_sts) != CXTV_RUN) {
@@ -82,10 +78,6 @@ u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
 	dest = *sq->write_index;
 	dest %= sq->ring_entries;
 	memcpy(&sq->desc_ring[dest], desc, sizeof(struct sdxi_desc));
-	if (csb) {
-		sdxi_cst_blk_set(&sq->csb[dest], init_signal);
-		sq->desc_ring[dest].csb_ptr = sq->csb_dma + dest * sizeof(struct sdxi_cst_blk);
-	}
 	sq->desc_ring[dest].vl = 1;
 	/* make sure the update of valid bit is visible */
 	wmb();
@@ -126,16 +118,10 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	if (!sq->desc_ring)
 		goto free_sq;
 
-	/* alloc completion status block */
-	sq->csb_size = ring_entries * sizeof(sq->csb[0]);
-	sq->csb = dma_alloc_coherent(dev, sq->csb_size, &sq->csb_dma,
-				     GFP_KERNEL);
-	if (!sq->csb)
-		goto free_desc_ring;
 
 	sq->cxt_sts = dma_pool_zalloc(sdxi->cxt_sts_pool, GFP_KERNEL, &sq->cxt_sts_dma);
 	if (!sq->cxt_sts)
-		goto free_csb;
+		goto free_desc_ring;
 
 	sq->write_index = dma_pool_zalloc(sdxi->write_index_pool, GFP_KERNEL,
 					  &sq->write_index_dma);
@@ -180,8 +166,6 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 
 free_cxt_sts:
 	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
-free_csb:
-	dma_free_coherent(dev, sq->csb_size, sq->csb, sq->csb_dma);
 free_desc_ring:
 	dma_free_coherent(dev, sq->ring_size, sq->desc_ring, sq->ring_dma);
 free_sq:
@@ -202,7 +186,6 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 
 	dma_pool_free(sdxi->write_index_pool, sq->write_index, sq->write_index_dma);
 	dma_pool_free(sdxi->cxt_sts_pool, sq->cxt_sts, sq->cxt_sts_dma);
-	dma_free_coherent(dev, sq->csb_size, sq->csb, sq->csb_dma);
 	dma_free_coherent(dev, sq->ring_size, sq->desc_ring, sq->ring_dma);
 
 	cxt->sq = NULL;
