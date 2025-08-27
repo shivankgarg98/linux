@@ -301,13 +301,11 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 {
 	struct sdxi_cxt *cxt = chan->cxt;
-	struct sdxi_sq *sq;
 	struct sdxi_cmd *cmd;
 
 	if (!cxt)
 		return;
 
-	sq = cxt->sq;
 	cmd = cxt->sdxi->tdata.cmd;
 
 	if (le64_to_cpu(cmd->cst_blk->signal) == 0xfe)
