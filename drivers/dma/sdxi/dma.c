@@ -44,7 +44,13 @@ static void sdxi_dma_synchronize(struct dma_chan *c)
 
 static void sdxi_do_cleanup(struct virt_dma_desc *vd)
 {
-	kfree(to_sdxi_dma_desc(vd));
+	struct sdxi_dma_desc *dma_desc = to_sdxi_dma_desc(vd);
+	struct sdxi_cmd *cmd = &dma_desc->sdxi_cmd;
+	struct device *dev = sdxi_to_dev(dma_desc->cxt->sdxi);
+
+	dma_free_coherent(dev, sizeof(*cmd->cst_blk),
+			  cmd->cst_blk, cmd->cst_blk_dma);
+	kfree(dma_desc);
 }
 
 static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
@@ -54,6 +60,8 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	struct sdxi_cxt *cxt;
 	struct sdxi_sq *sq;
 	struct sdxi_desc desc;
+	struct sdxi_cst_blk *cst_blk;
+	dma_addr_t cst_blk_dma;
 
 
 	dma_desc->issued_to_hw = 1;
@@ -71,13 +79,25 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	if (sdxi_cmd->len > MAX_DMA_COPY_BYTES)
 		return -EINVAL;
 
-	build_dma_copy(&desc, sdxi_cmd->len, 0, 0, 0, 0, sdxi_cmd->src_addr,
-		       sdxi_cmd->dst_addr);
+	// FIXME convert to pool
+	cst_blk = dma_alloc_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
+				     &cst_blk_dma, GFP_NOWAIT);
+	if (!cst_blk)
+		return -ENOMEM;
 
-	/* Submit the command */
-	sdxi_cmd->index = sdxi_sq_submit_desc(sq, &desc, true, 0xFF);
+	cst_blk->signal = cpu_to_le64(0xff);
+
+	sdxi_cmd->cst_blk = cst_blk;
+	sdxi_cmd->cst_blk_dma = cst_blk_dma;
 	sdxi_cmd->ret = 0; // TODO: get desc submit status & update ret value
 
+	build_dma_copy(&desc, sdxi_cmd->len, 0, 0, 0, 0, sdxi_cmd->src_addr,
+		       sdxi_cmd->dst_addr);
+	// tack on the CST_BLK pointer here, we don't want
+	// sdxi_sq_submit_desc() to do it.
+	desc.csb_ptr = cst_blk_dma;
+
+	(void)sdxi_sq_submit_desc(sq, &desc, false, 0);
 	return 0;
 }
 
@@ -282,7 +302,7 @@ static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 	sq = cxt->sq;
 	cmd = cxt->sdxi->tdata.cmd;
 
-	if (le64_to_cpu(sq->csb[cmd->index].signal) == 0xFE)
+	if (le64_to_cpu(cmd->cst_blk->signal) == 0xfe)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
 }
 
