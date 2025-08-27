@@ -17,6 +17,14 @@
 #include "context.h"
 #include "sdxi.h"
 
+struct sdxi_dma_desc {
+	struct virt_dma_desc vd;
+	struct sdxi_cxt *cxt;
+	enum dma_status status;
+	bool issued_to_hw;
+	struct sdxi_cmd sdxi_cmd;
+};
+
 static inline struct sdxi_dma_chan *to_sdxi_dma_chan(struct dma_chan *dma_chan)
 {
 	return container_of(dma_chan, struct sdxi_dma_chan, vc.chan);

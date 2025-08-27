@@ -158,14 +158,6 @@ struct sdxi_cmd {
 	void *data;
 };
 
-struct sdxi_dma_desc {
-	struct virt_dma_desc vd;
-	struct sdxi_cxt *cxt;
-	enum dma_status status;
-	bool issued_to_hw;
-	struct sdxi_cmd sdxi_cmd;
-};
-
 struct sdxi_dma_chan {
 	struct virt_dma_chan vc;
 	struct sdxi_cxt *cxt;
