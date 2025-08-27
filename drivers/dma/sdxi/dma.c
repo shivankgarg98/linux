@@ -296,36 +296,6 @@ static enum dma_status sdxi_tx_status(struct dma_chan *dma_chan, dma_cookie_t co
 	return dma_cookie_status(dma_chan, cookie, tx_state);
 }
 
-static int sdxi_dma_pause(struct dma_chan *dma_chan)
-{
-	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
-	unsigned long flags;
-
-	spin_lock_irqsave(&chan->vc.lock, flags);
-	// TODO
-	spin_unlock_irqrestore(&chan->vc.lock, flags);
-
-	return 0;
-}
-
-static int sdxi_dma_resume(struct dma_chan *dma_chan)
-{
-	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
-	struct sdxi_dma_desc *desc = NULL;
-	unsigned long flags;
-
-	spin_lock_irqsave(&chan->vc.lock, flags);
-	// TODO
-	desc = sdxi_next_dma_desc(chan);
-	spin_unlock_irqrestore(&chan->vc.lock, flags);
-
-	/* If there was something active, re-start */
-	if (desc)
-		sdxi_cmd_callback(desc, 0);
-
-	return 0;
-}
-
 static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 {
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
@@ -378,8 +348,6 @@ int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
 	dma_dev->device_prep_dma_interrupt = sdxi_prep_dma_interrupt;
 	dma_dev->device_issue_pending = sdxi_dma_issue_pending;
 	dma_dev->device_tx_status = sdxi_tx_status;
-	dma_dev->device_pause = sdxi_dma_pause;
-	dma_dev->device_resume = sdxi_dma_resume;
 	dma_dev->device_terminate_all = sdxi_dma_terminate_all;
 	dma_dev->device_synchronize = sdxi_dma_synchronize;
 
