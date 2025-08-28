@@ -108,20 +108,6 @@ enum sdxi_cxt_id {
 	SDXI_ANY_CXT_ID,
 };
 
-struct sdxi_desc {
-	u32 vl			: 1;
-	u32 se			: 1;
-	u32 fe			: 1;
-	u32 ch			: 1;
-	u32 csr			: 1;
-	u32 rsvd1		: 3;
-	u32 subtype		: 8;
-	u32 type		: 11;
-	u32 rsvd2		: 5;
-	u32 body[13];
-	u64 csb_ptr;
-} __packed;
-
 /* Submission Queue */
 struct sdxi_sq {
 	struct sdxi_cxt *cxt;		/* owner */
