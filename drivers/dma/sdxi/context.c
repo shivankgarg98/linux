@@ -50,7 +50,6 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 	if (!sq->desc_ring)
 		goto free_sq;
 
-
 	sq->cxt_sts = dma_pool_zalloc(sdxi->cxt_sts_pool, GFP_KERNEL, &sq->cxt_sts_dma);
 	if (!sq->cxt_sts)
 		goto free_desc_ring;
