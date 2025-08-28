@@ -294,11 +294,6 @@ struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id);
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
 
-/* Submission Queue */
-struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_size);
-struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt);
-void sdxi_sq_free(struct sdxi_sq *sq);
-
 /* DMA Engine */
 int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
 void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
