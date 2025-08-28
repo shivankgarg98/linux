@@ -72,8 +72,6 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	dma_addr_t cst_blk_dma;
 
 
-	dma_desc->issued_to_hw = 1;
-
 	sdxi_cmd = &dma_desc->sdxi_cmd;
 	sdxi = sdxi_cmd->cxt->sdxi;
 
@@ -106,6 +104,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	desc.csb_ptr = cst_blk_dma;
 
 	(void)sdxi_sq_submit_desc(sq, &desc, false, 0);
+	dma_desc->issued_to_hw = 1;
 	return 0;
 }
 
