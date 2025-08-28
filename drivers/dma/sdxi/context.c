@@ -34,7 +34,7 @@ MODULE_PARM_DESC(force_pr_for_user_contexts,
 		 "(default: false)");
 
 /* Alloc sdxi_sq in kernel space */
-struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
+static struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
 	struct device *dev = sdxi_to_dev(sdxi);
@@ -116,7 +116,7 @@ free_sq:
 	return NULL;
 }
 
-void sdxi_sq_free(struct sdxi_sq *sq)
+static void sdxi_sq_free(struct sdxi_sq *sq)
 {
 	struct sdxi_cxt *cxt = sq->cxt;
 	struct sdxi_dev *sdxi = cxt->sdxi;
@@ -137,7 +137,7 @@ void sdxi_sq_free(struct sdxi_sq *sq)
 
 /* Default size 1024 ==> 64KB descriptor ring, guaranteed */
 #define DEFAULT_DESC_RING_ENTRIES	1024
-struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt)
+static struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt)
 {
 	return sdxi_sq_alloc(cxt, DEFAULT_DESC_RING_ENTRIES);
 }
@@ -151,7 +151,6 @@ static dma_addr_t sdxi_cxt_l2_ent_lv01_ptr(const struct sdxi_cxt_l2_ent *ent)
 {
 	return FIELD_GET(SDXI_CXT_L2_ENT_LV01_PTR, le64_to_cpu(ent->lv01_ptr)) << ilog2(SZ_4K);
 }
-
 
 static void set_cxt_l2_entry(struct sdxi_cxt_l2_ent *l2_entry,
 			     dma_addr_t l1_table_dma)
@@ -402,7 +401,7 @@ drop_cxt_lock:
 }
 
 /* clear context table and free context resources */
-void sdxi_cxt_free(struct sdxi_cxt *cxt)
+static void sdxi_cxt_free(struct sdxi_cxt *cxt)
 {
 	struct sdxi_dev *sdxi = cxt->sdxi;
 
