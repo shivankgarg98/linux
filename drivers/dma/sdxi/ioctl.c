@@ -42,7 +42,7 @@ static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 {
 	struct sdxi_cxt_start params;
 	struct sdxi_cxt *admin_cxt;
-	struct sdxi_desc_new desc;
+	struct sdxi_desc desc;
 	struct sdxi_dev *sdxi;
 	struct sdxi_cxt *cxt;
 	struct pci_dev *pdev;

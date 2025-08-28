@@ -10,7 +10,7 @@
 
 MODULE_IMPORT_NS("EXPORTED_FOR_KUNIT_TESTING");
 
-static void desc_poison(struct sdxi_desc_new *d)
+static void desc_poison(struct sdxi_desc *d)
 {
 	memset(d, 0xff, sizeof(*d));
 }
@@ -18,7 +18,7 @@ static void desc_poison(struct sdxi_desc_new *d)
 static void test_encode(struct kunit *t)
 {
 	struct sdxi_desc_unpacked u = {};
-	struct sdxi_desc_new d = {};
+	struct sdxi_desc d = {};
 
 	sdxi_desc_pack(&d, &u);
 	KUNIT_EXPECT_NULL(t, memchr_inv(&d, 0, sizeof(d)));
@@ -32,7 +32,7 @@ static void copy(struct kunit *t)
 {
 	struct sdxi_desc_unpacked unpacked;
 	struct sdxi_copy copy = {};
-	struct sdxi_desc_new desc = {};
+	struct sdxi_desc desc = {};
 
 	desc_poison(&desc);
 	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_copy(&desc, &copy));
@@ -81,7 +81,7 @@ static void intr(struct kunit *t)
 	struct sdxi_intr intr = {
 		.akey = 1234,
 	};
-	struct sdxi_desc_new desc;
+	struct sdxi_desc desc;
 
 	desc_poison(&desc);
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_intr(&desc, &intr));
@@ -101,7 +101,7 @@ static void cxt_start(struct kunit *t)
 	struct sdxi_cxt_start start = {
 		.range = sdxi_cxt_range(1, U16_MAX)
 	};
-	struct sdxi_desc_new desc = {};
+	struct sdxi_desc desc = {};
 	struct sdxi_desc_unpacked unpacked;
 
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_cxt_start(&desc, &start));
@@ -131,7 +131,7 @@ static void cxt_stop(struct kunit *t)
 	struct sdxi_cxt_stop stop = {
 		.range = sdxi_cxt_range(1, U16_MAX)
 	};
-	struct sdxi_desc_new desc = {};
+	struct sdxi_desc desc = {};
 	struct sdxi_desc_unpacked unpacked;
 
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_cxt_stop(&desc, &stop));

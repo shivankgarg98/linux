@@ -39,17 +39,17 @@ static const struct packed_field_u16 common_descriptor_fields[] = {
 	sdxi_desc_field(511, 453, csb_ptr),
 };
 
-void sdxi_desc_pack(struct sdxi_desc_new *to,
+void sdxi_desc_pack(struct sdxi_desc *to,
 		    const struct sdxi_desc_unpacked *from)
 {
-	*to = (struct sdxi_desc_new){};
+	*to = (struct sdxi_desc){};
 	pack_fields(to, sizeof(*to), from, common_descriptor_fields,
 		    SDXI_PACKING_QUIRKS);
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_pack);
 
 void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
-		      const struct sdxi_desc_new *from)
+		      const struct sdxi_desc *from)
 {
 	*to = (struct sdxi_desc_unpacked){};
 	unpack_fields(from, sizeof(*from), to, common_descriptor_fields,
@@ -57,7 +57,7 @@ void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_unpack);
 
-int __sdxi_desc_encode(struct sdxi_desc_new *desc, const struct sdxi_desc_attrs *attrs)
+int __sdxi_desc_encode(struct sdxi_desc *desc, const struct sdxi_desc_attrs *attrs)
 {
 	unsigned int csb_shift = ilog2(sizeof(struct sdxi_cst_blk));
 	u64 csb_ptr = 0;
@@ -83,7 +83,7 @@ int __sdxi_desc_encode(struct sdxi_desc_new *desc, const struct sdxi_desc_attrs 
 		csb_ptr = attrs->csb_handle >> csb_shift;
 	}
 
-	*desc = (struct sdxi_desc_new) {
+	*desc = (struct sdxi_desc) {
 		.opcode = cpu_to_le32(FIELD_PREP(SDXI_DSC_TYPE, attrs->op_group) |
 				      FIELD_PREP(SDXI_DSC_SUBTYPE, attrs->operation) |
 				      FIELD_PREP(SDXI_DSC_FLAGS, attrs->flags)),
@@ -104,7 +104,7 @@ int __sdxi_desc_encode(struct sdxi_desc_new *desc, const struct sdxi_desc_attrs 
 		.csb_ptr = csb_ptr,
 	};
 	u8 quirks = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST;
-	struct sdxi_desc_new desc2 = {};
+	struct sdxi_desc desc2 = {};
 
 	pack_fields(&desc2, sizeof(desc2), &unpacked, common_descriptor_fields, quirks);
 	struct kunit *t = kunit_get_current_test();
@@ -114,7 +114,7 @@ int __sdxi_desc_encode(struct sdxi_desc_new *desc, const struct sdxi_desc_attrs 
 	return 0;
 }
 
-void sdxi_desc_decode(const struct sdxi_desc_new *desc, struct sdxi_desc_attrs *attrs)
+void sdxi_desc_decode(const struct sdxi_desc *desc, struct sdxi_desc_attrs *attrs)
 {
 	unsigned int csb_shift = ilog2(sizeof(struct sdxi_cst_blk));
 	u64 csb_ptr = le64_to_cpu(desc->csb_ptr);
@@ -138,7 +138,7 @@ void sdxi_desc_decode(const struct sdxi_desc_new *desc, struct sdxi_desc_attrs *
 					unpacked.csb_ptr, attrs->csb_handle);
 }
 
-int sdxi_encode_copy(struct sdxi_desc_new *desc, const struct sdxi_copy *params)
+int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 {
 	u64 csb_ptr;
 	u32 opcode;
@@ -170,7 +170,7 @@ int sdxi_encode_copy(struct sdxi_desc_new *desc, const struct sdxi_copy *params)
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_encode_copy);
 
-int sdxi_encode_intr(struct sdxi_desc_new *desc,
+int sdxi_encode_intr(struct sdxi_desc *desc,
 		     const struct sdxi_intr *params)
 {
 	u64 csb_ptr;
@@ -192,7 +192,7 @@ int sdxi_encode_intr(struct sdxi_desc_new *desc,
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_encode_intr);
 
-int sdxi_encode_cxt_start(struct sdxi_desc_new *desc,
+int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 			  const struct sdxi_cxt_start *params)
 {
 	u16 cxt_start;
@@ -221,7 +221,7 @@ int sdxi_encode_cxt_start(struct sdxi_desc_new *desc,
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_encode_cxt_start);
 
-int sdxi_encode_cxt_stop(struct sdxi_desc_new *desc,
+int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 			  const struct sdxi_cxt_stop *params)
 {
 	u16 cxt_start;

@@ -400,7 +400,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 	struct sdxi_cxt *admin_cxt = target_cxt->sdxi->admin_cxt;
 	struct sdxi_dev *sdxi = target_cxt->sdxi;
 	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_sts;
-	struct sdxi_desc_new desc;
+	struct sdxi_desc desc;
 	u16 cxtid = target_cxt->id;
 	struct sdxi_cxt_stop params = {
 		.range = sdxi_cxt_range(cxtid),
@@ -766,7 +766,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
 	struct sdxi_cxt_start params;
 	struct sdxi_cxt *admin_cxt;
-	struct sdxi_desc_new desc;
+	struct sdxi_desc desc;
 	struct sdxi_cxt *dma_cxt;
 	int err;
 

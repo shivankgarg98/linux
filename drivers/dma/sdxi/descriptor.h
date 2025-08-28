@@ -45,7 +45,7 @@ struct sdxi_desc_attrs {
 	bool use_csb;
 };
 
-static inline void sdxi_desc_set_csb(struct sdxi_desc_new *desc,
+static inline void sdxi_desc_set_csb(struct sdxi_desc *desc,
 				     dma_addr_t addr)
 {
 	desc->csb_ptr = cpu_to_le64(FIELD_PREP(SDXI_DSC_CSB_PTR, addr >> 5));
@@ -74,10 +74,10 @@ int sdxi_encode_size32(u64 size, __le32 *dest)
 	return 0;
 }
 
-int __must_check __sdxi_desc_encode(struct sdxi_desc_new *desc,
+int __must_check __sdxi_desc_encode(struct sdxi_desc *desc,
 				  const struct sdxi_desc_attrs *attrs);
 
-void sdxi_desc_decode(const struct sdxi_desc_new *desc, struct sdxi_desc_attrs *attrs);
+void sdxi_desc_decode(const struct sdxi_desc *desc, struct sdxi_desc_attrs *attrs);
 
 // The "unpacked" version of a generic, operation-agnostic SDXI
 // descriptor.
@@ -129,28 +129,28 @@ struct sdxi_copy {
 	u16 dst_akey;
 };
 
-int sdxi_encode_copy(struct sdxi_desc_new *desc,
+int sdxi_encode_copy(struct sdxi_desc *desc,
 		     const struct sdxi_copy *params);
 
 struct sdxi_intr {
 	u16 akey;
 };
 
-int sdxi_encode_intr(struct sdxi_desc_new *desc,
+int sdxi_encode_intr(struct sdxi_desc *desc,
 		     const struct sdxi_intr *params);
 
 struct sdxi_cxt_start {
 	struct sdxi_cxt_range range;
 };
 
-int sdxi_encode_cxt_start(struct sdxi_desc_new *desc,
+int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 			  const struct sdxi_cxt_start *params);
 
 struct sdxi_cxt_stop {
 	struct sdxi_cxt_range range;
 };
 
-int sdxi_encode_cxt_stop(struct sdxi_desc_new *desc,
+int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 			  const struct sdxi_cxt_stop *params);
 
 #define sdxi_desc_encode(d_, op_)			\
@@ -158,9 +158,9 @@ int sdxi_encode_cxt_stop(struct sdxi_desc_new *desc,
 		 , struct sdxi_copy *: sdxi_copy_encode	\
 		 )(d_, op_)
 
-void sdxi_desc_pack(struct sdxi_desc_new *to,
+void sdxi_desc_pack(struct sdxi_desc *to,
 		    const struct sdxi_desc_unpacked *from);
 void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
-		      const struct sdxi_desc_new *from);
+		      const struct sdxi_desc *from);
 
 #endif /* DMA_SDXI_DESCRIPTOR_H */

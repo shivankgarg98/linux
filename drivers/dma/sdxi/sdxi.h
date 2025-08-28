@@ -114,7 +114,7 @@ struct sdxi_sq {
 
 	u32 ring_entries;
 	u32 ring_size;
-	struct sdxi_desc_new *desc_ring;
+	struct sdxi_desc *desc_ring;
 	dma_addr_t ring_dma;
 
 	__le64 *write_index;

@@ -166,7 +166,7 @@ static_assert(sizeof(struct sdxi_cst_blk) == 32);
 	static_assert(offsetof(struct tag_, csb_ptr) ==			\
 		      offsetof(struct sdxi_dsc_generic, csb_ptr));
 
-struct sdxi_desc_new {
+struct sdxi_desc {
 	union {
 		__le64 qw[8];
 
@@ -243,6 +243,6 @@ struct sdxi_desc_new {
 		);
 	};
 };
-static_assert(sizeof(struct sdxi_desc_new) == 64);
+static_assert(sizeof(struct sdxi_desc) == 64);
 
 #endif /* LINUX_SDXI_HW_H */

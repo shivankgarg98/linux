@@ -67,7 +67,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	struct sdxi_dev *sdxi;
 	struct sdxi_cmd *sdxi_cmd;
 	struct sdxi_cxt *cxt;
-	struct sdxi_desc_new desc;
+	struct sdxi_desc desc;
 	struct sdxi_copy copy;
 	struct sdxi_cst_blk *cst_blk;
 	dma_addr_t cst_blk_dma;
