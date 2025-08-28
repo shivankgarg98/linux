@@ -15,19 +15,6 @@ static void desc_poison(struct sdxi_desc *d)
 	memset(d, 0xff, sizeof(*d));
 }
 
-static void test_encode(struct kunit *t)
-{
-	struct sdxi_desc_unpacked u = {};
-	struct sdxi_desc d = {};
-
-	sdxi_desc_pack(&d, &u);
-	KUNIT_EXPECT_NULL(t, memchr_inv(&d, 0, sizeof(d)));
-
-	// u.vl = 1;
-	// sdxi_desc_pack(&d, &u);
-	// KUNIT_EXPECT_NULL(t, memchr_inv(&d, 0, sizeof(d)));
-}
-
 static void copy(struct kunit *t)
 {
 	struct sdxi_desc_unpacked unpacked;
@@ -156,7 +143,6 @@ static void cxt_stop(struct kunit *t)
 }
 
 static struct kunit_case generic_desc_tcs[] = {
-	KUNIT_CASE(test_encode),
 	KUNIT_CASE(copy),
 	KUNIT_CASE(intr),
 	KUNIT_CASE(cxt_start),

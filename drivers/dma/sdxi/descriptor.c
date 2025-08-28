@@ -11,6 +11,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/log2.h>
 #include <linux/packing.h>
+#include <linux/string.h>
 #include <linux/types.h>
 #include <asm/byteorder.h>
 
@@ -39,15 +40,6 @@ static const struct packed_field_u16 common_descriptor_fields[] = {
 	sdxi_desc_field(511, 453, csb_ptr),
 };
 
-void sdxi_desc_pack(struct sdxi_desc *to,
-		    const struct sdxi_desc_unpacked *from)
-{
-	*to = (struct sdxi_desc){};
-	pack_fields(to, sizeof(*to), from, common_descriptor_fields,
-		    SDXI_PACKING_QUIRKS);
-}
-EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_pack);
-
 void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 		      const struct sdxi_desc *from)
 {
@@ -57,85 +49,24 @@ void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_unpack);
 
-int __sdxi_desc_encode(struct sdxi_desc *desc, const struct sdxi_desc_attrs *attrs)
+static void desc_clear(struct sdxi_desc *desc)
 {
-	unsigned int csb_shift = ilog2(sizeof(struct sdxi_cst_blk));
-	u64 csb_ptr = 0;
-
-	// FIXME: Fail on unknown/invalid operation. We should be able
-	// to specify all valid opgrp/operation combinations, at least
-	// until we have to deal with dynamic operation groups.
-
-	// FIXME: some flags have only one valid value for the
-	// operation. E.g. se and ch must be 0 for NOPs, and almost
-	// all flags have prescribed values for context start/stop
-	// operations. (Generally ch must be 0 except for extended
-	// descriptors, and I don't see any examples of those in the
-	// spec.)
-	if (attrs->op_group == SDXI_OPGRP_RESERVED)
-		return -EINVAL;
-
-	if (attrs->use_csb) {
-		if (attrs->csb_handle == DMA_MAPPING_ERROR)
-			return -EFAULT;
-		if (!IS_ALIGNED(attrs->csb_handle, sizeof(struct sdxi_cst_blk)))
-			return -EFAULT;
-		csb_ptr = attrs->csb_handle >> csb_shift;
-	}
-
-	*desc = (struct sdxi_desc) {
-		.opcode = cpu_to_le32(FIELD_PREP(SDXI_DSC_TYPE, attrs->op_group) |
-				      FIELD_PREP(SDXI_DSC_SUBTYPE, attrs->operation) |
-				      FIELD_PREP(SDXI_DSC_FLAGS, attrs->flags)),
-		.csb_ptr = cpu_to_le64(FIELD_PREP(SDXI_DSC_NP, !attrs->use_csb) |
-				       FIELD_PREP(SDXI_DSC_CSB_PTR, csb_ptr)),
-	};
-
-	struct sdxi_desc_unpacked unpacked = {
-		.vl  = attrs->flags & SDXI_DSC_VL,
-		.se  = attrs->flags & SDXI_DSC_SE,
-		.fe  = attrs->flags & SDXI_DSC_FE,
-		.ch  = attrs->flags & SDXI_DSC_CH,
-		.csr = attrs->flags & SDXI_DSC_CSR,
-		.rb  = attrs->flags & SDXI_DSC_RB,
-		.subtype = attrs->operation,
-		.type = attrs->op_group,
-		.np = !attrs->use_csb,
-		.csb_ptr = csb_ptr,
-	};
-	u8 quirks = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST;
-	struct sdxi_desc desc2 = {};
-
-	pack_fields(&desc2, sizeof(desc2), &unpacked, common_descriptor_fields, quirks);
-	struct kunit *t = kunit_get_current_test();
-	if (t)
-		KUNIT_EXPECT_MEMEQ(t, desc, &desc2, sizeof(desc2));
-
-	return 0;
+	memset(desc, 0, sizeof(*desc));
 }
 
-void sdxi_desc_decode(const struct sdxi_desc *desc, struct sdxi_desc_attrs *attrs)
+static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
 {
-	unsigned int csb_shift = ilog2(sizeof(struct sdxi_cst_blk));
-	u64 csb_ptr = le64_to_cpu(desc->csb_ptr);
-	u32 opcode = le32_to_cpu(desc->opcode);
-
-	*attrs = (struct sdxi_desc_attrs) {
-		.operation  = FIELD_GET(SDXI_DSC_SUBTYPE, opcode),
-		.op_group   = FIELD_GET(SDXI_DSC_TYPE, opcode),
-		.flags      = FIELD_GET(SDXI_DSC_FLAGS, opcode),
-		.csb_handle = FIELD_GET(SDXI_DSC_CSB_PTR, csb_ptr) << csb_shift,
-		.use_csb    = !FIELD_GET(SDXI_DSC_NP, csb_ptr),
-	};
-
-	struct sdxi_desc_unpacked unpacked;
-	u8 quirks = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST;
-	unpack_fields(desc, sizeof(*desc), &unpacked, common_descriptor_fields, quirks);
-	if (unpacked.type != attrs->op_group)
-		kunit_fail_current_test("mismatch (%i vs %i)", unpacked.type, attrs->op_group);
-	if (unpacked.csb_ptr << 5 != attrs->csb_handle)
-		kunit_fail_current_test("mismatch (0x%llx vs 0x%llx)",
-					unpacked.csb_ptr, attrs->csb_handle);
+	// sizes are encoded as value - 1:
+	// value    encoding
+	//    1           0
+	//    2           1
+	//   4G  0xffffffff
+	if (WARN_ON_ONCE(size > SZ_4G) ||
+	    WARN_ON_ONCE(size == 0))
+		return -EINVAL;
+	size = clamp_val(size, 1, SZ_4G);
+	*dest = cpu_to_le32((u32)(size - 1));
+	return 0;
 }
 
 int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
@@ -147,15 +78,20 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 
 	if ((err = sdxi_encode_size32(params->len, &size)))
 		return err;
-
-	// TODO: reject overlapping src and dst
+	/*
+	 * TODO: reject overlapping src and dst. Quoting "Memory
+	 * Consistency Model": "Software shall not ... overlap the
+	 * source buffer, destination buffer, Atomic Return Data, or
+	 * completion status block."
+	 */
 
 	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
-		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_OP_DMAB_COPY) |
-		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_OPGRP_DMAB));
+		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_COPY) |
+		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_DMAB));
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
+	desc_clear(desc);
 	desc->copy = (struct sdxi_dsc_dmab_copy) {
 		.opcode = cpu_to_le32(opcode),
 		.size = size,
@@ -182,6 +118,7 @@ int sdxi_encode_intr(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
+	desc_clear(desc);
 	desc->intr = (struct sdxi_dsc_intr) {
 		.opcode = cpu_to_le32(opcode),
 		.akey = cpu_to_le16(params->akey),
@@ -210,6 +147,7 @@ int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
+	desc_clear(desc);
 	desc->cxt_start = (struct sdxi_dsc_cxt_start) {
 		.opcode = cpu_to_le32(opcode),
 		.cxt_start = cpu_to_le16(cxt_start),
@@ -239,6 +177,7 @@ int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
+	desc_clear(desc);
 	desc->cxt_stop = (struct sdxi_dsc_cxt_stop) {
 		.opcode = cpu_to_le32(opcode),
 		.cxt_start = cpu_to_le16(cxt_start),
