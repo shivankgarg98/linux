@@ -17,7 +17,6 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
-#include <linux/ptrace.h>
 
 #include "context.h"
 #include "descriptor.h"
