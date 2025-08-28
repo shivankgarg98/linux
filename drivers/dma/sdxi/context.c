@@ -44,7 +44,7 @@ struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 		return NULL;
 
 	sq->ring_entries = ring_entries;
-	sq->ring_size = sizeof(struct sdxi_desc) * sq->ring_entries;
+	sq->ring_size = sizeof(sq->desc_ring[0]) * sq->ring_entries;
 	sq->desc_ring = dma_alloc_coherent(dev, sq->ring_size, &sq->ring_dma,
 					   GFP_KERNEL);
 	if (!sq->desc_ring)
