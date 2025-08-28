@@ -14,7 +14,8 @@
 #include <linux/dmaengine.h>
 
 #include "../dmaengine.h"
-#include "context.h"
+#include "descriptor.h"
+#include "enqueue.h"
 #include "sdxi.h"
 
 struct sdxi_dma_desc {
@@ -66,24 +67,34 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	struct sdxi_dev *sdxi;
 	struct sdxi_cmd *sdxi_cmd;
 	struct sdxi_cxt *cxt;
-	struct sdxi_sq *sq;
-	struct sdxi_desc desc;
+	struct sdxi_desc_new desc;
+	struct sdxi_copy copy;
 	struct sdxi_cst_blk *cst_blk;
 	dma_addr_t cst_blk_dma;
-
+	int err;
 
 	sdxi_cmd = &dma_desc->sdxi_cmd;
 	sdxi = sdxi_cmd->cxt->sdxi;
 
-
-	sdxi->tdata.cmd = sdxi_cmd;
-
-	/* submit to sdxi context */
 	cxt = dma_desc->cxt;
-	sq = cxt->sq;
 
 	if (sdxi_cmd->len > MAX_DMA_COPY_BYTES)
 		return -EINVAL;
+
+	copy = (typeof(copy)) {
+		.src = sdxi_cmd->src_addr,
+		.dst = sdxi_cmd->dst_addr,
+		.src_akey = 0,
+		.dst_akey = 0,
+		.len = sdxi_cmd->len,
+	};
+
+	if ((err = sdxi_encode_copy(&desc, &copy)))
+		return err;
+
+	err = sdxi_encode_copy(&desc, &copy);
+	if (err)
+		return err;
 
 	// FIXME convert to pool
 	cst_blk = dma_alloc_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
@@ -97,15 +108,22 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	sdxi_cmd->cst_blk_dma = cst_blk_dma;
 	sdxi_cmd->ret = 0; // TODO: get desc submit status & update ret value
 
-	build_dma_copy(&desc, sdxi_cmd->len, 0, 0, 0, 0, sdxi_cmd->src_addr,
-		       sdxi_cmd->dst_addr);
-	// tack on the CST_BLK pointer here, we don't want
-	// sdxi_sq_submit_desc() to do it.
-	desc.csb_ptr = cst_blk_dma;
+	sdxi_desc_set_csb(&desc, cst_blk_dma);
+	err = sdxi_enqueue(&desc.qw[0], 1,
+			   (__le64 *)cxt->sq->desc_ring,
+			   cxt->sq->ring_entries,
+			   &cxt->sq->cxt_sts->read_index,
+			   cxt->sq->write_index, cxt->db);
+	if (err)
+		goto free_cst_blk;
 
-	(void)sdxi_sq_submit_desc(sq, &desc, false, 0);
+	sdxi->tdata.cmd = sdxi_cmd; // FIXME: this is not compatible w/multiple clients
 	dma_desc->issued_to_hw = 1;
 	return 0;
+free_cst_blk:
+	dma_free_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
+			  cst_blk, cst_blk_dma);
+	return err;
 }
 
 static struct sdxi_dma_desc *sdxi_next_dma_desc(struct sdxi_dma_chan *chan)
