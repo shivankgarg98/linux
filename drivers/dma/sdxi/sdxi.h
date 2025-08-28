@@ -312,7 +312,6 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
 struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_size);
 struct sdxi_sq *sdxi_sq_alloc_default(struct sdxi_cxt *cxt);
 void sdxi_sq_free(struct sdxi_sq *sq);
-int sdxi_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc);
 
 /* DMA Engine */
 int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
