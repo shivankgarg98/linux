@@ -29,23 +29,14 @@
 #define SDXI_DRV_NAME		"sdxi"
 #define SDXI_DRV_DESC		"SDXI driver"
 
-/***************************/
-/*        DEFAULTS         */
-/***************************/
 #define DEFAULT_ERR_LOG_NUM	64
 #define DEFAULT_RKEY_NUM	256
 #define DEFAULT_AKEY_NUM	256
 
-/***************************/
-/*          MACROS         */
-/***************************/
 #define ID_TO_L2_INDEX(id)	(((id) >> 9) & 0x1FF)
 #define ID_TO_L1_INDEX(id)	((id) & 0x7F)
 #define IS_VF_DEVICE(sdxi)	((sdxi)->is_vf)
 
-/***************************/
-/*          CONSTS         */
-/***************************/
 #define L2_TABLE_ENTRIES	(1 << 9)
 #define L1_TABLE_ENTRIES	(1 << 7)
 #define L2_TABLE_SIZE		4096
@@ -98,10 +89,6 @@
 #define L1_CXT_AKEY_PTR_SHIFT		12
 
 #define MAX_DMA_COPY_BYTES		(1ULL << 32)
-
-/***************************/
-/*         STRUCTS         */
-/***************************/
 
 /* Submission Queue */
 struct sdxi_sq {
@@ -275,10 +262,6 @@ sdxi_dev_supports_privileged_address_space(struct sdxi_dev *sdxi)
 		false;
 }
 
-
-/***************************/
-/*           API           */
-/***************************/
 /* Device Control */
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
