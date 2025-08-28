@@ -40,55 +40,6 @@ void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
 	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
 }
 
-static u64 sdxi_cxt_sts_read_index(const struct sdxi_cxt_sts *sts)
-{
-	return le64_to_cpu(READ_ONCE(sts->read_index));
-}
-
-static void sdxi_sq_ring_doorbell(struct sdxi_sq *sq, u64 value)
-{
-	struct sdxi_cxt *cxt = sq->cxt;
-
-	iowrite64(value, cxt->db);
-}
-
-u64 sdxi_sq_submit_desc(struct sdxi_sq *sq, struct sdxi_desc *desc,
-			bool csb, u64 init_signal)
-{
-	struct sdxi_dev *sdxi = sq->cxt->sdxi;
-	u64 dest;
-
-	if (WARN_ON_ONCE(csb))
-		return -EINVAL;
-
-	/* check context status */
-	if (sdxi_cxt_sts_state(sq->cxt_sts) != CXTV_RUN) {
-		sdxi_err(sdxi, "Context is not running\n");
-		return -EINVAL;
-	}
-
-	/* no more room for any descriptor */
-	if (*sq->write_index + 1 - sdxi_cxt_sts_read_index(sq->cxt_sts) > sq->ring_entries) {
-		sdxi_err(sdxi, "desc ring is full\n");
-		return -EINVAL;
-	}
-
-	/* NB: Atomic_INC */
-	desc->vl = 0;
-	dest = *sq->write_index;
-	dest %= sq->ring_entries;
-	memcpy(&sq->desc_ring[dest], desc, sizeof(struct sdxi_desc));
-	sq->desc_ring[dest].vl = 1;
-	/* make sure the update of valid bit is visible */
-	wmb();
-	*sq->write_index += 1;
-
-	/* ring the door bell */
-	sdxi_sq_ring_doorbell(sq, *sq->write_index);
-
-	return dest;
-}
-
 /* Alloc sdxi_sq in kernel space */
 struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
