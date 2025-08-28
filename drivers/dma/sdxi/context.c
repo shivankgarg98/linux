@@ -21,25 +21,6 @@
 #include "sdxi.h"
 #include "trace.h"
 
-void build_dma_copy(struct sdxi_desc *desc, u32 size, u8 src_attr,
-		    u8 dst_attr, u16 src_akey, u16 dst_akey,
-		    u64 src_addr, u64 dst_addr)
-{
-	memset(desc, 0, sizeof(*desc));
-
-	desc->fe = 1;
-	desc->body[0] |= size - 1; // size is encoded as (actual size - 1)
-	desc->body[1] |= (src_attr & 0xF);
-	desc->body[1] |= ((dst_attr & 0xF) << 4);
-	desc->body[2] |= lower_16_bits(src_akey);
-	desc->body[2] |= upper_16_bits(dst_akey);
-	desc->body[3] = lower_32_bits(src_addr);
-	desc->body[4] = upper_32_bits(src_addr);
-	desc->body[5] = lower_32_bits(dst_addr);
-	desc->body[6] = upper_32_bits(dst_addr);
-	DESC_BUILD_TYPE(desc, OP_TYPE_DMA, OP_DMA_COPY);
-}
-
 /* Alloc sdxi_sq in kernel space */
 struct sdxi_sq *sdxi_sq_alloc(struct sdxi_cxt *cxt, int ring_entries)
 {
