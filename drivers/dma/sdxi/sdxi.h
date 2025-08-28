@@ -102,11 +102,6 @@
 /***************************/
 /*         STRUCTS         */
 /***************************/
-enum sdxi_cxt_id {
-	SDXI_ADMIN_CXT_ID = 0,
-	SDXI_DMA_CXT_ID = 1,
-	SDXI_ANY_CXT_ID,
-};
 
 /* Submission Queue */
 struct sdxi_sq {
@@ -287,12 +282,6 @@ sdxi_dev_supports_privileged_address_space(struct sdxi_dev *sdxi)
 /* Device Control */
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
-
-/* Context Control */
-void sdxi_cxt_free(struct sdxi_cxt *cxt);
-struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
-				       enum sdxi_cxt_id);
-void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
 
 /* DMA Engine */
 int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
