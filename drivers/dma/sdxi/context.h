@@ -3,9 +3,6 @@
  * Header for sq and descriptor management
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
- *
  */
 
 #ifndef __SDXI_SQ_H

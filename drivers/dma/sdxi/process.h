@@ -3,9 +3,6 @@
  * User space process management
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
- *
  */
 
 #ifndef __SDXI_PROCESS_H

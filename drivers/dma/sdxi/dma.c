@@ -4,10 +4,6 @@
  *   Derived from ptdma code
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
- * Author: Sanjay R Mehta <sanju.mehta@amd.com>
- *
  */
 
 #include <linux/dma-mapping.h>

@@ -3,8 +3,6 @@
  * SDXI tracepoints header
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
  */
 #undef TRACE_SYSTEM
 #define TRACE_SYSTEM sdxi

@@ -3,8 +3,6 @@
  * User space process management (IOMMU, PASID, etc.)
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
  */
 
 #include <linux/device.h>

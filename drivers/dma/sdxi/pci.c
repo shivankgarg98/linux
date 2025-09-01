@@ -3,8 +3,6 @@
  * SDXI PCI device code
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
- *
- * Author: Wei Huang <wei.huang2@amd.com>
  */
 
 
