@@ -3,7 +3,7 @@
  * SDXI DMA engine implementation
  *   Derived from ptdma code
  *
- * Copyright (C) 2022 AMD, Inc. All rights reserved.
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
  *
  * Author: Wei Huang <wei.huang2@amd.com>
  * Author: Sanjay R Mehta <sanju.mehta@amd.com>
