@@ -77,7 +77,8 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 	__le32 size;
 	int err;
 
-	if ((err = sdxi_encode_size32(params->len, &size)))
+	err = sdxi_encode_size32(params->len, &size);
+	if (err)
 		return err;
 	/*
 	 * TODO: reject overlapping src and dst. Quoting "Memory
