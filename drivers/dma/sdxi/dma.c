@@ -85,7 +85,8 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 		.len = sdxi_cmd->len,
 	};
 
-	if ((err = sdxi_encode_copy(&desc, &copy)))
+	err = sdxi_encode_copy(&desc, &copy);
+	if (err)
 		return err;
 
 	err = sdxi_encode_copy(&desc, &copy);
