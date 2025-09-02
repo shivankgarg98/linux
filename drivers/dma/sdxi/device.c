@@ -18,7 +18,6 @@
 
 #include "context.h"
 #include "descriptor.h"
-#include "enqueue.h"
 #include "hw.h"
 #include "error.h"
 #include "sdxi.h"
@@ -370,11 +369,7 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	if (err)
 		goto fn_stop;
 
-	err = sdxi_enqueue(&desc.qw[0], 1,
-			   (__le64 *)admin_cxt->sq->desc_ring,
-			   admin_cxt->sq->ring_entries,
-			   &admin_cxt->sq->cxt_sts->read_index,
-			   admin_cxt->sq->write_index, admin_cxt->db);
+	err = sdxi_submit_desc(admin_cxt, &desc);
 	if (err)
 		goto fn_stop; // any other unwind? shouldn't this all be gated by dma_engine?
 
