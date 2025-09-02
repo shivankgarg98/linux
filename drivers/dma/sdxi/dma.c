@@ -11,7 +11,7 @@
 
 #include "../dmaengine.h"
 #include "descriptor.h"
-#include "enqueue.h"
+#include "context.h"
 #include "sdxi.h"
 
 struct sdxi_dma_desc {
@@ -106,11 +106,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	sdxi_cmd->ret = 0; // TODO: get desc submit status & update ret value
 
 	sdxi_desc_set_csb(&desc, cst_blk_dma);
-	err = sdxi_enqueue(&desc.qw[0], 1,
-			   (__le64 *)cxt->sq->desc_ring,
-			   cxt->sq->ring_entries,
-			   &cxt->sq->cxt_sts->read_index,
-			   cxt->sq->write_index, cxt->db);
+	err = sdxi_submit_desc(cxt, &desc);
 	if (err)
 		goto free_cst_blk;
 
