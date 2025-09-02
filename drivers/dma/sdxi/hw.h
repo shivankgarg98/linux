@@ -164,7 +164,7 @@ static_assert(sizeof(struct sdxi_cst_blk) == 32);
 	static_assert(sizeof (struct tag_) ==				\
 		      sizeof(struct sdxi_dsc_generic));			\
 	static_assert(offsetof(struct tag_, csb_ptr) ==			\
-		      offsetof(struct sdxi_dsc_generic, csb_ptr));
+		      offsetof(struct sdxi_dsc_generic, csb_ptr))
 
 struct sdxi_desc {
 	union {
