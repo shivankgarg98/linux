@@ -264,10 +264,6 @@ sdxi_dev_supports_privileged_address_space(struct sdxi_dev *sdxi)
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
 
-/* DMA Engine */
-int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
-void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
-
 /* Chardev (IOCTL) */
 int sdxi_chardev_init(void);
 void sdxi_chardev_exit(void);

@@ -18,6 +18,7 @@
 
 #include "context.h"
 #include "descriptor.h"
+#include "dma.h"
 #include "hw.h"
 #include "error.h"
 #include "sdxi.h"

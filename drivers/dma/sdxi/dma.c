@@ -10,8 +10,9 @@
 #include <linux/dmaengine.h>
 
 #include "../dmaengine.h"
-#include "descriptor.h"
 #include "context.h"
+#include "descriptor.h"
+#include "dma.h"
 #include "sdxi.h"
 
 struct sdxi_dma_desc {
