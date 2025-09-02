@@ -4,7 +4,7 @@
 
 #include <linux/types.h>
 
-int sdxi_enqueue(__le64 *const enq_entries, // Ptr to entries to enqueue
+int sdxi_enqueue(const __le64 *enq_entries, // Ptr to entries to enqueue
 		 u64 enq_num, // Number of entries to enqueue
 		 __le64 *ring_base, // Ptr to ring location
 		 u64 ring_size, // (Ring Size in bytes)/64
