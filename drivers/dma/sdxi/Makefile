@@ -2,9 +2,6 @@
 
 ccflags-$(CONFIG_SDXI_DEBUG) += -DDEBUG
 
-# temp hack for noisy UML builds w/clang
-# subdir-ccflags-y += -Wno-null-pointer-arithmetic
-
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
