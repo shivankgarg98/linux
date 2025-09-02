@@ -494,12 +494,12 @@ int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc)
 
 	sq = cxt->sq;
 	ring_entries = sq->ring_entries;
-	ring_base = &sq->desc_ring[0].qw[0];
+	ring_base = sq->desc_ring[0].qw;
 	rd_idx = &sq->cxt_sts->read_index;
 	wr_idx = sq->write_index;
 	db = cxt->db;
 
-	return sdxi_enqueue(ring_base, 1, ring_base, ring_entries,
+	return sdxi_enqueue(desc->qw, 1, ring_base, ring_entries,
 			    rd_idx, wr_idx, db);
 }
 
