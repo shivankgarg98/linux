@@ -34,11 +34,11 @@
 
 #include <asm/barrier.h>
 #include <asm/byteorder.h>
-#include <asm/processor.h>
 #include <asm/rwonce.h>
 #include <linux/atomic.h>
 #include <linux/errno.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
+#include <linux/processor.h>
 #include <linux/types.h>
 
 #include "enqueue.h"
@@ -57,19 +57,20 @@ static int update_ring(__le64 * const enq_entries, // Ptr to entries to enqueue
 		       u64 ring_size,              // (Ring Size in bytes)/64
 		       u64 index)                  // Starting ring index to update
 {
-	for (u64 i = 0; i < enq_num; i++){
+	for (u64 i = 0; i < enq_num; i++) {
 		__le64 *ringp = ring_base + ((index + i) % ring_size) * SDXI_DS_NUM_QW;
 		__le64 *entryp = enq_entries + (i * SDXI_DS_NUM_QW);
-		for (u64 j = 1; j < SDXI_DS_NUM_QW; j++ ){
+
+		for (u64 j = 1; j < SDXI_DS_NUM_QW; j++)
 			*(ringp + j) = *(entryp + j);
-		}
 	}
 
 	// Now write the first QW of the new entries to the ring.
 	dma_wmb();
-	for (u64 i = 0; i < enq_num; i++){
+	for (u64 i = 0; i < enq_num; i++) {
 		__le64 *ringp = ring_base + ((index + i) % ring_size) * SDXI_DS_NUM_QW;
 		__le64 *entryp = enq_entries + (i * SDXI_DS_NUM_QW);
+
 		*ringp = *entryp;
 	}
 
@@ -82,7 +83,7 @@ int sdxi_enqueue(__le64 *const enq_entries,                // Ptr to entries to 
 		 u64 ring_size,                            // (Ring Size in bytes)/64
 		 __le64 const volatile * const Read_Index, // Ptr to Read_Index location
 		 __le64 volatile * const Write_Index,      // Ptr to Write_Index location
-		 __le64 __iomem * Door_Bell)        // Ptr to Ring Doorbell location
+		 __le64 __iomem *Door_Bell)        // Ptr to Ring Doorbell location
 {
 	u64 old_write_idx;
 	u64 new_idx;
