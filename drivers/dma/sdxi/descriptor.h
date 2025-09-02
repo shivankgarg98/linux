@@ -4,6 +4,8 @@
 
 /*
  * Facilities for encoding SDXI descriptors.
+ *
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
 #include <asm/byteorder.h>
