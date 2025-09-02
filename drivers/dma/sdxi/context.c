@@ -483,6 +483,26 @@ static const char *cxt_sts_state_str(enum cxt_sts_state state)
 	return str;
 }
 
+int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc)
+{
+	struct sdxi_sq *sq;
+	__le64 __iomem *db;
+	__le64 *ring_base;
+	u64 ring_entries;
+	__le64 *rd_idx;
+	__le64 *wr_idx;
+
+	sq = cxt->sq;
+	ring_entries = sq->ring_entries;
+	ring_base = &sq->desc_ring[0].qw[0];
+	rd_idx = &sq->cxt_sts->read_index;
+	wr_idx = sq->write_index;
+	db = cxt->db;
+
+	return sdxi_enqueue(ring_base, 1, ring_base, ring_entries,
+			    rd_idx, wr_idx, db);
+}
+
 static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 {
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
@@ -501,16 +521,12 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		 __func__, cxt_sts_state_str(state));
 
 	err = sdxi_encode_cxt_stop(&desc, &params);
-	err = sdxi_enqueue(&desc.qw[0], 1,
-			   (__le64 *)admin_cxt->sq->desc_ring,
-			   admin_cxt->sq->ring_entries,
-			   &admin_cxt->sq->cxt_sts->read_index,
-			   admin_cxt->sq->write_index, admin_cxt->db);
-	if (err) {
-		sdxi_err(sdxi, "error %d shutting down context %u\n",
-			 err, cxtid);
+	if (err)
 		return;
-	}
+
+	err = sdxi_submit_desc(admin_cxt, &desc);
+	if (err)
+		return;
 
 	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
 
