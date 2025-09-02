@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * SDXI descriptor encoding tests.
+ *
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
+ */
 #include <kunit/device.h>
 #include <kunit/test-bug.h>
 #include <kunit/test.h>
@@ -152,7 +158,7 @@ static struct kunit_case generic_desc_tcs[] = {
 
 static int generic_desc_setup_device(struct kunit *t)
 {
-	struct device *dev = kunit_device_register(t, "sdxi-mock-device");;
+	struct device *dev = kunit_device_register(t, "sdxi-mock-device");
 
 	KUNIT_ASSERT_NOT_ERR_OR_NULL(t, dev);
 	t->priv = dev;
