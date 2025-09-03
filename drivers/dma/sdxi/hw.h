@@ -161,7 +161,7 @@ static_assert(sizeof(struct sdxi_cst_blk) == 32);
 		op_body_						\
 		__le64 csb_ptr;						\
 	} name_;							\
-	static_assert(sizeof (struct tag_) ==				\
+	static_assert(sizeof(struct tag_) ==				\
 		      sizeof(struct sdxi_dsc_generic));			\
 	static_assert(offsetof(struct tag_, csb_ptr) ==			\
 		      offsetof(struct sdxi_dsc_generic, csb_ptr))
