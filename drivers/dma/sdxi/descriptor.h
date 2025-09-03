@@ -84,8 +84,10 @@ struct sdxi_cxt_stop {
 int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 			  const struct sdxi_cxt_stop *params);
 
-// Fields common to all SDXI descriptors in "unpacked" form, for use
-// with pack_fields() and unpack_fields().
+/*
+ * Fields common to all SDXI descriptors in "unpacked" form, for use
+ * with pack_fields() and unpack_fields().
+ */
 struct sdxi_desc_unpacked {
 	u64 csb_ptr;
 	u16 type;
