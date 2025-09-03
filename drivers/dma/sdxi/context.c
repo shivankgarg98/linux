@@ -165,8 +165,10 @@ static void set_cxt_l2_entry(struct sdxi_cxt_l2_ent *l2_entry,
 				   l1_table_dma >> ilog2(SZ_4K)) |
 		    FIELD_PREP(SDXI_CXT_L2_ENT_VL, 1));
 
-	// Ensure the valid bit update follows prior updates to other
-	// control structures.
+	/*
+	 * Ensure the valid bit update follows prior updates to other
+	 * control structures.
+	 */
 	dma_wmb();
 	WRITE_ONCE(l2_entry->lv01_ptr, cpu_to_le64(lv01_ptr));
 }
@@ -222,7 +224,7 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 	l2_idx = ID_TO_L2_INDEX(cxt->id);
 	l1_idx = ID_TO_L1_INDEX(cxt->id);
 
-	// Allocate L1 table if not present.
+	/* Allocate L1 table if not present. */
 	l1_table = sdxi->l1_table_array[l2_idx];
 	if (!l1_table) {
 		struct sdxi_cxt_l2_ent *l2_entry;
@@ -234,15 +236,15 @@ static int config_cxt_tables(struct sdxi_dev *sdxi,
 		if (!l1_table)
 			return -ENOMEM;
 
-		// Track the L1 table vaddr.
+		/* Track the L1 table vaddr. */
 		sdxi->l1_table_array[l2_idx] = l1_table;
 
-		// Install the new entry in the L2 table.
+		/* Install the new entry in the L2 table. */
 		l2_entry = &sdxi->l2_table->entry[l2_idx];
 		set_cxt_l2_entry(l2_entry, l1_table_dma);
 	}
 
-	// Populate the L1 entry.
+	/* Populate the L1 entry. */
 	l1_entry = &l1_table->entry[l1_idx];
 	set_cxt_l1_entry(cxt->sdxi, l1_entry, cxt);
 
@@ -263,7 +265,7 @@ static void clear_cxt_table_entries(struct sdxi_cxt_l2_table *l2_table,
 
 	memset(l1_entry, 0, sizeof(*l1_entry));
 
-	// If this L1 table has been completely zeroed then free it.
+	/* If this L1 table has been completely zeroed then free it. */
 	if (memchr_inv(l1_table, 0, L1_TABLE_SIZE))
 		return;
 
@@ -288,7 +290,7 @@ static void cleanup_cxt_tables(struct sdxi_dev *sdxi,
 
 	l1_table = sdxi->l1_table_array[l2_idx];
 	/* clear l1 entry */
-	// FIXME combine clear_cxt_table_entries and this function
+	/* FIXME combine clear_cxt_table_entries and this function */
 	clear_cxt_table_entries(sdxi->l2_table, l1_table, cxt);
 }
 
@@ -421,12 +423,12 @@ struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 	bool privileged;
 
 	switch (id) {
-	case SDXI_ANY_CXT_ID: // User context
+	case SDXI_ANY_CXT_ID:  /* User context */
 		privileged = false;
 		if (force_pr_for_user_contexts)
 			privileged = true;
 		break;
-	default: // kernel context
+	default:  /* kernel context */
 		privileged = true;
 		break;
 	}
@@ -547,7 +549,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 		case CXTV_RUN:
 		case CXTV_STOPG_SW:
 		case CXTV_STOPG_FN:
-			// transitional states
+			/* transitional states */
 			fsleep(1000);
 			break;
 		default:
