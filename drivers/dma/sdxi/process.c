@@ -107,8 +107,10 @@ void sdxi_unbind_process_to_device(struct sdxi_process *process)
 {
 	struct sdxi_cxt *cxt = process->cxt;
 
-	// FIXME: Can either of these really happen? Are they
-	// WARN_ON()-worthy?
+	/*
+	 * FIXME: Can either of these really happen? Are they
+	 * WARN_ON()-worthy?
+	 */
 	if (!cxt || !process->sva)
 		return;
 
