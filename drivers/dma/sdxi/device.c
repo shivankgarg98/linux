@@ -116,7 +116,7 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 			return -EIO;
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOP:
-			// transitional states, wait
+			/* transitional states, wait */
 			fsleep(1000);
 			break;
 		default:
@@ -130,7 +130,7 @@ static int sdxi_dev_start(struct sdxi_dev *sdxi)
 	return -ETIMEDOUT;
 }
 
-// Get the device to the GSV_STOP state.
+/* Get the device to the GSV_STOP state. */
 static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 {
 	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
@@ -160,7 +160,7 @@ static int sdxi_dev_stop(struct sdxi_dev *sdxi)
 		case SDXI_GSV_INIT:
 		case SDXI_GSV_STOPG_SF:
 		case SDXI_GSV_STOPG_HD:
-			// transitional states, wait
+			/* transitional states, wait */
 			sdxi_dbg(sdxi, "waiting for stop (gsv = %u)\n",
 				 status);
 			fsleep(1000);
@@ -181,7 +181,7 @@ static void sdxi_stop(struct sdxi_dev *sdxi)
 	sdxi_dev_stop(sdxi);
 }
 
-// Refer to "Activation of the SDXI Function by Software".
+/* Refer to "Activation of the SDXI Function by Software". */
 static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 {
 	const struct sdxi_dev_ops *ops = sdxi->dev_ops;
@@ -192,14 +192,16 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 	u64 ctl2;
 	int err;
 
-	// Clear any existing configuration from MMIO_CTL0 and ensure
-	// the function is in GSV_STOP state.
+	/*
+	 * Clear any existing configuration from MMIO_CTL0 and ensure
+	 * the function is in GSV_STOP state.
+	 */
 	sdxi_write64(sdxi, SDXI_MMIO_CTL0, 0);
 	err = sdxi_dev_stop(sdxi);
 	if (err)
 		return err;
 
-	// Determine which spec version the function implements.
+	/* Determine which spec version the function implements. */
 	version = sdxi_read64(sdxi, SDXI_MMIO_VERSION);
 	sdxi->sdxi_version = (sdxi_version_t){
 		.major = FIELD_GET(SDXI_MMIO_VERSION_MAJOR, version),
@@ -220,8 +222,10 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 			 "Setting 'pr' bit on kernel-private control structures\n");
 	}
 
-	// 1.a. Discover limits and implemented features via MMIO_CAP0
-	// and MMIO_CAP1.
+	/*
+	 * 1.a. Discover limits and implemented features via MMIO_CAP0
+	 * and MMIO_CAP1.
+	 */
 	cap0 = sdxi_read64(sdxi, SDXI_MMIO_CAP0);
 	sdxi->sfunc = FIELD_GET(SDXI_MMIO_CAP0_SFUNC, cap0);
 	sdxi->max_ring_entries = SZ_1K;
@@ -235,9 +239,11 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 	sdxi->max_cxts = 1 + FIELD_GET(SDXI_MMIO_CAP1_MAX_CXT, cap1);
 	sdxi->op_grp_cap = FIELD_GET(SDXI_MMIO_CAP1_OPB_000_CAP, cap1);
 
-	// 1.b. Configure SDXI parameters via MMIO_CTL2. We don't have
-	// any reason to impose more conservative limits than those
-	// reported in the capability registers, so use those for now.
+	/*
+	 * 1.b. Configure SDXI parameters via MMIO_CTL2. We don't have
+	 * any reason to impose more conservative limits than those
+	 * reported in the capability registers, so use those for now.
+	 */
 	ctl2 = 0;
 	ctl2 |= FIELD_PREP(SDXI_MMIO_CTL2_MAX_BUFFER,
 			   FIELD_GET(SDXI_MMIO_CAP1_MAX_BUFFER, cap1));
@@ -254,64 +260,78 @@ static int sdxi_fn_activate(struct sdxi_dev *sdxi)
 		 sdxi->sfunc, sdxi->max_ring_entries, sdxi->db_stride,
 		 sdxi->max_akeys, sdxi->max_cxts, sdxi->op_grp_cap);
 
-	// 2.a-2.b. Allocate and zero the 4KB Context Level 2 Table
+	/* 2.a-2.b. Allocate and zero the 4KB Context Level 2 Table */
 	sdxi->l2_table = dmam_alloc_coherent(sdxi_to_dev(sdxi), L2_TABLE_SIZE,
 					     &sdxi->l2_dma, GFP_KERNEL);
 	if (!sdxi->l2_table)
 		return -ENOMEM;
 
-	// 2.c. Program MMIO_CXT_L2
+	/* 2.c. Program MMIO_CXT_L2 */
 	cxt_l2 = FIELD_PREP(SDXI_MMIO_CXT_L2_PTR, sdxi->l2_dma >> ilog2(SZ_4K));
 	sdxi_write64(sdxi, SDXI_MMIO_CXT_L2, cxt_l2);
 
-	// 2.c.i. TODO: Program MMIO_CTL0.fn_pasid and
-	// MMIO_CTL0.fn_pasid if guest virtual addressing required.
+	/*
+	 * 2.c.i. TODO: Program MMIO_CTL0.fn_pasid and
+	 * MMIO_CTL0.fn_pasid if guest virtual addressing required.
+	 */
 
-	// This covers the following steps:
-	//
-	// 3. Context Level 1 Table Setup for contexts 0..127.
-	// 4.a. Create the administrative context and associated control
-	//      structures.
-	// 4.b. Set its CXT_STS.state to CXTV_RUN; see 10.b.
-	//
-	// The admin context will not consume descriptors until we
-	// write its doorbell later.
+	/*
+	 * This covers the following steps:
+	 *
+	 * 3. Context Level 1 Table Setup for contexts 0..127.
+	 * 4.a. Create the administrative context and associated control
+	 * structures.
+	 * 4.b. Set its CXT_STS.state to CXTV_RUN; see 10.b.
+	 *
+	 * The admin context will not consume descriptors until we
+	 * write its doorbell later.
+	 */
 	sdxi->admin_cxt = sdxi_working_cxt_init(sdxi, SDXI_ADMIN_CXT_ID);
 	if (!sdxi->admin_cxt)
 		return -ENOMEM;
 
-	// 5. Mailbox: we don't use this facility and we assume the
-	// reset values are sane.
+	/*
+	 * 5. Mailbox: we don't use this facility and we assume the
+	 * reset values are sane.
+	 *
+	 * 6. If restoring saved state, adjust as appropriate. (We're not.)
+	 */
 
-	// 6. If restoring saved state, adjust as appropriate. (We're not.)
-
-	// MSI allocation is informed by the function's maximum
-	// supported contexts, which was discovered in 1.a. Need to do
-	// this before step 7, which claims an IRQ.
+	/*
+	 * MSI allocation is informed by the function's maximum
+	 * supported contexts, which was discovered in 1.a. Need to do
+	 * this before step 7, which claims an IRQ.
+	 */
 	err = (ops && ops->irq_init) ? ops->irq_init(sdxi) : 0;
 	if (err)
 		goto admin_cxt_exit;
 
-	// 7. Initialize error log according to "Error Log Initialization".
+	/* 7. Initialize error log according to "Error Log Initialization". */
 	err = sdxi_error_init(sdxi);
 	if (err)
 		goto irq_exit;
 
-	// 8. "Software may also need to configure and enable
-	// additional [features]". We've already performed MSI setup,
-	// nothing else for us to do here for now.
+	/*
+	 * 8. "Software may also need to configure and enable
+	 * additional [features]". We've already performed MSI setup,
+	 * nothing else for us to do here for now.
+	 */
 
-	// 9. Set MMIO_CTL0.fn_gsr to GSRV_ACTIVE and wait for
-	// MMIO_STS0.fn_gsv to reach GSV_ACTIVE or GSV_ERROR.
+	/*
+	 * 9. Set MMIO_CTL0.fn_gsr to GSRV_ACTIVE and wait for
+	 * MMIO_STS0.fn_gsv to reach GSV_ACTIVE or GSV_ERROR.
+	 */
 	err = sdxi_dev_start(sdxi);
 	if (err)
 		goto error_exit;
 
-	// 10. Jump start the admin context. This step refers to
-	// "Starting A context and Context Signaling," where method #3
-	// recommends writing an "appropriate" value to the doorbell
-	// register. We haven't queued any descriptors to the admin
-	// context at this point, so the appropriate value would be 0.
+	/*
+	 * 10. Jump start the admin context. This step refers to
+	 * "Starting A context and Context Signaling," where method #3
+	 * recommends writing an "appropriate" value to the doorbell
+	 * register. We haven't queued any descriptors to the admin
+	 * context at this point, so the appropriate value would be 0.
+	 */
 	iowrite64(0, sdxi->admin_cxt->db);
 
 	return 0;
@@ -336,9 +356,11 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	sdxi->dev_ops = ops;
 
-	// FIXME: the PAGE_SIZE for the pools' object size+align is a
-	// temporary hack for the uAPI's sake. These should be
-	// reverted to the real object sizes once that's dealt with.
+	/*
+	 * FIXME: the PAGE_SIZE for the pools' object size+align is a
+	 * temporary hack for the uAPI's sake. These should be reverted
+	 * to the real object sizes once that's dealt with.
+	 */
 	sdxi->write_index_pool = dmam_pool_create("Write_Index", sdxi_to_dev(sdxi),
 						  PAGE_SIZE, PAGE_SIZE, 0);
 	sdxi->cxt_sts_pool = dmam_pool_create("CXT_STS", sdxi_to_dev(sdxi),
@@ -372,9 +394,9 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 	err = sdxi_submit_desc(admin_cxt, &desc);
 	if (err)
-		goto fn_stop; // any other unwind? shouldn't this all be gated by dma_engine?
+		goto fn_stop; /* any other unwind? shouldn't this all be gated by dma_engine? */
 
-	// Set up DMA engine provider.
+	/* Set up DMA engine provider. */
 	if (dma_engine)
 		sdxi_dma_register(sdxi->dma_cxt);
 
@@ -391,26 +413,26 @@ void sdxi_device_exit(struct sdxi_dev *sdxi)
 
 	sdxi_working_cxt_exit(sdxi->dma_cxt);
 
-	// Walk sdxi->cxt_array freeing any allocated rows.
+	/* Walk sdxi->cxt_array freeing any allocated rows. */
 	for (size_t i = 0; i < L2_TABLE_ENTRIES; ++i) {
 		if (!sdxi->cxt_array[i])
 			continue;
-		// When a context is released its entry in the table should be NULL.
+		/* When a context is released its entry in the table should be NULL. */
 		for (size_t j = 0; j < L1_TABLE_ENTRIES; ++j) {
 			struct sdxi_cxt *cxt = sdxi->cxt_array[i][j];
 
 			if (!cxt)
 				continue;
-			if (cxt->id != 0) // admin context shutdown is last
+			if (cxt->id != 0)  /* admin context shutdown is last */
 				sdxi_working_cxt_exit(cxt);
 			sdxi->cxt_array[i][j] = NULL;
 		}
-		if (i != 0) // another special case for admin cxt
+		if (i != 0)  /* another special case for admin cxt */
 			kfree(sdxi->cxt_array[i]);
 	}
 
 	sdxi_working_cxt_exit(sdxi->admin_cxt);
-	kfree(sdxi->cxt_array[0]); // ugh
+	kfree(sdxi->cxt_array[0]);  /* ugh */
 
 	sdxi_stop(sdxi);
 	sdxi_error_exit(sdxi);
