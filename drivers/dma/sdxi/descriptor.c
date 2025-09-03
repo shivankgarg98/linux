@@ -57,11 +57,14 @@ static void desc_clear(struct sdxi_desc *desc)
 
 static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
 {
-	// sizes are encoded as value - 1:
-	// value    encoding
-	//    1           0
-	//    2           1
-	//   4G  0xffffffff
+	/*
+	 * sizes are encoded as value - 1:
+	 * value    encoding
+	 *     1           0
+	 *     2           1
+	 *   ...
+	 *    4G  0xffffffff
+	 */
 	if (WARN_ON_ONCE(size > SZ_4G) ||
 	    WARN_ON_ONCE(size == 0))
 		return -EINVAL;
