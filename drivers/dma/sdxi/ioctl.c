@@ -46,17 +46,21 @@ static struct sdxi_cxt *sdxi_working_cxt_alloc(void)
 	struct pci_dev *pdev;
 	int err;
 
-	// This is a temporary hack until the main device init code is
-	// reworked to create a chardev for each SDXI function.
+	/*
+	 * This is a temporary hack until the main device init code is
+	 * reworked to create a chardev for each SDXI function.
+	 */
 	pdev = pci_get_class(PCI_CLASS_ACCELERATOR_SDXI, NULL);
 	if (!pdev)
 		return ERR_PTR(-ENODEV);
 
 	sdxi = pci_get_drvdata(pdev);
 
-	// It would be better to keep the device refcount elevated until
-	// context exit, but we anticipate rewriting this
-	// significantly anyway.
+	/*
+	 * It would be better to keep the device refcount elevated until
+	 * context exit, but we anticipate rewriting this
+	 * significantly anyway.
+	 */
 	pci_dev_put(pdev);
 
 	cxt = sdxi_working_cxt_init(sdxi, SDXI_ANY_CXT_ID);
@@ -143,9 +147,9 @@ static int sdxi_cxt_struct_mmap(struct sdxi_process *process,
 	vm_flags_set(vma, VM_IO | VM_DONTCOPY | VM_DONTEXPAND | VM_NORESERVE |
 		     VM_DONTDUMP | VM_PFNMAP);
 
-	//vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	/* vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot); */
 
-	//pfn = PFN_DOWN(__pa(ptr));
+	/* pfn = PFN_DOWN(__pa(ptr)); */
 	pfn = virt_to_phys(ptr)>>PAGE_SHIFT;
 
 	/* mapping pages to user process */
@@ -164,13 +168,15 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 	u32 pasid;
 	int err = 0;
 
-	// I doubt the utility of this field and think we should get
-	// rid of it, but we should validate it as long as it's there.
+	/*
+	 * I doubt the utility of this field and think we should get
+	 * rid of it, but we should validate it as long as it's there.
+	 */
 	if (args->cxt_type != SDXI_CXT_TYPE_USER)
 		return -EINVAL;
 
-	// This is the only ring size we allocate for user space right now.
-	if (args->ring_entries != 1024) // see sdxi_sq_alloc_default()
+	/* This is the only ring size we allocate for user space right now. */
+	if (args->ring_entries != 1024)  /* see sdxi_sq_alloc_default() */
 		return -EINVAL;
 
 	/* We actually skip the configuration from user. Need to be used */
@@ -278,7 +284,7 @@ static int sdxi_mmap(struct file *filp, struct vm_area_struct *vma)
 			    .cmd_drv = 0, .name = #ioctl}
 
 static struct sdxi_ioctl_desc sdxi_ioctls[] = {
-	// FIXME: empty entry at 0
+	/* FIXME: empty entry at 0 */
 	SDXI_IOCTL_DEF(SDXI_CREATE_CXT,
 		       sdxi_ioctl_create_cxt, 0),
 
