@@ -5,7 +5,6 @@
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
-
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/delay.h>
@@ -27,8 +26,10 @@
 #include "process.h"
 #include "sdxi.h"
 
-// SDXI devices signal message 0 on error conditions, see "Error
-// Logging Control and Status Registers".
+/*
+ * SDXI devices signal message 0 on error conditions, see "Error
+ * Logging Control and Status Registers".
+ */
 #define ERROR_IRQ_MSG 0
 
 /* MMIO BARs */
@@ -86,7 +87,7 @@ static int sdxi_pci_map(struct sdxi_dev *sdxi)
 
 	sdxi->dbs_bar = pci_resource_start(pdev, MMIO_DOORBELL_BAR);
 
-	// FIXME: pcim_iomap_table may return NULL, and it's deprecated.
+	/* FIXME: pcim_iomap_table may return NULL, and it's deprecated. */
 	sdxi->ctrl_regs = pcim_iomap_table(pdev)[MMIO_CTL_REGS_BAR];
 	sdxi->dbs = pcim_iomap_table(pdev)[MMIO_DOORBELL_BAR];
 	if (!sdxi->ctrl_regs || !sdxi->dbs) {
