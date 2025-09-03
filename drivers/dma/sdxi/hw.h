@@ -28,7 +28,7 @@
 #include <linux/stddef.h>
 #include <linux/types.h>
 
-// Context Level 2 Table Entry (CXT_L2_ENT)
+/* Context Level 2 Table Entry (CXT_L2_ENT) */
 struct sdxi_cxt_l2_ent {
 	__le64 lv01_ptr;
 #define SDXI_CXT_L2_ENT_LV01_PTR GENMASK_ULL(63, 12)
@@ -45,7 +45,7 @@ struct sdxi_cxt_l2_table {
 };
 static_assert(sizeof(struct sdxi_cxt_l2_table) == 4096);
 
-// Context level 1 table entry (CXT_L1_ENT)
+/* Context level 1 table entry (CXT_L1_ENT) */
 struct sdxi_cxt_l1_ent {
 	__le64 cxt_ctl_ptr;
 #define SDXI_CXT_L1_ENT_VL             BIT_ULL(0)
@@ -70,7 +70,7 @@ struct sdxi_cxt_l1_table {
 };
 static_assert(sizeof(struct sdxi_cxt_l1_table) == 4096);
 
-// Context control block (CXT_CTL)
+/* Context control block (CXT_CTL) */
 struct sdxi_cxt_ctl {
 	__le64 ds_ring_ptr;
 #define SDXI_CXT_CTL_VL             BIT_ULL(0)
@@ -88,7 +88,7 @@ struct sdxi_cxt_ctl {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_ctl) == 64);
 
-// Context Status (CXT_STS)
+/* Context Status (CXT_STS) */
 struct sdxi_cxt_sts {
 	__u8 state;
 #define SDXI_CXT_STS_STATE GENMASK(3, 0)
@@ -98,7 +98,7 @@ struct sdxi_cxt_sts {
 } __packed;
 static_assert(sizeof(struct sdxi_cxt_sts) == 16);
 
-// Valid values for FIELD_GET(SDXI_CXT_STS_STATE, sdxi_cxt_sts.state)
+/* Valid values for FIELD_GET(SDXI_CXT_STS_STATE, sdxi_cxt_sts.state) */
 enum cxt_sts_state {
 	CXTV_STOP_SW  = 0x0,
 	CXTV_RUN      = 0x1,
@@ -113,7 +113,7 @@ static inline enum cxt_sts_state sdxi_cxt_sts_state(const struct sdxi_cxt_sts *s
 	return FIELD_GET(SDXI_CXT_STS_STATE, READ_ONCE(sts->state));
 }
 
-// Access key entry (AKEY_ENT)
+/* Access key entry (AKEY_ENT) */
 struct sdxi_akey_ent {
 	__le16 intr_num;
 #define SDXI_AKEY_ENT_VL BIT(0)
@@ -129,7 +129,7 @@ struct sdxi_akey_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_akey_ent) == 16);
 
-// Error Log Header Entry (ERRLOG_HD_ENT)
+/* Error Log Header Entry (ERRLOG_HD_ENT) */
 struct sdxi_errlog_hd_ent {
 	__le32 opcode;
 	__le16 misc0;
@@ -142,7 +142,7 @@ struct sdxi_errlog_hd_ent {
 } __packed;
 static_assert(sizeof(struct sdxi_errlog_hd_ent) == 64);
 
-// Completion status block (CST_BLK)
+/* Completion status block (CST_BLK) */
 struct sdxi_cst_blk {
 	__le64 signal;
 	__le32 flags;
@@ -151,8 +151,10 @@ struct sdxi_cst_blk {
 } __packed;
 static_assert(sizeof(struct sdxi_cst_blk) == 32);
 
-// Size of the "body" of each descriptor between the common opcode and
-// csb_ptr fields.
+/*
+ * Size of the "body" of each descriptor between the common opcode and
+ * csb_ptr fields.
+ */
 #define DSC_OPERATION_BYTES 52
 
 #define define_sdxi_dsc(tag_, name_, op_body_)				\
@@ -170,7 +172,7 @@ struct sdxi_desc {
 	union {
 		__le64 qw[8];
 
-		// DSC_GENERIC - common header and footer
+		/* DSC_GENERIC - common header and footer */
 		struct_group_tagged(sdxi_dsc_generic, generic,
 			__le32 opcode;
 #define SDXI_DSC_VL  BIT(0)
@@ -188,14 +190,14 @@ struct sdxi_desc {
 #define SDXI_DSC_CSB_PTR GENMASK_ULL(63, 5)
 		);
 
-		// DmaBaseGrp: DSC_DMAB_NOP
+		/* DmaBaseGrp: DSC_DMAB_NOP */
 		define_sdxi_dsc(sdxi_dsc_dmab_nop, nop,
 			__u8 rsvd_0[DSC_OPERATION_BYTES];
 		);
 
 #define SDXI_DSC_OP_TYPE_DMAB 0x001
 #define SDXI_DSC_OP_SUBTYPE_COPY 0x03
-		// DmaBaseGrp: DSC_DMAB_COPY
+		/* DmaBaseGrp: DSC_DMAB_COPY */
 		define_sdxi_dsc(sdxi_dsc_dmab_copy, copy,
 				__le32 size;
 				__u8 attr;
@@ -209,7 +211,7 @@ struct sdxi_desc {
 
 #define SDXI_DSC_OP_TYPE_INTR 0x004
 #define SDXI_DSC_OP_SUBTYPE_INTR 0x00
-		// IntrGrp: DSC_INTR
+		/* IntrGrp: DSC_INTR */
 		define_sdxi_dsc(sdxi_dsc_intr, intr,
 			__u8 rsvd_0[8];
 			__le16 akey;
@@ -219,7 +221,7 @@ struct sdxi_desc {
 #define SDXI_DSC_OP_TYPE_ADMIN 0x002
 #define SDXI_DSC_OP_SUBTYPE_CXT_START_NM 0x03
 #define SDXI_DSC_OP_SUBTYPE_CXT_START_RS 0x08
-		// AdminGrp: DSC_CXT_START
+		/* AdminGrp: DSC_CXT_START */
 		define_sdxi_dsc(sdxi_dsc_cxt_start, cxt_start,
 				__u8 rsvd_0;
 				__u8 vflags;
@@ -232,7 +234,7 @@ struct sdxi_desc {
 				);
 
 #define SDXI_DSC_OP_SUBTYPE_CXT_STOP     0x04
-		// AdminGrp: DSC_CXT_STOP
+		/* AdminGrp: DSC_CXT_STOP */
 		define_sdxi_dsc(sdxi_dsc_cxt_stop, cxt_stop,
 			__u8 rsvd_0;
 			__u8 vflags;
