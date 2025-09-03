@@ -99,15 +99,17 @@ static void cxt_start(struct kunit *t)
 
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_cxt_start(&desc, &start));
 
-	// Check op-specific fields.
+	/* Check op-specific fields. */
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.vflags);
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.vf_num);
 	KUNIT_EXPECT_EQ(t, 1, desc.cxt_start.cxt_start);
 	KUNIT_EXPECT_EQ(t, U16_MAX, desc.cxt_start.cxt_end);
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.db_value);
 
-	// Check generic fields. Some flags have mandatory values
-	// according to the operation type.
+	/*
+	 * Check generic fields. Some flags have mandatory values
+	 * according to the operation type.
+	 */
 	sdxi_desc_unpack(&unpacked, &desc);
 	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
 	KUNIT_EXPECT_EQ(t, unpacked.se, 0);
@@ -129,14 +131,16 @@ static void cxt_stop(struct kunit *t)
 
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_cxt_stop(&desc, &stop));
 
-	// Check op-specific fields
+	/* Check op-specific fields */
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_stop.vflags);
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_stop.vf_num);
 	KUNIT_EXPECT_EQ(t, 1, desc.cxt_stop.cxt_start);
 	KUNIT_EXPECT_EQ(t, U16_MAX, desc.cxt_stop.cxt_end);
 
-	// Check generic fields. Some flags have mandatory values
-	// according to the operation type.
+	/*
+	 * Check generic fields. Some flags have mandatory values
+	 * according to the operation type.
+	 */
 	sdxi_desc_unpack(&unpacked, &desc);
 	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
 	KUNIT_EXPECT_EQ(t, unpacked.se, 0);
