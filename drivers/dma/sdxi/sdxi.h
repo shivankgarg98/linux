@@ -128,13 +128,15 @@ struct sdxi_dma_chan {
 	struct sdxi_cxt *cxt;
 };
 
-// The size of the AKey table is flexible, from 4KB to 1MB. Always use
-// the minimum size for now.
+/*
+ * The size of the AKey table is flexible, from 4KB to 1MB. Always use
+ * the minimum size for now.
+ */
 struct sdxi_akey_table {
 	struct sdxi_akey_ent entry[SZ_4K / sizeof(struct sdxi_akey_ent)];
 };
 
-// For encoding the akey table size in CXT_L1_ENT's akey_sz.
+/* For encoding the akey table size in CXT_L1_ENT's akey_sz. */
 static inline u8 akey_table_order(const struct sdxi_akey_table *tbl)
 {
 	static_assert(sizeof(struct sdxi_akey_table) == SZ_4K);
@@ -225,12 +227,13 @@ struct sdxi_dev {
 	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
 
 	const struct sdxi_dev_ops *dev_ops;
-	bool use_privileged_bits:1; // Whether to set the 'pr' bit
-				    // within the portions of the
-				    // control structure hierarchy
-				    // that should be considered
-				    // private to the kernel, not
-				    // exposed to user space.
+	bool use_privileged_bits:1; /* Whether to set the 'pr' bit
+				     * within the portions of the
+				     * control structure hierarchy
+				     * that should be considered
+				     * private to the kernel, not
+				     * exposed to user space.
+				     */
 };
 
 static inline bool sdxi_dev_compatible(const struct sdxi_dev *sdxi,
