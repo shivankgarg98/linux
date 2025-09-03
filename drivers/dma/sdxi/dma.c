@@ -94,7 +94,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	if (err)
 		return err;
 
-	// FIXME convert to pool
+	/* FIXME convert to pool */
 	cst_blk = dma_alloc_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
 				     &cst_blk_dma, GFP_NOWAIT);
 	if (!cst_blk)
@@ -104,14 +104,14 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 
 	sdxi_cmd->cst_blk = cst_blk;
 	sdxi_cmd->cst_blk_dma = cst_blk_dma;
-	sdxi_cmd->ret = 0; // TODO: get desc submit status & update ret value
+	sdxi_cmd->ret = 0; /* TODO: get desc submit status & update ret value */
 
 	sdxi_desc_set_csb(&desc, cst_blk_dma);
 	err = sdxi_submit_desc(cxt, &desc);
 	if (err)
 		goto free_cst_blk;
 
-	sdxi->tdata.cmd = sdxi_cmd; // FIXME: this is not compatible w/multiple clients
+	sdxi->tdata.cmd = sdxi_cmd; /* FIXME: this is not compatible w/multiple clients */
 	dma_desc->issued_to_hw = 1;
 	return 0;
 free_cst_blk:
