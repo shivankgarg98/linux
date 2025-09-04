@@ -26,10 +26,6 @@
 #define SDXI_DRV_NAME		"sdxi"
 #define SDXI_DRV_DESC		"SDXI driver"
 
-#define DEFAULT_ERR_LOG_NUM	64
-#define DEFAULT_RKEY_NUM	256
-#define DEFAULT_AKEY_NUM	256
-
 #define ID_TO_L2_INDEX(id)	(((id) >> 9) & 0x1FF)
 #define ID_TO_L1_INDEX(id)	((id) & 0x7F)
 #define IS_VF_DEVICE(sdxi)	((sdxi)->is_vf)
