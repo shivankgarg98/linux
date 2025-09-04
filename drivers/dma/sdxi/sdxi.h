@@ -37,11 +37,6 @@
 
 #define OP_TYPE_ERRLOG          0x7f7
 
-#define CXT_STATE_STOPPED	0x0
-#define CXT_STATE_RUNNING	0x1
-#define CXT_STATE_STOPPING	0x2
-#define CXT_STATE_ERR		0xF
-
 #define DESC_RING_BASE_PTR_SHIFT	6
 #define CXT_STATUS_PTR_SHIFT		4
 #define WRT_INDEX_PTR_SHIFT		3
