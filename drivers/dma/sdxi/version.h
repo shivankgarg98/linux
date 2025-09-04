@@ -1,4 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
+
+/*
+ * SDXI version constants and comparison APIs.
+ *
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
+ */
+
 #ifndef DMA_SDXI_VERSION_H
 #define DMA_SDXI_VERSION_H
 
