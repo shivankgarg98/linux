@@ -1,6 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 
-/* SDXI MMIO register offsets and layouts. */
+/*
+ * SDXI MMIO register offsets and layouts.
+ *
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
+ */
 
 #ifndef DMA_SDXI_MMIO_H
 #define DMA_SDXI_MMIO_H
