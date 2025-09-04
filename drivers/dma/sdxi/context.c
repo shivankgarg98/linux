@@ -539,7 +539,7 @@ static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
 			 cxt_sts_state_str(state));
 
 		switch (state) {
-		case CXT_STATE_ERR:
+		case CXTV_ERR_FN:
 			sdxi_err(sdxi, "context %u went into error state while stopping\n",
 				cxtid);
 			fallthrough;
