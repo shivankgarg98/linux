@@ -41,8 +41,6 @@
 #define CXT_STATUS_PTR_SHIFT		4
 #define WRT_INDEX_PTR_SHIFT		3
 
-#define L2_CXT_L1_BASE_SHIFT		12
-
 #define L1_CXT_CTRL_PTR_SHIFT		6
 #define L1_CXT_AKEY_PTR_SHIFT		12
 
