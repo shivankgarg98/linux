@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
+/* Copyright (C) 2025 Advanced Micro Devices, Inc. */
+
 #ifndef DMA_SDXI_DMA_H
 #define DMA_SDXI_DMA_H
 
