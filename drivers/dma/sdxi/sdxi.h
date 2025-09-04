@@ -35,37 +35,7 @@
 #define L2_TABLE_SIZE		4096
 #define L1_TABLE_SIZE		4096
 
-#define OP_TYPE_DMA             0x001
-#define OP_TYPE_ADMIN           0x002
-#define OP_TYPE_ATOMIC          0x003
-#define OP_TYPE_INTR            0x004
 #define OP_TYPE_ERRLOG          0x7f7
-
-#define OP_DMA_NOP		0x01
-#define OP_DMA_WRT_IMM		0x02
-#define OP_DMA_COPY		0x03
-#define OP_DMA_REP_COPY		0x04
-#define OP_ADMIN_UPDATE_FUNC	0x00
-#define OP_ADMIN_UPDATE_CXT	0x01
-#define OP_ADMIN_UPDATE_AKEY	0x02
-#define OP_ADMIN_START		0x03
-#define OP_ADMIN_STOP		0x04
-#define OP_ADMIN_INTR		0x05
-#define OP_ADMIN_SYNC		0x06
-#define OP_ATOMIC_SWAP		0x01
-#define OP_ATOMIC_UADD		0x02
-#define OP_ATOMIC_USUB		0x03
-#define OP_ATOMIC_AND		0x05
-#define OP_ATOMIC_OR		0x06
-#define OP_ATOMIC_XOR		0x07
-#define OP_ATOMIC_SMIN		0x08
-#define OP_ATOMIC_SMAX		0x09
-#define OP_ATOMIC_UMIN		0x0A
-#define OP_ATOMIC_UMAX		0x0B
-#define OP_ATOMIC_UCLAMPI	0x0C
-#define OP_ATOMIC_UCLAMPD	0x0D
-#define OP_ATOMIC_CMPSWAP	0x0E
-#define OP_INTR_INTERRUPT	0x00
 
 #define CXT_STATE_STOPPED	0x0
 #define CXT_STATE_RUNNING	0x1
