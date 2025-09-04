@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* SDXI error reporting. */
+/*
+ * SDXI error reporting.
+ *
+ * Copyright (C) 2025 Advanced Micro Devices, Inc.
+ */
 
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
