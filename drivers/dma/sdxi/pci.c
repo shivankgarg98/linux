@@ -115,7 +115,7 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 
 	ret = pcim_enable_device(pdev);
 	if (ret) {
-		sdxi_err(sdxi, "pcim_enbale_device failed\n");
+		sdxi_err(sdxi, "pcim_enable_device failed\n");
 		return ret;
 	}
 
