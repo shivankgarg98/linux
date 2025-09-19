@@ -7,3 +7,12 @@ config MTCOPY_CPU
          page migration. This can increase page copy throughput by
          parallelizing the copy operations.
 
+config DCBM_DMA
+       bool "DMA Core Batch Migrator"
+       depends on OFFC_MIGRATION && DMA_ENGINE
+       default n
+       help
+         Enables a DMA-based offload engine for batch page migration.
+         This offloads page copy operations to a DMA controller, freeing
+         up CPU cycles for other tasks. This can increase page copy
+         throughput for large pages.
