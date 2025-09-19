@@ -1061,19 +1061,7 @@ static int fallback_migrate_folio(struct address_space *mapping,
 	return migrate_folio(mapping, dst, src, mode);
 }
 
-/*
- * Move a src folio to a newly allocated dst folio.
- *
- * The src and dst folios are locked and the src folios was unmapped from
- * the page tables.
- *
- * On success, the src folio was replaced by the dst folio.
- *
- * Return value:
- *   < 0 - error code
- *  MIGRATEPAGE_SUCCESS - success
- */
-static int move_to_new_folio(struct folio *dst, struct folio *src,
+static int _move_to_new_folio_prep(struct folio *dst, struct folio *src,
 				enum migrate_mode mode)
 {
 	struct address_space *mapping = folio_mapping(src);
@@ -1098,7 +1086,12 @@ static int move_to_new_folio(struct folio *dst, struct folio *src,
 							mode);
 	else
 		rc = fallback_migrate_folio(mapping, dst, src, mode);
+	return rc;
+}
 
+static void _move_to_new_folio_finalize(struct folio *dst, struct folio *src,
+				int rc)
+{
 	if (rc == MIGRATEPAGE_SUCCESS) {
 		/*
 		 * For pagecache folios, src->mapping must be cleared before src
@@ -1110,6 +1103,29 @@ static int move_to_new_folio(struct folio *dst, struct folio *src,
 		if (likely(!folio_is_zone_device(dst)))
 			flush_dcache_folio(dst);
 	}
+}
+
+/*
+ * Move a src folio to a newly allocated dst folio.
+ *
+ * The src and dst folios are locked and the src folios was unmapped from
+ * the page tables.
+ *
+ * On success, the src folio was replaced by the dst folio.
+ *
+ * Return value:
+ *   < 0 - error code
+ *  MIGRATEPAGE_SUCCESS - success
+ */
+static int move_to_new_folio(struct folio *dst, struct folio *src,
+			enum migrate_mode mode)
+{
+	int rc;
+
+	rc = _move_to_new_folio_prep(dst, src, mode);
+
+	_move_to_new_folio_finalize(dst, src, rc);
+
 	return rc;
 }
 
@@ -1345,6 +1361,51 @@ out:
 	return rc;
 }
 
+static void _migrate_folio_move_finalize1(struct folio *src, struct folio *dst,
+					  int old_page_state)
+{
+	/*
+	 * When successful, push dst to LRU immediately: so that if it
+	 * turns out to be an mlocked page, remove_migration_ptes() will
+	 * automatically build up the correct dst->mlock_count for it.
+	 *
+	 * We would like to do something similar for the old page, when
+	 * unsuccessful, and other cases when a page has been temporarily
+	 * isolated from the unevictable LRU: but this case is the easiest.
+	 */
+	folio_add_lru(dst);
+	if (old_page_state & PAGE_WAS_MLOCKED)
+		lru_add_drain();
+
+	if (old_page_state & PAGE_WAS_MAPPED)
+		remove_migration_ptes(src, dst, 0);
+}
+
+static void _migrate_folio_move_finalize2(struct folio *src, struct folio *dst,
+					  enum migrate_reason reason,
+					  struct anon_vma *anon_vma)
+{
+	folio_unlock(dst);
+	folio_set_owner_migrate_reason(dst, reason);
+	/*
+	 * If migration is successful, decrease refcount of dst,
+	 * which will not free the page because new page owner increased
+	 * refcounter.
+	 */
+	folio_put(dst);
+
+	/*
+	 * A folio that has been migrated has all references removed
+	 * and will be freed.
+	 */
+	list_del(&src->lru);
+	/* Drop an anon_vma reference if we took one */
+	if (anon_vma)
+		put_anon_vma(anon_vma);
+	folio_unlock(src);
+	migrate_folio_done(src, reason);
+}
+
 /* Migrate the folio to the newly allocated folio in dst. */
 static int migrate_folio_move(free_folio_t put_new_folio, unsigned long private,
 			      struct folio *src, struct folio *dst,
@@ -1371,42 +1432,9 @@ static int migrate_folio_move(free_folio_t put_new_folio, unsigned long private,
 	if (rc)
 		goto out;
 
-	/*
-	 * When successful, push dst to LRU immediately: so that if it
-	 * turns out to be an mlocked page, remove_migration_ptes() will
-	 * automatically build up the correct dst->mlock_count for it.
-	 *
-	 * We would like to do something similar for the old page, when
-	 * unsuccessful, and other cases when a page has been temporarily
-	 * isolated from the unevictable LRU: but this case is the easiest.
-	 */
-	folio_add_lru(dst);
-	if (old_page_state & PAGE_WAS_MLOCKED)
-		lru_add_drain();
-
-	if (old_page_state & PAGE_WAS_MAPPED)
-		remove_migration_ptes(src, dst, 0);
-
+	_migrate_folio_move_finalize1(src, dst, old_page_state);
 out_unlock_both:
-	folio_unlock(dst);
-	folio_set_owner_migrate_reason(dst, reason);
-	/*
-	 * If migration is successful, decrease refcount of dst,
-	 * which will not free the page because new page owner increased
-	 * refcounter.
-	 */
-	folio_put(dst);
-
-	/*
-	 * A folio that has been migrated has all references removed
-	 * and will be freed.
-	 */
-	list_del(&src->lru);
-	/* Drop an anon_vma reference if we took one */
-	if (anon_vma)
-		put_anon_vma(anon_vma);
-	folio_unlock(src);
-	migrate_folio_done(src, reason);
+	_migrate_folio_move_finalize2(src, dst, reason, anon_vma);
 
 	return rc;
 out:
