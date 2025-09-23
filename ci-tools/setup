@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -eu
+set -o pipefail
+
+image=fedora:latest
+
+dnf_pkgs=(
+    {binutils,gcc}-{aarch64,x86_64}-linux-gnu
+    b4
+    bc
+    bison
+    clang
+    diffutils
+    dwarves
+    elfutils
+    elfutils-devel
+    flex
+    gcc
+    git
+    glibc-devel
+    lld
+    llvm
+    make
+    sparse
+)
+
+user=build
+
+cat <<EOF |
+FROM ${image}
+
+RUN dnf install -y --setopt=install_weak_deps=False ${dnf_pkgs[@]}
+RUN dnf clean all
+RUN useradd --create-home "$user"
+USER "$user"
+WORKDIR /home/"$user"
+CMD ["/bin/bash"]
+
+EOF
+podman build --pull=newer --tag="$1" -f -

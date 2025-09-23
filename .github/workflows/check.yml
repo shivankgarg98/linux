@@ -1,0 +1,26 @@
+name: SDXI driver CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Merge
+        run: |
+          git merge --no-ff --no-commit ci
+      - name: Create build environment image
+        run: |
+          ci-tools/setup buildenv
+      - name: Check
+        run: |
+          ci-tools/check buildenv ${{ matrix.arch }} ${{ matrix.cc }}

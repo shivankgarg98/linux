@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# inputs:
+# image
+# arch
+# compiler
+
+# Things that could be paramterized later:
+# subdirectory (optional)
+# base config
+# config fragments/permutations
+
+set -eu
+set -o pipefail
+
+image="$1"; shift
+arch="$1"; shift
+compiler="$1"; shift # "gcc" or "clang"
+
+declare -A gcc_cross
+gcc_cross=(
+    [x86_64]=x86_64-linux-gnu-
+    [arm64]=aarch64-linux-gnu-
+)
+
+declare -a tc_args
+tc_args=()
+
+case "$compiler" in
+    gcc)
+	tc_args=(CROSS_COMPILE="${gcc_cross[$arch]}")
+    ;;
+    clang)
+	tc_args=(LLVM=1)
+    ;;
+    *)
+	echo compiler must be 'gcc' or 'clang', got "$compiler"
+	exit 1
+    ;;
+esac
+
+src_path="/src"
+config="$src_path/scripts/config"
+subdir=drivers/dma/sdxi/
+
+declare -a runc_opts
+runc_opts=(
+    --interactive
+    --log-driver none
+    --pids-limit=-1
+    --pull=never
+    --rm
+    --security-opt label=disable
+    --volume "$(pwd)":"${src_path}":ro
+)
+
+make=(make -j"$(nproc)" ARCH="$arch" "${tc_args[@]}")
+
+cat <<EOF |
+set -eux
+
+build_path="\$HOME/build"
+mkdir "\$build_path"
+cd "\$build_path"
+${make[@]} -f "$src_path"/Makefile defconfig
+
+"$config" -e SDXI
+${make[@]} "$subdir"
+${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
+rm -rf "$subdir"
+
+"$config" -m SDXI
+${make[@]} "$subdir"
+${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
+rm -rf "$subdir"
+
+"$config" -d SDXI
+${make[@]} "$subdir"
+
+EOF
+podman run "${runc_opts[@]}" "$image"
