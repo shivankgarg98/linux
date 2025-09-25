@@ -15,9 +15,6 @@ jobs:
         cc: [gcc, clang]
     steps:
       - uses: actions/checkout@v4
-      - name: Merge
-        run: |
-          git merge --no-ff --no-commit ci
       - name: Create build environment image
         run: |
           ci-tools/setup buildenv
