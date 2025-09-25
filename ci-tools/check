@@ -17,26 +17,31 @@ image="$1"; shift
 arch="$1"; shift
 compiler="$1"; shift # "gcc" or "clang"
 
-declare -A gcc_cross
-gcc_cross=(
-    [arm64]=aarch64-linux-gnu-
-    [m68k]=m68k-linux-gnu-
-    [x86_64]=x86_64-linux-gnu-
-)
+case "$arch" in
+    arm64)
+        cross_prefix="aarch64-linux-gnu-"
+        ;;
+    s390*)
+        cross_prefix="s390x-linux-gnu-"
+        ;;
+    *)
+        cross_prefix="${arch}-linux-gnu-"
+        ;;
+esac
 
 declare -a tc_args
 tc_args=()
 
 case "$compiler" in
     gcc)
-	tc_args=(CROSS_COMPILE="${gcc_cross[$arch]}")
+        tc_args=(CROSS_COMPILE="${cross_prefix}")
     ;;
     clang)
-	tc_args=(LLVM=1)
+        tc_args=(LLVM=1)
     ;;
     *)
-	echo compiler must be 'gcc' or 'clang', got "$compiler"
-	exit 1
+        echo compiler must be 'gcc' or 'clang', got "$compiler"
+        exit 1
     ;;
 esac
 
