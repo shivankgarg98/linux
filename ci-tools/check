@@ -69,12 +69,10 @@ ${make[@]} -f "$src_path"/Makefile allmodconfig
 
 "$config" -e SDXI
 ${make[@]} olddefconfig
-${make[@]} "$subdir"
 ${make[@]} W=1e C=2 "$subdir"
 
 "$config" -m SDXI
 ${make[@]} olddefconfig
-${make[@]} "$subdir"
 ${make[@]} W=1e C=2 "$subdir"
 
 "$config" -d SDXI
