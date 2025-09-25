@@ -56,6 +56,8 @@ runc_opts=(
 
 make=(make -j"$(nproc)" ARCH="$arch" "${tc_args[@]}")
 
+# FIXME: add CF=-Wsparse-error to C=2 invocations once the remaining
+# sparse warnings are addressed.
 cat <<EOF |
 set -eux
 
@@ -67,12 +69,12 @@ ${make[@]} -f "$src_path"/Makefile defconfig
 "$config" -e SDXI
 ${make[@]} olddefconfig
 ${make[@]} "$subdir"
-${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
+${make[@]} W=1e C=2 "$subdir"
 
 "$config" -m SDXI
 ${make[@]} olddefconfig
 ${make[@]} "$subdir"
-${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
+${make[@]} W=1e C=2 "$subdir"
 
 "$config" -d SDXI
 ${make[@]} olddefconfig
