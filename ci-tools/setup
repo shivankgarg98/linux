@@ -6,7 +6,7 @@ set -o pipefail
 image=fedora:latest
 
 dnf_pkgs=(
-    {binutils,gcc}-{aarch64,m68k,x86_64}-linux-gnu
+    {binutils,gcc}-{aarch64,m68k,x86_64,s390x}-linux-gnu
     b4
     bc
     bison
