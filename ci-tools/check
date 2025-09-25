@@ -19,8 +19,9 @@ compiler="$1"; shift # "gcc" or "clang"
 
 declare -A gcc_cross
 gcc_cross=(
-    [x86_64]=x86_64-linux-gnu-
     [arm64]=aarch64-linux-gnu-
+    [m68k]=m68k-linux-gnu-
+    [x86_64]=x86_64-linux-gnu-
 )
 
 declare -a tc_args
