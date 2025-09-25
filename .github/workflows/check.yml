@@ -11,8 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86_64, arm64]
+        arch: [arm64, m68k, x86_64]
         cc: [gcc, clang]
+      exclude:
+        - arch: m68k
+          cc: clang
     steps:
       - uses: actions/checkout@v4
       - name: Create build environment image
