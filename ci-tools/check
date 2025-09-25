@@ -55,7 +55,7 @@ runc_opts=(
     --volume "$(pwd)":"${src_path}":ro
 )
 
-make=(make -j"$(nproc)" ARCH="$arch" "${tc_args[@]}")
+make=(make -k -j"$(nproc)" ARCH="$arch" "${tc_args[@]}")
 
 # FIXME: add CF=-Wsparse-error to C=2 invocations once the remaining
 # sparse warnings are addressed.
