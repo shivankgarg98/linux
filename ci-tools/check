@@ -65,16 +65,19 @@ cd "\$build_path"
 ${make[@]} -f "$src_path"/Makefile defconfig
 
 "$config" -e SDXI
+${make[@]} olddefconfig
 ${make[@]} "$subdir"
 ${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
 rm -rf "$subdir"
 
 "$config" -m SDXI
+${make[@]} olddefconfig
 ${make[@]} "$subdir"
 ${make[@]} W=1e C=2 CF=-Wsparse-error "$subdir"
 rm -rf "$subdir"
 
 "$config" -d SDXI
+${make[@]} olddefconfig
 ${make[@]} "$subdir"
 
 EOF
