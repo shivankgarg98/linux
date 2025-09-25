@@ -66,6 +66,7 @@ build_path="\$HOME/build"
 mkdir "\$build_path"
 cd "\$build_path"
 ${make[@]} -f "$src_path"/Makefile allmodconfig
+"$config" -d HEADERS_INSTALL
 
 "$config" -e SDXI
 ${make[@]} olddefconfig
