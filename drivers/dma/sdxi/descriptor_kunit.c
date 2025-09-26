@@ -101,10 +101,10 @@ static void cxt_start(struct kunit *t)
 
 	/* Check op-specific fields. */
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.vflags);
-	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.vf_num);
-	KUNIT_EXPECT_EQ(t, 1, desc.cxt_start.cxt_start);
-	KUNIT_EXPECT_EQ(t, U16_MAX, desc.cxt_start.cxt_end);
-	KUNIT_EXPECT_EQ(t, 0, desc.cxt_start.db_value);
+	KUNIT_EXPECT_EQ(t, 0, le16_to_cpu(desc.cxt_start.vf_num));
+	KUNIT_EXPECT_EQ(t, 1, le16_to_cpu(desc.cxt_start.cxt_start));
+	KUNIT_EXPECT_EQ(t, U16_MAX, le16_to_cpu(desc.cxt_start.cxt_end));
+	KUNIT_EXPECT_EQ(t, 0, le64_to_cpu(desc.cxt_start.db_value));
 
 	/*
 	 * Check generic fields. Some flags have mandatory values
@@ -133,9 +133,9 @@ static void cxt_stop(struct kunit *t)
 
 	/* Check op-specific fields */
 	KUNIT_EXPECT_EQ(t, 0, desc.cxt_stop.vflags);
-	KUNIT_EXPECT_EQ(t, 0, desc.cxt_stop.vf_num);
-	KUNIT_EXPECT_EQ(t, 1, desc.cxt_stop.cxt_start);
-	KUNIT_EXPECT_EQ(t, U16_MAX, desc.cxt_stop.cxt_end);
+	KUNIT_EXPECT_EQ(t, 0, le16_to_cpu(desc.cxt_stop.vf_num));
+	KUNIT_EXPECT_EQ(t, 1, le16_to_cpu(desc.cxt_stop.cxt_start));
+	KUNIT_EXPECT_EQ(t, U16_MAX, le16_to_cpu(desc.cxt_stop.cxt_end));
 
 	/*
 	 * Check generic fields. Some flags have mandatory values
