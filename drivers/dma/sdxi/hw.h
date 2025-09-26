@@ -176,6 +176,11 @@ struct sdxi_desc {
 		/* DSC_GENERIC - common header and footer */
 		struct_group_tagged(sdxi_dsc_generic, generic,
 			__le32 opcode;
+			__u8 operation[DSC_OPERATION_BYTES];
+			__le64 csb_ptr;
+		);
+
+/* For opcode field */
 #define SDXI_DSC_VL  BIT(0)
 #define SDXI_DSC_SE  BIT(1)
 #define SDXI_DSC_FE  BIT(2)
@@ -185,11 +190,10 @@ struct sdxi_desc {
 #define SDXI_DSC_FLAGS   GENMASK(5, 0)
 #define SDXI_DSC_SUBTYPE GENMASK(15, 8)
 #define SDXI_DSC_TYPE    GENMASK(26, 16)
-			__u8 operation[DSC_OPERATION_BYTES];
-			__le64 csb_ptr;
+
+/* For csb_ptr field */
 #define SDXI_DSC_NP BIT_ULL(0)
 #define SDXI_DSC_CSB_PTR GENMASK_ULL(63, 5)
-		);
 
 		/* DmaBaseGrp: DSC_DMAB_NOP */
 		define_sdxi_dsc(sdxi_dsc_dmab_nop, nop,
