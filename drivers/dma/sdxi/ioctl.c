@@ -110,11 +110,11 @@ static int sdxi_cxt_doorbell_mmap(struct sdxi_process *process,
 
 	pr_debug("pasid 0x%x mapping mmio page (dev=%s)\n"
 		 "     target user address == 0x%08llX\n"
-		 "     physical address    == 0x%08llX\n"
+		 "     physical address    == %pa\n"
 		 "     vm_flags            == 0x%04lX\n"
 		 "     size                == 0x%04lX\n",
 		 process->pasid, dev_name(sdxi_to_dev(sdxi)),
-		 (unsigned long long) vma->vm_start, address,
+		 (unsigned long long) vma->vm_start, &address,
 		 vma->vm_flags, PAGE_SIZE);
 
 	ret = io_remap_pfn_range(vma,
