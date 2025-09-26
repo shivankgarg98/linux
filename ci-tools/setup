@@ -23,6 +23,7 @@ dnf_pkgs=(
     llvm
     make
     openssl-devel
+    qemu-system-{aarch64,m68k,s390x,x86_64}
     sparse
 )
 
