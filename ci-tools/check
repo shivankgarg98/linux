@@ -21,7 +21,7 @@ case "$arch" in
     arm64)
         cross_prefix="aarch64-linux-gnu-"
         ;;
-    s390*)
+    s390)
         cross_prefix="s390x-linux-gnu-"
         ;;
     *)
