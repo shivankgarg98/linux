@@ -5,7 +5,6 @@
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
-#include <asm/mmu.h>
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/dma-direction.h>
@@ -15,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/pci.h>
+#include <asm/mmu.h>
 
 #include "context.h"
 #include "descriptor.h"

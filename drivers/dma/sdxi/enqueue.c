@@ -34,14 +34,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <asm/barrier.h>
-#include <asm/byteorder.h>
-#include <asm/rwonce.h>
 #include <linux/atomic.h>
 #include <linux/errno.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/processor.h>
 #include <linux/types.h>
+#include <asm/barrier.h>
+#include <asm/byteorder.h>
+#include <asm/rwonce.h>
 
 #include "enqueue.h"
 

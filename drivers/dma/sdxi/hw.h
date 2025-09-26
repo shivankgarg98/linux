@@ -21,13 +21,13 @@
 #ifndef LINUX_SDXI_HW_H
 #define LINUX_SDXI_HW_H
 
-#include <asm/byteorder.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/build_bug.h>
 #include <linux/log2.h>
 #include <linux/stddef.h>
 #include <linux/types.h>
+#include <asm/byteorder.h>
 
 /* Context Level 2 Table Entry (CXT_L2_ENT) */
 struct sdxi_cxt_l2_ent {

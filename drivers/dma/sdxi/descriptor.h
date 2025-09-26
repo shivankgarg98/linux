@@ -8,7 +8,6 @@
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
-#include <asm/byteorder.h>
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/errno.h>
@@ -16,6 +15,7 @@
 #include <linux/sizes.h>
 #include <linux/stddef.h>
 #include <linux/types.h>
+#include <asm/byteorder.h>
 
 #include "hw.h"
 
