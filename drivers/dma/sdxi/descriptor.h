@@ -55,7 +55,7 @@ static inline struct sdxi_cxt_range __sdxi_cxt_range(u16 a, u16 b)
 struct sdxi_copy {
 	dma_addr_t src;
 	dma_addr_t dst;
-	size_t len;
+	u64 len;
 	u16 src_akey;
 	u16 dst_akey;
 };
