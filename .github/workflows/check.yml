@@ -14,11 +14,11 @@ jobs:
         arch: [arm64, m68k, x86_64, s390]
         cc: [gcc, clang]
         include:
-          - sparse: fatal
+          - sparse: warn # various known issues on non-x86
+          - arch: x86_64
+            sparse: fatal
           - cc: clang
-            sparse: off
-          - arch: [arm64, s390, m68k]
-            sparse: warn # various known issues with these arches
+            sparse: off # Run sparse on gcc runs only
         exclude:
           - arch: m68k
             cc: clang
