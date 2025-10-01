@@ -141,6 +141,7 @@ set -euo pipefail
 declare -A cross_prefix_map=(
     [arm64]=aarch64-linux-gnu-
     [s390]=s390x-linux-gnu-
+    [riscv]=riscv64-linux-gnu-
 )
 : "${cross_prefix_map[$_arg_arch]:=${_arg_arch}-linux-gnu-}"
 cross_prefix="${cross_prefix_map[$_arg_arch]}"
