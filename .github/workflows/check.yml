@@ -11,8 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, m68k, x86_64]
+        arch: [arm64, m68k, x86_64, s390]
         cc: [gcc, clang]
+        include:
+          - sparse: fatal
         exclude:
           - arch: m68k
             cc: clang
@@ -23,4 +25,4 @@ jobs:
           ci-tools/setup buildenv
       - name: Check
         run: |
-          ci-tools/check buildenv ${{ matrix.arch }} ${{ matrix.cc }}
+          ci-tools/sdxi-quick-check --sparse=${{ matrix.sparse }} buildenv ${{ matrix.arch }} ${{ matrix.cc }}
