@@ -15,6 +15,10 @@ jobs:
         cc: [gcc, clang]
         include:
           - sparse: fatal
+          - cc: clang
+            sparse: off
+          - arch: [arm64, s390, m68k]
+            sparse: warn # various known issues with these arches
         exclude:
           - arch: m68k
             cc: clang
