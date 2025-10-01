@@ -6,7 +6,7 @@ set -o pipefail
 image=fedora:latest
 
 dnf_pkgs=(
-    {binutils,gcc}-{aarch64,m68k,s390x,x86_64}-linux-gnu
+    {binutils,gcc}-{aarch64,m68k,riscv64,s390x,x86_64}-linux-gnu
     b4
     bc
     bison
@@ -23,7 +23,7 @@ dnf_pkgs=(
     llvm
     make
     openssl-devel
-    qemu-system-{aarch64,m68k,s390x,x86_64}
+    qemu-system-{aarch64,m68k,riscv64,s390x,x86_64}
     sparse
 )
 
