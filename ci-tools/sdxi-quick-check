@@ -193,6 +193,15 @@ runc_opts=(
 
 make=(make -k -j"$(nproc)" ARCH="$_arg_arch" "${tc_args[$_arg_compiler]}")
 
+declare -a kunit_kconfig_add
+case "$_arg_arch" in
+    arm64|riscv|s390|x86_64)
+	kunit_kconfig_add=(--kconfig_add CONFIG_KASAN=y --kconfig_add CONFIG_UBSAN=y)
+	;;
+    *)
+	;;
+esac
+
 # Unit tests (optional)
 test "$_arg_kunit" = "on" &&
     cat <<EOF |
@@ -201,8 +210,9 @@ build_path=\$HOME/build
 mkdir \$build_path
 cd $src_path
 ./tools/testing/kunit/kunit.py run \\
-  --build_dir=\$build_path \\
   --arch=$_arg_arch \\
+  --build_dir=\$build_path \\
+  ${kunit_kconfig_add[@]} \\
   --kunitconfig=$sdxi_drv/.kunitconfig \\
   $kunit_tc_args
 EOF
