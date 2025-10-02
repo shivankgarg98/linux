@@ -195,7 +195,7 @@ make=(make -k -j"$(nproc)" ARCH="$_arg_arch" "${tc_args[$_arg_compiler]}")
 
 declare -a kunit_kconfig_add
 case "$_arg_arch" in
-    arm64|riscv|s390|x86_64)
+    arm64|s390|x86_64)
 	kunit_kconfig_add=(--kconfig_add CONFIG_KASAN=y --kconfig_add CONFIG_UBSAN=y)
 	;;
     *)
