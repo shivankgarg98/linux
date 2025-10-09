@@ -222,7 +222,6 @@ sdxi_dev_supports_privileged_address_space(struct sdxi_dev *sdxi)
 		false;
 }
 
-/* Device Control */
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops);
 void sdxi_device_exit(struct sdxi_dev *sdxi);
 
