@@ -110,7 +110,6 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 {
 	struct pci_dev *pdev = sdxi_to_pci_dev(sdxi);
 	struct device *dev = &pdev->dev;
-	int dma_bits = 64;
 	int ret;
 
 	ret = pcim_enable_device(pdev);
@@ -120,7 +119,7 @@ static int sdxi_pci_init(struct sdxi_dev *sdxi)
 	}
 
 	pci_set_master(pdev);
-	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(dma_bits));
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
 	if (ret) {
 		sdxi_err(sdxi, "failed to set DMA mask & coherent bits\n");
 		return ret;
@@ -221,7 +220,7 @@ static void sdxi_pci_remove(struct pci_dev *pdev)
 
 static const struct pci_device_id sdxi_id_table[] = {
 	{ PCI_DEVICE_CLASS(PCI_CLASS_ACCELERATOR_SDXI, 0xffffff) },
-	{0, }
+	{ }
 };
 MODULE_DEVICE_TABLE(pci, sdxi_id_table);
 
