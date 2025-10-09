@@ -157,7 +157,7 @@ static struct kunit_case generic_desc_tcs[] = {
 	KUNIT_CASE(intr),
 	KUNIT_CASE(cxt_start),
 	KUNIT_CASE(cxt_stop),
-	{},
+	{}
 };
 
 static int generic_desc_setup_device(struct kunit *t)
