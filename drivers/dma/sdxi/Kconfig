@@ -9,14 +9,6 @@ config SDXI
 	  standard for a memory-to-memory data mover and acceleration
 	  interface.
 
-config SDXI_DEBUG
-	bool "SDXI driver debug"
-	default DMADEVICES_DEBUG
-	depends on SDXI != n
-	help
-	  Enable debug output from the SDXI driver. This is an option
-	  for use by developers and most users should say N here.
-
 config SDXI_KUNIT_TEST
        tristate "SDXI unit tests" if !KUNIT_ALL_TESTS
        depends on SDXI && KUNIT

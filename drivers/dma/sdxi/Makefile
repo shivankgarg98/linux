@@ -1,7 +1,4 @@
 # SPDX-License-Identifier: GPL-2.0
-
-ccflags-$(CONFIG_SDXI_DEBUG) += -DDEBUG
-
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
