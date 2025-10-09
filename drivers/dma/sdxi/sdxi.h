@@ -9,9 +9,7 @@
 #define __SDXI_H
 
 #include <linux/dev_printk.h>
-#include <linux/device.h>
 #include <linux/dma-mapping.h>
-#include <linux/dmapool.h>
 #include <linux/dmaengine.h>
 #include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/module.h>
@@ -138,6 +136,9 @@ struct sdxi_dev_ops {
 	void (*irq_exit)(struct sdxi_dev *sdxi);
 	bool (*supports_privileged_addrspace)(struct sdxi_dev *sdxi);
 };
+
+struct device;
+struct dma_pool;
 
 struct sdxi_dev {
 	struct device *dev;
