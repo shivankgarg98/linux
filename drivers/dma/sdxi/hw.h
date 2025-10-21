@@ -163,7 +163,7 @@ static_assert(sizeof(struct sdxi_cst_blk) == 32);
 		__le32 opcode;						\
 		op_body_						\
 		__le64 csb_ptr;						\
-	} name_;							\
+	} __packed name_;						\
 	static_assert(sizeof(struct tag_) ==				\
 		      sizeof(struct sdxi_dsc_generic));			\
 	static_assert(offsetof(struct tag_, csb_ptr) ==			\
@@ -249,7 +249,7 @@ struct sdxi_desc {
 			__u8 rsvd_1[44];
 		);
 	};
-};
+} __packed;
 static_assert(sizeof(struct sdxi_desc) == 64);
 
 #endif /* LINUX_SDXI_HW_H */
