@@ -309,12 +309,13 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 		l1_idx = ID_TO_L1_INDEX(id);
 
 		if (sdxi->cxt_array[l2_idx] == NULL) {
-			int sz = sizeof(struct sdxi_cxt *) * L1_TABLE_ENTRIES;
-			struct sdxi_cxt **ptr = kzalloc(sz, GFP_KERNEL);
+			struct sdxi_cxt **ptr;
 
-			sdxi->cxt_array[l2_idx] = ptr;
-			if (!(sdxi->cxt_array[l2_idx]))
+			ptr = kcalloc(L1_TABLE_ENTRIES, sizeof(ptr[0]),
+				      GFP_KERNEL);
+			if (!ptr)
 				return NULL;
+			sdxi->cxt_array[l2_idx] = ptr;
 		}
 
 		cxt = (sdxi->cxt_array)[l2_idx][l1_idx];
