@@ -96,7 +96,7 @@ struct sdxi_akey_table {
 /* For encoding the akey table size in CXT_L1_ENT's akey_sz. */
 static inline u8 akey_table_order(const struct sdxi_akey_table *tbl)
 {
-	static_assert(sizeof(struct sdxi_akey_table) == SZ_4K);
+	static_assert(sizeof(*tbl) == SZ_4K);
 	return 0;
 }
 
