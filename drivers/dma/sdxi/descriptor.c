@@ -93,14 +93,16 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc->copy = (struct sdxi_dsc_dmab_copy) {
-		.opcode = cpu_to_le32(opcode),
-		.size = size,
-		.akey0 = cpu_to_le16(params->src_akey),
-		.akey1 = cpu_to_le16(params->dst_akey),
-		.addr0 = cpu_to_le64(params->src),
-		.addr1 = cpu_to_le64(params->dst),
-		.csb_ptr = cpu_to_le64(csb_ptr),
+	*desc = (typeof(*desc)) {
+		.copy = (typeof(desc->copy)) {
+			.opcode = cpu_to_le32(opcode),
+			.size = size,
+			.akey0 = cpu_to_le16(params->src_akey),
+			.akey1 = cpu_to_le16(params->dst_akey),
+			.addr0 = cpu_to_le64(params->src),
+			.addr1 = cpu_to_le64(params->dst),
+			.csb_ptr = cpu_to_le64(csb_ptr),
+		},
 	};
 
 	return 0;
@@ -119,10 +121,13 @@ int sdxi_encode_intr(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc->intr = (struct sdxi_dsc_intr) {
-		.opcode = cpu_to_le32(opcode),
-		.akey = cpu_to_le16(params->akey),
-		.csb_ptr = cpu_to_le64(csb_ptr),
+
+	*desc = (typeof(*desc)) {
+		.intr = (typeof(desc->intr)) {
+			.opcode = cpu_to_le32(opcode),
+			.akey = cpu_to_le16(params->akey),
+			.csb_ptr = cpu_to_le64(csb_ptr),
+		},
 	};
 
 	return 0;
@@ -147,11 +152,13 @@ int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc->cxt_start = (struct sdxi_dsc_cxt_start) {
-		.opcode = cpu_to_le32(opcode),
-		.cxt_start = cpu_to_le16(cxt_start),
-		.cxt_end = cpu_to_le16(cxt_end),
-		.csb_ptr = cpu_to_le64(csb_ptr),
+	*desc = (typeof(*desc)) {
+		.cxt_start = (typeof(desc->cxt_start)) {
+			.opcode = cpu_to_le32(opcode),
+			.cxt_start = cpu_to_le16(cxt_start),
+			.cxt_end = cpu_to_le16(cxt_end),
+			.csb_ptr = cpu_to_le64(csb_ptr),
+		},
 	};
 
 	return 0;
@@ -176,11 +183,13 @@ int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc->cxt_stop = (struct sdxi_dsc_cxt_stop) {
-		.opcode = cpu_to_le32(opcode),
-		.cxt_start = cpu_to_le16(cxt_start),
-		.cxt_end = cpu_to_le16(cxt_end),
-		.csb_ptr = cpu_to_le64(csb_ptr),
+	*desc = (typeof(*desc)) {
+		.cxt_stop = (typeof(desc->cxt_stop)) {
+			.opcode = cpu_to_le32(opcode),
+			.cxt_start = cpu_to_le16(cxt_start),
+			.cxt_end = cpu_to_le16(cxt_end),
+			.csb_ptr = cpu_to_le64(csb_ptr),
+		},
 	};
 
 	return 0;
