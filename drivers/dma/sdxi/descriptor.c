@@ -52,11 +52,6 @@ void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_unpack);
 
-static void desc_clear(struct sdxi_desc *desc)
-{
-	memset(desc, 0, sizeof(*desc));
-}
-
 static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
 {
 	/*
@@ -98,7 +93,6 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc_clear(desc);
 	desc->copy = (struct sdxi_dsc_dmab_copy) {
 		.opcode = cpu_to_le32(opcode),
 		.size = size,
@@ -125,7 +119,6 @@ int sdxi_encode_intr(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc_clear(desc);
 	desc->intr = (struct sdxi_dsc_intr) {
 		.opcode = cpu_to_le32(opcode),
 		.akey = cpu_to_le16(params->akey),
@@ -154,7 +147,6 @@ int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc_clear(desc);
 	desc->cxt_start = (struct sdxi_dsc_cxt_start) {
 		.opcode = cpu_to_le32(opcode),
 		.cxt_start = cpu_to_le16(cxt_start),
@@ -184,7 +176,6 @@ int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-	desc_clear(desc);
 	desc->cxt_stop = (struct sdxi_dsc_cxt_stop) {
 		.opcode = cpu_to_le32(opcode),
 		.cxt_start = cpu_to_le16(cxt_start),
