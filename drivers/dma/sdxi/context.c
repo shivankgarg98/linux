@@ -328,8 +328,7 @@ static struct sdxi_cxt *alloc_cxt(struct sdxi_dev *sdxi, bool privileged)
 	if (id == sdxi->max_cxts)
 		return NULL;
 
-	/* alloc context and initialize it */
-	cxt = kzalloc(sizeof(struct sdxi_cxt), GFP_KERNEL);
+	cxt = kzalloc(sizeof(*cxt), GFP_KERNEL);
 	if (!cxt)
 		return NULL;
 
