@@ -10,11 +10,54 @@
 #include <linux/container_of.h>
 #include <linux/dma-mapping.h>
 #include <linux/module.h>
+#include <linux/packing.h>
 #include <linux/string.h>
 
 #include "descriptor.h"
 
 MODULE_IMPORT_NS("EXPORTED_FOR_KUNIT_TESTING");
+
+/*
+ * Fields common to all SDXI descriptors in "unpacked" form.
+ */
+struct sdxi_desc_unpacked {
+	u64 csb_ptr;
+	u16 type;
+	u8 subtype;
+	bool vl;
+	bool se;
+	bool fe;
+	bool ch;
+	bool csr;
+	bool rb;
+	bool np;
+};
+
+#define sdxi_desc_field(_high, _low, _member) \
+	PACKED_FIELD(_high, _low, struct sdxi_desc_unpacked, _member)
+#define sdxi_desc_flag(_bit, _member) \
+	sdxi_desc_field(_bit, _bit, _member)
+
+static const struct packed_field_u16 common_descriptor_fields[] = {
+	sdxi_desc_flag(0, vl),
+	sdxi_desc_flag(1, se),
+	sdxi_desc_flag(2, fe),
+	sdxi_desc_flag(3, ch),
+	sdxi_desc_flag(4, csr),
+	sdxi_desc_flag(5, rb),
+	sdxi_desc_field(15, 8, subtype),
+	sdxi_desc_field(26, 16, type),
+	sdxi_desc_flag(448, np),
+	sdxi_desc_field(511, 453, csb_ptr),
+};
+
+static void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
+		      const struct sdxi_desc *from)
+{
+	*to = (struct sdxi_desc_unpacked){};
+	unpack_fields(from, sizeof(*from), to, common_descriptor_fields,
+		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
+}
 
 static void desc_poison(struct sdxi_desc *d)
 {

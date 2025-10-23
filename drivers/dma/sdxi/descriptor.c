@@ -13,44 +13,12 @@
 #include <linux/bitmap.h>
 #include <linux/dma-mapping.h>
 #include <linux/log2.h>
-#include <linux/packing.h>
 #include <linux/string.h>
 #include <linux/types.h>
 #include <asm/byteorder.h>
 
 #include "hw.h"
 #include "descriptor.h"
-
-enum {
-	SDXI_PACKING_QUIRKS = QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST,
-};
-
-#define sdxi_desc_field(_high, _low, _member) \
-	PACKED_FIELD(_high, _low, struct sdxi_desc_unpacked, _member)
-#define sdxi_desc_flag(_bit, _member) \
-	sdxi_desc_field(_bit, _bit, _member)
-
-static const struct packed_field_u16 common_descriptor_fields[] = {
-	sdxi_desc_flag(0, vl),
-	sdxi_desc_flag(1, se),
-	sdxi_desc_flag(2, fe),
-	sdxi_desc_flag(3, ch),
-	sdxi_desc_flag(4, csr),
-	sdxi_desc_flag(5, rb),
-	sdxi_desc_field(15, 8, subtype),
-	sdxi_desc_field(26, 16, type),
-	sdxi_desc_flag(448, np),
-	sdxi_desc_field(511, 453, csb_ptr),
-};
-
-void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
-		      const struct sdxi_desc *from)
-{
-	*to = (struct sdxi_desc_unpacked){};
-	unpack_fields(from, sizeof(*from), to, common_descriptor_fields,
-		      SDXI_PACKING_QUIRKS);
-}
-EXPORT_SYMBOL_IF_KUNIT(sdxi_desc_unpack);
 
 static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
 {
