@@ -51,6 +51,15 @@ static const struct packed_field_u16 common_descriptor_fields[] = {
 	sdxi_desc_field(511, 453, csb_ptr),
 };
 
+/*
+ * While the "real" driver code uses bitfield macros (BIT, GENMASK) to
+ * encode descriptors, these tests use the packing API to decode them.
+ * Capturing the descriptor layout using PACKED_FIELD() from packing.h
+ * is basically a copy-paste exercise since SDXI defines control
+ * structure fields in terms of bit offsets. Eschewing the bitfield
+ * constants such as SDXI_DSC_VL in the test code makes it possible
+ * for the tests to detect any mistakes in defining them.
+ */
 static void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 		      const struct sdxi_desc *from)
 {
