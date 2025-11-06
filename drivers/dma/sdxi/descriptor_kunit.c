@@ -73,6 +73,45 @@ static void desc_poison(struct sdxi_desc *d)
 	memset(d, 0xff, sizeof(*d));
 }
 
+static void encode_size32(struct kunit *t)
+{
+	__le32 res = cpu_to_le32(U32_MAX);
+
+	/* Valid sizes. */
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_size32(1, &res));
+	KUNIT_EXPECT_EQ(t, 0, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_size32(SZ_4K, &res));
+	KUNIT_EXPECT_EQ(t, SZ_4K - 1, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_size32(SZ_4M, &res));
+	KUNIT_EXPECT_EQ(t, SZ_4M - 1, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_size32(SZ_4G - 1, &res));
+	KUNIT_EXPECT_EQ(t, SZ_4G - 2, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_size32(SZ_4G, &res));
+	KUNIT_EXPECT_EQ(t, SZ_4G - 1, le32_to_cpu(res));
+
+	/* Invalid sizes. Ensure the out parameter is unmodified. */
+#define RES_VAL 0x843829
+	res = cpu_to_le32(RES_VAL);
+
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_size32(0, &res));
+	KUNIT_EXPECT_EQ(t, RES_VAL, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_size32(SZ_4G + 1, &res));
+	KUNIT_EXPECT_EQ(t, RES_VAL, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_size32(SZ_8G, &res));
+	KUNIT_EXPECT_EQ(t, RES_VAL, le32_to_cpu(res));
+
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_size32(U64_MAX, &res));
+	KUNIT_EXPECT_EQ(t, RES_VAL, le32_to_cpu(res));
+
+#undef RES_VAL
+}
+
 static void copy(struct kunit *t)
 {
 	struct sdxi_desc_unpacked unpacked;
@@ -205,6 +244,7 @@ static void cxt_stop(struct kunit *t)
 }
 
 static struct kunit_case generic_desc_tcs[] = {
+	KUNIT_CASE(encode_size32),
 	KUNIT_CASE(copy),
 	KUNIT_CASE(intr),
 	KUNIT_CASE(cxt_start),
