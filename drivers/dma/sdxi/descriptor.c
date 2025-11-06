@@ -20,7 +20,7 @@
 #include "hw.h"
 #include "descriptor.h"
 
-static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
+VISIBLE_IF_KUNIT int __must_check sdxi_encode_size32(u64 size, __le32 *dest)
 {
 	/*
 	 * sizes are encoded as value - 1:
@@ -37,6 +37,7 @@ static __must_check int sdxi_encode_size32(u64 size, __le32 *dest)
 	*dest = cpu_to_le32((u32)(size - 1));
 	return 0;
 }
+EXPORT_SYMBOL_IF_KUNIT(sdxi_encode_size32);
 
 int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 {

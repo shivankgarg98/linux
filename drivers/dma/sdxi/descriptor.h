@@ -11,6 +11,7 @@
 #include <linux/bitfield.h>
 #include <linux/bits.h>
 #include <linux/errno.h>
+#include <linux/kconfig.h>
 #include <linux/minmax.h>
 #include <linux/sizes.h>
 #include <linux/stddef.h>
@@ -18,6 +19,10 @@
 #include <asm/byteorder.h>
 
 #include "hw.h"
+
+#if IS_ENABLED(CONFIG_KUNIT)
+int __must_check sdxi_encode_size32(u64 size, __le32 *dest);
+#endif
 
 static inline void sdxi_desc_set_csb(struct sdxi_desc *desc,
 				     dma_addr_t addr)
