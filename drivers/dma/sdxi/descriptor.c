@@ -11,6 +11,7 @@
 #include <linux/bitmap.h>
 #include <linux/dma-mapping.h>
 #include <linux/log2.h>
+#include <linux/range.h>
 #include <linux/string.h>
 #include <linux/types.h>
 #include <asm/byteorder.h>
@@ -48,11 +49,20 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 	if (err)
 		return err;
 	/*
-	 * TODO: reject overlapping src and dst. Quoting "Memory
-	 * Consistency Model": "Software shall not ... overlap the
-	 * source buffer, destination buffer, Atomic Return Data, or
-	 * completion status block."
+	 * Reject overlapping src and dst. Quoting "Memory Consistency
+	 * Model": "Software shall not ... overlap the source buffer,
+	 * destination buffer, Atomic Return Data, or completion
+	 * status block."
 	 */
+	if (range_overlaps(&(const struct range) {
+				   .start = params->src,
+				   .end   = params->src + params->len - 1,
+			   },
+			   &(const struct range) {
+				   .start = params->dst,
+				   .end   = params->dst + params->len - 1,
+			   }))
+		return -EINVAL;
 
 	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
 		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_COPY) |
