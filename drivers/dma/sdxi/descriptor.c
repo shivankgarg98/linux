@@ -5,8 +5,6 @@
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
-#include <kunit/test.h>
-#include <kunit/test-bug.h>
 #include <kunit/visibility.h>
 #include <linux/align.h>
 #include <linux/bitfield.h>
