@@ -68,6 +68,28 @@ static void sdxi_desc_unpack(struct sdxi_desc_unpacked *to,
 		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
 }
 
+
+struct sdxi_copy_unpacked {
+	u32 size;
+};
+
+#define sdxi_copy_field(_high, _low, _member)				\
+	PACKED_FIELD(_high, _low, struct sdxi_copy_unpacked, _member)
+#define sdxi_copy_flag(_bit, _member) \
+	sdxi_copy_field(_bit, _bit, _member)
+
+static const struct packed_field_u16 copy_fields[] = {
+	sdxi_copy_field(63, 32, size),
+};
+
+static void sdxi_copy_unpack(struct sdxi_copy_unpacked *to,
+			     const struct sdxi_desc *from)
+{
+	*to = (struct sdxi_copy_unpacked){};
+	unpack_fields(from, sizeof(*from), to, copy_fields,
+		      QUIRK_LITTLE_ENDIAN | QUIRK_LSW32_IS_FIRST);
+}
+
 static void desc_poison(struct sdxi_desc *d)
 {
 	memset(d, 0xff, sizeof(*d));
@@ -115,24 +137,53 @@ static void encode_size32(struct kunit *t)
 static void copy(struct kunit *t)
 {
 	struct sdxi_desc_unpacked unpacked;
-	struct sdxi_copy copy = {};
+	struct sdxi_copy_unpacked copy_u;
 	struct sdxi_desc desc = {};
+	struct sdxi_copy copy = {
+		.src = 0x1000,
+		.dst = 0x2000,
+		.len = 4096,
+		.src_akey = 0,
+		.dst_akey = 0,
+	};
 
+	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_copy(&desc, &copy));
+
+	sdxi_desc_unpack(&unpacked, &desc);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
+	KUNIT_EXPECT_EQ(t, unpacked.subtype, SDXI_DSC_OP_SUBTYPE_COPY);
+	KUNIT_EXPECT_EQ(t, unpacked.type, SDXI_DSC_OP_TYPE_DMAB);
+	KUNIT_EXPECT_EQ(t, unpacked.csb_ptr, 0);
+	KUNIT_EXPECT_EQ(t, unpacked.np, 1);
+
+	sdxi_copy_unpack(&copy_u, &desc);
+	KUNIT_EXPECT_EQ(t, copy_u.size, copy.len - 1);
+
+	/* Zero isn't a valid size. */
 	desc_poison(&desc);
+	copy.len = 0;
 	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_copy(&desc, &copy));
 
-	desc_poison(&desc);
-	copy.len = SZ_4G + 1;
-	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_copy(&desc, &copy));
-
+	/* But 1 is. */
 	desc_poison(&desc);
 	copy.len = 1;
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_copy(&desc, &copy));
+	sdxi_copy_unpack(&copy_u, &desc);
+	KUNIT_EXPECT_EQ(t, copy_u.size, copy.len - 1);
 
+	/* SDXI forbids overlapping source and destination. */
 	desc_poison(&desc);
-	copy.len = SZ_4G;
-	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_copy(&desc, &copy));
-	KUNIT_EXPECT_EQ(t, SZ_4G - 1, le32_to_cpu(desc.copy.size));
+	copy.len = 4097;
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_copy(&desc, &copy));
+	copy = (typeof(copy)) {
+		.src = 0x4000,
+		.dst = 0x4000,
+		.len = 1,
+		.src_akey = 0,
+		.dst_akey = 0,
+	};
+	KUNIT_EXPECT_EQ(t, -EINVAL, sdxi_encode_copy(&desc, &copy));
 
 	desc_poison(&desc);
 	KUNIT_EXPECT_EQ(t, 0,
@@ -157,6 +208,9 @@ static void copy(struct kunit *t)
 	KUNIT_EXPECT_EQ(t, unpacked.type, SDXI_DSC_OP_TYPE_DMAB);
 	KUNIT_EXPECT_EQ(t, unpacked.csb_ptr, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.np, 1);
+
+	sdxi_copy_unpack(&copy_u, &desc);
+	KUNIT_EXPECT_EQ(t, copy_u.size, 0x100 - 1);
 }
 
 static void intr(struct kunit *t)
