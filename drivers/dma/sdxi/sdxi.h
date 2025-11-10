@@ -117,9 +117,6 @@ struct sdxi_cxt {
 
 	struct sdxi_sq *sq;
 
-	/* NB: might need to move to sdxi_device? */
-	struct sdxi_dma_chan sdxi_dma_chan;
-
 	struct sdxi_process *process;	/* process reprsentation */
 };
 
