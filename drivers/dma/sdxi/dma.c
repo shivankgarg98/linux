@@ -90,10 +90,6 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	if (err)
 		return err;
 
-	err = sdxi_encode_copy(&desc, &copy);
-	if (err)
-		return err;
-
 	/* FIXME convert to pool */
 	cst_blk = dma_alloc_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
 				     &cst_blk_dma, GFP_NOWAIT);
