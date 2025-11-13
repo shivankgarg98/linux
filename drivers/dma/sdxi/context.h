@@ -22,6 +22,7 @@ enum sdxi_cxt_id {
 struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 				       enum sdxi_cxt_id);
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
+struct sdxi_cxt *sdxi_kcxt_new(struct sdxi_dev *sdxi);
 
 int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc);
 

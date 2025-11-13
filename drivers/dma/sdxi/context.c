@@ -461,6 +461,25 @@ err_cxt_id:
 	return NULL;
 }
 
+/*
+ * Allocate a context for in-kernel use. Starting the context is the
+ * caller's responsibility.
+ */
+struct sdxi_cxt *sdxi_kcxt_new(struct sdxi_dev *sdxi)
+{
+	struct sdxi_cxt *cxt = sdxi_cxt_alloc(sdxi, true);
+
+	if (!cxt)
+		return NULL;
+
+	if (!sdxi_sq_alloc_default(cxt)) {
+		sdxi_cxt_free(cxt);
+		cxt = NULL;
+	}
+
+	return cxt;
+}
+
 static const char *cxt_sts_state_str(enum cxt_sts_state state)
 {
 	static const char *const context_states[] = {
