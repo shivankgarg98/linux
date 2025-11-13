@@ -4,9 +4,9 @@
 #ifndef DMA_SDXI_DMA_H
 #define DMA_SDXI_DMA_H
 
-struct sdxi_cxt;
+struct sdxi_dev;
 
-int sdxi_dma_register(struct sdxi_cxt *dma_cxt);
-void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt);
+int sdxi_dma_register(struct sdxi_dev *sdxi);
+void sdxi_dma_unregister(struct sdxi_dev *sdxi);
 
 #endif /* DMA_SDXI_DMA_H */

@@ -348,10 +348,6 @@ admin_cxt_exit:
 
 int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 {
-	struct sdxi_cxt_start params;
-	struct sdxi_cxt *admin_cxt;
-	struct sdxi_desc desc;
-	struct sdxi_cxt *dma_cxt;
 	int err;
 
 	sdxi->dev_ops = ops;
@@ -375,43 +371,18 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 	if (err)
 		return err;
 
-	admin_cxt = sdxi->admin_cxt;
-
-	dma_cxt = sdxi_working_cxt_init(sdxi, SDXI_DMA_CXT_ID);
-	if (!dma_cxt) {
-		err = -EINVAL;
-		goto fn_stop;
-	}
-
-	sdxi->dma_cxt = dma_cxt;
-
-	params = (typeof(params)) {
-		.range = sdxi_cxt_range(dma_cxt->id),
-	};
-	err = sdxi_encode_cxt_start(&desc, &params);
-	if (err)
-		goto fn_stop;
-
-	err = sdxi_submit_desc(admin_cxt, &desc);
-	if (err)
-		goto fn_stop; /* any other unwind? shouldn't this all be gated by dma_engine? */
-
 	/* Set up DMA engine provider. */
+
 	if (dma_engine)
-		sdxi_dma_register(sdxi->dma_cxt);
+		sdxi_dma_register(sdxi);
 
 	return 0;
-fn_stop:
-	sdxi_stop(sdxi);
-	return err;
 }
 
 void sdxi_device_exit(struct sdxi_dev *sdxi)
 {
 	if (dma_engine)
-		sdxi_dma_unregister(sdxi->dma_cxt);
-
-	sdxi_working_cxt_exit(sdxi->dma_cxt);
+		sdxi_dma_unregister(sdxi);
 
 	/* Walk sdxi->cxt_array freeing any allocated rows. */
 	for (size_t i = 0; i < L2_TABLE_ENTRIES; ++i) {

@@ -345,20 +345,53 @@ static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 	return 0;
 }
 
-int sdxi_dma_register(struct sdxi_cxt *dma_cxt)
+static struct sdxi_cxt *start_dma_cxt(struct sdxi_dev *sdxi)
+{
+	struct sdxi_cxt_start params;
+	struct sdxi_desc desc;
+	struct sdxi_cxt *cxt;
+	int err;
+
+	cxt = sdxi_working_cxt_init(sdxi, SDXI_DMA_CXT_ID);
+	if (!cxt)
+		return NULL;
+
+	params = (typeof(params)) {
+		.range = sdxi_cxt_range(cxt->id),
+	};
+
+	err = sdxi_encode_cxt_start(&desc, &params);
+	if (err)
+		goto cxt_exit;
+
+	err = sdxi_submit_desc(sdxi->admin_cxt, &desc);
+	if (err)
+		goto cxt_exit;
+
+	return cxt;
+
+cxt_exit:
+	sdxi_working_cxt_exit(cxt);
+	return NULL;
+}
+
+int sdxi_dma_register(struct sdxi_dev *sdxi)
 {
 	struct sdxi_dma_chan *chan;
-	struct sdxi_dev *sdxi = dma_cxt->sdxi;
 	struct device *dev = sdxi_to_dev(sdxi);
 	struct dma_device *dma_dev = &sdxi->dma_dev;
 	int ret = 0;
+
+	sdxi->dma_cxt = start_dma_cxt(sdxi);
+	if (!sdxi->dma_cxt)
+		return -ENOMEM;
 
 	sdxi->sdxi_dma_chan = devm_kzalloc(dev, sizeof(*sdxi->sdxi_dma_chan),
 					   GFP_KERNEL);
 	if (!sdxi->sdxi_dma_chan)
 		return -ENOMEM;
 
-	sdxi->sdxi_dma_chan->cxt = dma_cxt;
+	sdxi->sdxi_dma_chan->cxt = sdxi->dma_cxt;
 
 	dma_dev->dev = dev;
 	dma_dev->src_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
@@ -399,7 +432,9 @@ err_reg:
 	return ret;
 }
 
-void sdxi_dma_unregister(struct sdxi_cxt *dma_cxt)
+void sdxi_dma_unregister(struct sdxi_dev *sdxi)
 {
-	dma_async_device_unregister(&dma_cxt->sdxi->dma_dev);
+	if (sdxi->dma_cxt)
+		sdxi_working_cxt_exit(sdxi->dma_cxt);
+	dma_async_device_unregister(&sdxi->dma_dev);
 }
