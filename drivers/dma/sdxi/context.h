@@ -14,7 +14,6 @@ struct sdxi_desc;
 
 enum sdxi_cxt_id {
 	SDXI_ADMIN_CXT_ID = 0,
-	SDXI_DMA_CXT_ID = 1,
 	SDXI_ANY_CXT_ID,
 };
 
