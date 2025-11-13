@@ -352,7 +352,7 @@ static struct sdxi_cxt *start_dma_cxt(struct sdxi_dev *sdxi)
 	struct sdxi_cxt *cxt;
 	int err;
 
-	cxt = sdxi_working_cxt_init(sdxi, SDXI_DMA_CXT_ID);
+	cxt = sdxi_kcxt_new(sdxi);
 	if (!cxt)
 		return NULL;
 
