@@ -118,6 +118,8 @@ struct sdxi_cxt {
 	struct sdxi_sq *sq;
 
 	struct sdxi_process *process;	/* process reprsentation */
+
+	struct sdxi_tasklet_data tdata; /* temp hack for completion signaling */
 };
 
 /**
@@ -177,7 +179,6 @@ struct sdxi_dev {
 	/* DMA engine */
 	struct dma_device dma_dev;
 	struct sdxi_dma_chan *sdxi_dma_chan;
-	struct sdxi_tasklet_data tdata;
 
 	/* special contexts */
 	struct sdxi_cxt *admin_cxt;	/* admin context */

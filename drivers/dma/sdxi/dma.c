@@ -107,7 +107,7 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 	if (err)
 		goto free_cst_blk;
 
-	sdxi->tdata.cmd = sdxi_cmd; /* FIXME: this is not compatible w/multiple clients */
+	cxt->tdata.cmd = sdxi_cmd; /* FIXME: this is not compatible w/multiple clients */
 	dma_desc->issued_to_hw = 1;
 	return 0;
 free_cst_blk:
@@ -313,7 +313,7 @@ static void sdxi_check_trans_status(struct sdxi_dma_chan *chan)
 	if (!cxt)
 		return;
 
-	cmd = cxt->sdxi->tdata.cmd;
+	cmd = cxt->tdata.cmd;
 
 	if (le64_to_cpu(cmd->cst_blk->signal) == 0xfe)
 		sdxi_cmd_callback(cmd->data, cmd->ret);
