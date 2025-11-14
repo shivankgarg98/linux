@@ -195,12 +195,13 @@ struct sdxi_desc {
 #define SDXI_DSC_NP BIT_ULL(0)
 #define SDXI_DSC_CSB_PTR GENMASK_ULL(63, 5)
 
+#define SDXI_DSC_OP_TYPE_DMAB 0x001
+#define SDXI_DSC_OP_SUBTYPE_NOP 0x01
 		/* DmaBaseGrp: DSC_DMAB_NOP */
 		define_sdxi_dsc(sdxi_dsc_dmab_nop, nop,
 			__u8 rsvd_0[DSC_OPERATION_BYTES];
 		);
 
-#define SDXI_DSC_OP_TYPE_DMAB 0x001
 #define SDXI_DSC_OP_SUBTYPE_COPY 0x03
 		/* DmaBaseGrp: DSC_DMAB_COPY */
 		define_sdxi_dsc(sdxi_dsc_dmab_copy, copy,
