@@ -16,7 +16,6 @@
 #include <linux/mutex.h>
 #include <linux/types.h>
 
-#include "../virt-dma.h"
 #include "hw.h"
 #include "mmio.h"
 #include "version.h"
@@ -76,11 +75,6 @@ struct sdxi_cmd {
 	/* completion callback support */
 	void (*sdxi_cmd_callback)(void *data, int err);
 	void *data;
-};
-
-struct sdxi_dma_chan {
-	struct virt_dma_chan vc;
-	struct sdxi_cxt *cxt;
 };
 
 /*

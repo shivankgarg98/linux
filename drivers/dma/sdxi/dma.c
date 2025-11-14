@@ -11,10 +11,16 @@
 #include <linux/spinlock.h>
 
 #include "../dmaengine.h"
+#include "../virt-dma.h"
 #include "context.h"
 #include "descriptor.h"
 #include "dma.h"
 #include "sdxi.h"
+
+struct sdxi_dma_chan {
+	struct virt_dma_chan vc;
+	struct sdxi_cxt *cxt;
+};
 
 struct sdxi_dma_desc {
 	struct virt_dma_desc vd;
