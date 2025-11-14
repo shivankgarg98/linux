@@ -8,6 +8,7 @@
 
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
+#include <linux/spinlock.h>
 
 #include "../dmaengine.h"
 #include "context.h"
