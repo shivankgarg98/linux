@@ -257,6 +257,19 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		     dma_addr_t src, size_t len, unsigned long flags)
 {
 	struct sdxi_dma_desc *desc;
+	struct sdxi_copy copy;
+	struct sdxi_desc check;
+
+	copy = (typeof(copy)) {
+		.src = src,
+		.dst = dst,
+		.src_akey = 0,
+		.dst_akey = 0,
+		.len = len,
+	};
+
+	if (sdxi_encode_copy(&check, &copy))
+		return NULL;
 
 	desc = sdxi_dma_create_desc(dma_chan, dst, src, len, flags);
 	if (!desc)
