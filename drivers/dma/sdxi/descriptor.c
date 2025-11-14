@@ -38,6 +38,22 @@ VISIBLE_IF_KUNIT int __must_check sdxi_encode_size32(u64 size, __le32 *dest)
 }
 EXPORT_SYMBOL_IF_KUNIT(sdxi_encode_size32);
 
+void sdxi_serialize_nop(struct sdxi_desc *desc)
+{
+	u32 opcode = (FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_NOP) |
+		      FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_DMAB));
+	u64 csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
+
+
+	*desc = (typeof(*desc)) {
+		.nop = (typeof(desc->nop)) {
+			.opcode = cpu_to_le32(opcode),
+			.csb_ptr = cpu_to_le64(csb_ptr),
+		},
+	};
+
+}
+
 int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 {
 	u64 csb_ptr;

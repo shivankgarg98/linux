@@ -57,6 +57,8 @@ static inline struct sdxi_cxt_range __sdxi_cxt_range(u16 a, u16 b)
 	_sdxi_cxt_range(__VA_ARGS__,					\
 			sdxi_cxt_range_2, sdxi_cxt_range_1)(__VA_ARGS__)
 
+void sdxi_serialize_nop(struct sdxi_desc *desc);
+
 struct sdxi_copy {
 	dma_addr_t src;
 	dma_addr_t dst;
