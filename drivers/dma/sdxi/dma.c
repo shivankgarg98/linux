@@ -268,19 +268,6 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	return &desc->vd.tx;
 }
 
-static struct dma_async_tx_descriptor *
-sdxi_prep_dma_interrupt(struct dma_chan *dma_chan, unsigned long flags)
-{
-	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
-	struct sdxi_dma_desc *desc;
-
-	desc = sdxi_dma_alloc_dma_desc(chan, flags);
-	if (!desc)
-		return NULL;
-
-	return &desc->vd.tx;
-}
-
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
 	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
@@ -399,7 +386,6 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 	dma_dev->directions = BIT(DMA_MEM_TO_MEM);
 	dma_dev->residue_granularity = DMA_RESIDUE_GRANULARITY_DESCRIPTOR;
 	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
-	dma_cap_set(DMA_INTERRUPT, dma_dev->cap_mask);
 
 	dma_cap_set(DMA_PRIVATE, dma_dev->cap_mask);
 
@@ -411,7 +397,6 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 	/* Set base and prep routines */
 	dma_dev->device_free_chan_resources = sdxi_dma_free_chan_resources;
 	dma_dev->device_prep_dma_memcpy = sdxi_dma_prep_memcpy;
-	dma_dev->device_prep_dma_interrupt = sdxi_prep_dma_interrupt;
 	dma_dev->device_issue_pending = sdxi_dma_issue_pending;
 	dma_dev->device_tx_status = sdxi_tx_status;
 	dma_dev->device_terminate_all = sdxi_dma_terminate_all;
