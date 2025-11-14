@@ -42,8 +42,6 @@
 #define L1_CXT_CTRL_PTR_SHIFT		6
 #define L1_CXT_AKEY_PTR_SHIFT		12
 
-#define MAX_DMA_COPY_BYTES		(1ULL << 32)
-
 /* Submission Queue */
 struct sdxi_sq {
 	struct sdxi_cxt *cxt;		/* owner */

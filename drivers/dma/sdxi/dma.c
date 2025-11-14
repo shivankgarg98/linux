@@ -75,9 +75,6 @@ static int sdxi_dma_start_desc(struct sdxi_dma_desc *dma_desc)
 
 	cxt = dma_desc->cxt;
 
-	if (sdxi_cmd->len > MAX_DMA_COPY_BYTES)
-		return -EINVAL;
-
 	copy = (typeof(copy)) {
 		.src = sdxi_cmd->src_addr,
 		.dst = sdxi_cmd->dst_addr,
