@@ -10,6 +10,7 @@ sdxi-objs += \
 	error.o       \
 	ioctl.o       \
 	process.o     \
+	ring.o        \
 	trace.o
 
 sdxi-$(CONFIG_PCI_MSI) += pci.o
