@@ -19,6 +19,7 @@
 #include "descriptor.h"
 #include "enqueue.h"
 #include "hw.h"
+#include "ring.h"
 #include "sdxi.h"
 #include "trace.h"
 
@@ -363,6 +364,7 @@ static void free_cxt(struct sdxi_cxt *cxt)
 	sdxi->cxt_count--;
 	dma_free_coherent(sdxi_to_dev(sdxi), sizeof(*cxt->akey_table),
 			  cxt->akey_table, cxt->akey_table_dma);
+	kfree(cxt->ring_state);
 	kfree(cxt);
 
 	(sdxi->cxt_array)[l2_idx][l1_idx] = NULL;
@@ -384,13 +386,19 @@ static struct sdxi_cxt *sdxi_cxt_alloc(struct sdxi_dev *sdxi, bool privileged)
 	if (!cxt->cxt_ctl)
 		goto release_cxt;
 
-	if (config_cxt_tables(sdxi, cxt))
+	cxt->ring_state = kzalloc(sizeof(*cxt->ring_state), GFP_KERNEL);
+	if (!cxt->ring_state)
 		goto release_cxt_ctl;
+
+	if (config_cxt_tables(sdxi, cxt))
+		goto release_ring_state;
 
 	trace_sdxi_create_cxt(sdxi, cxt);
 	mutex_unlock(&sdxi->cxt_lock);
 	return cxt;
 
+release_ring_state:
+	kfree(cxt->ring_state);
 release_cxt_ctl:
 	dma_pool_free(sdxi->cxt_ctl_pool, cxt->cxt_ctl, cxt->cxt_ctl_dma);
 release_cxt:
@@ -452,6 +460,9 @@ struct sdxi_cxt *sdxi_working_cxt_init(struct sdxi_dev *sdxi,
 		goto err_sq_alloc;
 	}
 
+	sdxi_ring_state_init(cxt->ring_state, &sq->cxt_sts->read_index,
+			     sq->write_index, sq->ring_entries, sq->desc_ring);
+
 	return cxt;
 
 err_sq_alloc:
@@ -468,6 +479,7 @@ err_cxt_id:
 struct sdxi_cxt *sdxi_kcxt_new(struct sdxi_dev *sdxi)
 {
 	struct sdxi_cxt *cxt = sdxi_cxt_alloc(sdxi, true);
+	struct sdxi_sq *sq;
 
 	if (!cxt)
 		return NULL;
@@ -476,6 +488,10 @@ struct sdxi_cxt *sdxi_kcxt_new(struct sdxi_dev *sdxi)
 		sdxi_cxt_free(cxt);
 		cxt = NULL;
 	}
+
+	sq = cxt->sq;
+	sdxi_ring_state_init(cxt->ring_state, &sq->cxt_sts->read_index,
+			     sq->write_index, sq->ring_entries, sq->desc_ring);
 
 	return cxt;
 }

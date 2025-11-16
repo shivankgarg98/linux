@@ -112,6 +112,7 @@ struct sdxi_cxt {
 	struct sdxi_process *process;	/* process reprsentation */
 
 	struct sdxi_tasklet_data tdata; /* temp hack for completion signaling */
+	struct sdxi_ring_state *ring_state;
 };
 
 /**
