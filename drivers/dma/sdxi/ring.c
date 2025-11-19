@@ -36,10 +36,22 @@ void sdxi_ring_state_init(struct sdxi_ring_state *rs, const __le64 *read_index,
 		 rs, rs->entries);
 }
 
+static u64 sdxi_ring_state_load_ridx(struct sdxi_ring_state *rs)
+{
+	assert_spin_locked(&rs->lock);
+	return le64_to_cpu(READ_ONCE(*rs->read_index_ptr));
+}
+
+static void sdxi_ring_state_store_widx(struct sdxi_ring_state *rs, u64 new_widx)
+{
+	assert_spin_locked(&rs->lock);
+	*rs->write_index_ptr = cpu_to_le64(rs->write_index = new_widx);
+}
+
 int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
 		      struct sdxi_ring_resv *resv)
 {
-	u64 wi, pwi;
+	u64 new_widx;
 
 	/*
 	 * Caller bug, warn and reject.
@@ -50,43 +62,36 @@ int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
 		return -EINVAL;
 
 	scoped_guard(spinlock_irqsave, &rs->lock) {
-		u64 ri = le64_to_cpu(READ_ONCE(*rs->read_index_ptr));
-
-		pwi = rs->write_index;
+		u64 ridx = sdxi_ring_state_load_ridx(rs);
 
 		/*
 		 * Bug: the read index should never exceed the write index.
 		 * TODO: sdxi_err() or similar; need a reference to
 		 * the device.
 		 */
-		if (ri > pwi)
+		if (ridx > rs->write_index)
 			return -EIO;
 
-		wi = pwi + nr;
+		new_widx = rs->write_index + nr;
 
 		/*
 		 * Not enough space available right now.
 		 * TODO: sdxi_dbg() or tracepoint here.
 		 */
-		if (wi - ri > rs->entries)
+		if (new_widx - ridx > rs->entries)
 			return -EBUSY;
 
-		*rs->write_index_ptr = cpu_to_le64(rs->write_index = wi);
+		sdxi_ring_state_store_widx(rs, new_widx);
 	}
 
 	*resv = (typeof(*resv)) {
 		.rs = rs,
 		.range = {
-			.start = pwi,
-			.end = wi - 1,
+			.start = new_widx - nr,
+			.end = new_widx - 1,
 		},
-		.iter = pwi,
+		.iter = new_widx - nr,
 	};
-
-	if (WARN_ONCE(range_len(&resv->range) != nr,
-		      "Reservation requested %zu slots but got %llu?",
-		      nr, range_len(&resv->range)))
-		return -EIO;
 
 	return 0;
 }
