@@ -52,6 +52,11 @@ static inline void sdxi_desc_make_valid(struct sdxi_desc *desc)
 	desc->opcode = cpu_to_le32(opcode);
 }
 
+static inline bool sdxi_desc_valid(const struct sdxi_desc *desc)
+{
+	return FIELD_GET(SDXI_DSC_VL, le32_to_cpu(desc->opcode));
+}
+
 struct sdxi_cxt_range {
 	u16 cxt_start;
 	u16 cxt_end;
