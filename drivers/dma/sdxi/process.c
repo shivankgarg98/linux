@@ -15,6 +15,7 @@
 #include <linux/hashtable.h>
 #include <asm/mmu.h>
 
+#include "context.h"
 #include "process.h"
 #include "trace.h"
 

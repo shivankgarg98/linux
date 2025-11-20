@@ -92,28 +92,7 @@ static inline u8 akey_table_order(const struct sdxi_akey_table *tbl)
 	return 0;
 }
 
-/* Context */
-struct sdxi_cxt {
-	struct sdxi_dev *sdxi;	/* owner */
-	unsigned int id;
-	bool privileged;
-
-	resource_size_t db_base;	/* doorbell MMIO base addr */
-	__le64 __iomem *db;		/* doorbell virt addr */
-
-	struct sdxi_cxt_ctl *cxt_ctl;
-	dma_addr_t cxt_ctl_dma;
-
-	struct sdxi_akey_table *akey_table;
-	dma_addr_t akey_table_dma;
-
-	struct sdxi_sq *sq;
-
-	struct sdxi_process *process;	/* process reprsentation */
-
-	struct sdxi_tasklet_data tdata; /* temp hack for completion signaling */
-	struct sdxi_ring_state *ring_state;
-};
+struct sdxi_dev;
 
 /**
  * struct sdxi_dev_ops - Bus-specific methods for SDXI devices.
