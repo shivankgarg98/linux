@@ -55,7 +55,8 @@ static inline void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
 {
 	/* Ensure write index is visible. */
 	dma_wmb();
-	sdxi_dbg(cxt->sdxi, "Ringing doorbell: %llu\n", index);
+	sdxi_dbg(cxt->sdxi, "Ringing context %u doorbell: %llu\n",
+		 cxt->id, index);
 	iowrite64(index, cxt->db);
 }
 
