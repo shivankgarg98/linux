@@ -34,8 +34,6 @@ struct sdxi_cxt {
 	struct sdxi_ring_state *ring_state;
 };
 
-
-struct sdxi_dev;
 struct sdxi_desc;
 
 enum sdxi_cxt_id {
