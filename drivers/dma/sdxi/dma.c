@@ -6,12 +6,15 @@
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
 
+#include <linux/cleanup.h>
+#include <linux/container_of.h>
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
 #include "../dmaengine.h"
+#include "../virt-dma.h"
 #include "context.h"
 #include "descriptor.h"
 #include "dma.h"
@@ -19,29 +22,31 @@
 #include "sdxi.h"
 
 struct sdxi_dma_chan {
-	struct dma_chan dma_chan;
+	struct virt_dma_chan vchan;
 	struct sdxi_cxt *cxt;
 };
 
+/*
+ * A virtual descriptor can correspond to a group of SDXI hardware descriptors.
+ */
 struct sdxi_dma_desc {
-	struct dma_async_tx_descriptor txd;
-	struct dmaengine_result tx_result;
-	struct sdxi_desc *hw;
+	struct virt_dma_desc vdesc;
+	struct sdxi_ring_resv resv;
 };
 
-static struct sdxi_dma_chan *
-to_sdxi_dma_chan(const struct dma_chan *dma_chan)
+static struct sdxi_dma_chan *to_sdxi_dma_chan(const struct dma_chan *dma_chan)
 {
-	return container_of(dma_chan, struct sdxi_dma_chan, dma_chan);
+	const struct virt_dma_chan *vchan;
+
+	vchan = container_of_const(dma_chan, struct virt_dma_chan, chan);
+	return container_of(vchan, struct sdxi_dma_chan, vchan);
 }
 
-#if 0
 static struct sdxi_dma_desc *
-to_sdxi_dma_desc(const struct dma_async_tx_descriptor *txd)
+to_sdxi_dma_desc(const struct virt_dma_desc *vdesc)
 {
-	return container_of(txd, struct sdxi_dma_desc, txd);
+	return container_of(vdesc, struct sdxi_dma_desc, vdesc);
 }
-#endif
 
 static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
 {
@@ -55,24 +60,19 @@ static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
 	sdxi_working_cxt_exit(chan->cxt);
 }
 
-static dma_cookie_t sdxi_tx_submit(struct dma_async_tx_descriptor *tx)
+static void sdxi_tx_desc_free(struct virt_dma_desc *vdesc)
 {
-	return -1;
-}
-
-static int sdxi_tx_desc_free(struct dma_async_tx_descriptor *tx)
-{
-	return -1;
+	kfree(to_sdxi_dma_desc(vdesc));
 }
 
 static struct dma_async_tx_descriptor *
 sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		     dma_addr_t src, size_t len, unsigned long flags)
 {
+	struct dma_async_tx_descriptor *txd;
+	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
 	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
-	struct sdxi_dma_desc *sddesc;
-	struct sdxi_desc *desc;
-	struct sdxi_ring_resv resv;
+	struct sdxi_desc check;
 	struct sdxi_copy copy = {
 		.src = src,
 		.dst = dst,
@@ -86,43 +86,26 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	 */
 	if (WARN_ON_ONCE(flags & DMA_PREP_INTERRUPT))
 		return NULL;
-
-	if (sdxi_ring_reserve(cxt->ring_state, 1, &resv))
+	/*
+	 * temp hack: perform a trial encode to a dummy descriptor on
+	 * the stack so we can reject bad inputs without touching the
+	 * ring state.
+	 */
+	if (sdxi_encode_copy(&check, &copy))
 		return NULL;
-
-	desc = sdxi_ring_resv_next(&resv);
-
-	if (sdxi_encode_copy(desc, &copy))
-		goto nop_resv;
 
 	sddesc = kzalloc(sizeof(*sddesc), GFP_NOWAIT);
 	if (!sddesc)
-		goto nop_resv;
+		return NULL;
 
-	dma_async_tx_descriptor_init(&sddesc->txd, dma_chan);
-	sddesc->txd.flags = flags;
-	sddesc->txd.tx_submit = sdxi_tx_submit;
-	sddesc->txd.desc_free = sdxi_tx_desc_free;
+	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
+		return NULL;
 
-	/* FIXME: fill out sddesc, txd */
+	(void)sdxi_encode_copy(sdxi_ring_resv_next(&sddesc->resv), &copy);
 
-	return &sddesc->txd;
-
-nop_resv:
-	/*
-	 * We've already advanced the write index, so we have to put
-	 * valid descriptors in the reserved slots for the
-	 * implementation to execute. Use nops, and proceed to ring
-	 * the doorbell so they'll get consumed.
-	 */
-	sdxi_ring_resv_foreach(&resv, desc) {
-		sdxi_serialize_nop(desc);
-		sdxi_desc_make_valid(desc);
-	}
-
-	/* FIXME: ring doorbell */
-
-	return NULL;
+	txd = vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
+	retain_and_null_ptr(sddesc);
+	return txd;
 }
 
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
@@ -173,65 +156,68 @@ cxt_exit:
 	return NULL;
 }
 
-int sdxi_dma_register(struct sdxi_dev *sdxi)
+static void add_channel(struct dma_device *dma_dev)
 {
 	struct sdxi_dma_chan *sdchan;
-	struct device *dev = sdxi_to_dev(sdxi);
-	struct dma_device *dma_dev = &sdxi->dma_dev;
-	int ret = 0;
+	struct sdxi_dev *sdxi = dev_get_drvdata(dma_dev->dev);
 
-	sdxi->dma_cxt = start_dma_cxt(sdxi);
-	if (!sdxi->dma_cxt)
-		return -ENOMEM;
+	sdchan = devm_kzalloc(dma_dev->dev, sizeof(*sdchan), GFP_KERNEL);
+	if (!sdchan)
+		return;
 
-	sdxi->sdxi_dma_chan = devm_kzalloc(dev, sizeof(*sdxi->sdxi_dma_chan),
-					   GFP_KERNEL);
-	if (!sdxi->sdxi_dma_chan)
-		return -ENOMEM;
+	sdchan->cxt = start_dma_cxt(sdxi);
+	if (!sdchan->cxt) {
+		devm_kfree(dma_dev->dev, sdchan);
+		return;
+	}
 
-	sdxi->sdxi_dma_chan->cxt = sdxi->dma_cxt;
-
-	dma_dev->dev = dev;
-	dma_dev->src_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
-	dma_dev->dst_addr_widths = DMA_SLAVE_BUSWIDTH_64_BYTES;
-	dma_dev->directions = BIT(DMA_MEM_TO_MEM);
-	dma_dev->residue_granularity = DMA_RESIDUE_GRANULARITY_DESCRIPTOR;
-	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
-
-	dma_cap_set(DMA_PRIVATE, dma_dev->cap_mask);
-
-	INIT_LIST_HEAD(&dma_dev->channels);
-	/* FIXME add a channel */
-
-	sdchan = sdxi->sdxi_dma_chan;
-	sdchan->dma_chan.device = dma_dev;
-	dma_cookie_init(&sdchan->dma_chan);
-
-	list_add_tail(&sdchan->dma_chan.device_node, &dma_dev->channels);
-
-	/* Set base and prep routines */
-	dma_dev->device_free_chan_resources = sdxi_dma_free_chan_resources;
-	dma_dev->device_prep_dma_memcpy = sdxi_dma_prep_memcpy;
-	dma_dev->device_issue_pending = sdxi_dma_issue_pending;
-	dma_dev->device_tx_status = dma_cookie_status;
-	dma_dev->device_terminate_all = sdxi_dma_terminate_all;
-	dma_dev->device_synchronize = sdxi_dma_synchronize;
-
-	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
-
-	ret = dma_async_device_register(dma_dev);
-	if (ret)
-		goto err_reg;
-
-	return 0;
-
-err_reg:
-	return ret;
+	sdchan->vchan.desc_free = sdxi_tx_desc_free;
+	vchan_init(&sdchan->vchan, dma_dev);
 }
 
-void sdxi_dma_unregister(struct sdxi_dev *sdxi)
+int sdxi_dma_register(struct sdxi_dev *sdxi)
 {
-	if (sdxi->dma_cxt)
-		sdxi_working_cxt_exit(sdxi->dma_cxt);
-	dma_async_device_unregister(&sdxi->dma_dev);
+	struct device *dev = sdxi_to_dev(sdxi);
+	struct dma_device *dma_dev;
+
+	/*
+	 * FIXME: This code assumes the device supports the interrupt
+	 * operation group. It's probably not a bad assumption, but
+	 * IntrGrp is optional in the spec. We should probe the
+	 * device's opgroups and bail if IntrGrp isn't implemented.
+	 */
+
+	dma_dev = devm_kzalloc(sdxi_to_dev(sdxi), sizeof(*dma_dev), GFP_KERNEL);
+	if (!dma_dev)
+		return -ENOMEM;
+
+	*dma_dev = (typeof(*dma_dev)) {
+		.dev                 = sdxi_to_dev(sdxi),
+		.src_addr_widths     = DMA_SLAVE_BUSWIDTH_64_BYTES,
+		.dst_addr_widths     = DMA_SLAVE_BUSWIDTH_64_BYTES,
+		.directions          = BIT(DMA_MEM_TO_MEM),
+		.residue_granularity = DMA_RESIDUE_GRANULARITY_DESCRIPTOR,
+
+		.device_alloc_chan_resources = NULL, /* fixme */
+		.device_free_chan_resources  = sdxi_dma_free_chan_resources,
+
+		.device_prep_dma_memcpy = sdxi_dma_prep_memcpy,
+
+		.device_pause = NULL, /* fixme */
+		.device_resume = NULL, /* fixme */
+		.device_terminate_all = sdxi_dma_terminate_all,
+		.device_synchronize = sdxi_dma_synchronize,
+		.device_tx_status = dma_cookie_status,
+		.device_issue_pending = sdxi_dma_issue_pending,
+		.device_release = NULL, /* fixme */
+	};
+
+	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
+	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
+	INIT_LIST_HEAD(&dma_dev->channels);
+
+	for (size_t i = 0; i < 1; i++)
+		add_channel(dma_dev);
+
+	return dmaenginem_async_device_register(dma_dev);
 }
