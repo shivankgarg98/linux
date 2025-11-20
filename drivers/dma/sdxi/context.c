@@ -521,24 +521,30 @@ static const char *cxt_sts_state_str(enum cxt_sts_state state)
 	return str;
 }
 
-int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc)
+/*
+ * Temporary compatibility function, callers should convert to
+ * sdxi_ring_reserve() etc. instead of encoding descriptors to
+ * temporary storage and then copying to ring.
+ */
+int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *src)
 {
-	struct sdxi_sq *sq;
-	__le64 __iomem *db;
-	__le64 *ring_base;
-	u64 ring_entries;
-	__le64 *rd_idx;
-	__le64 *wr_idx;
+	struct sdxi_ring_resv resv;
+	struct sdxi_desc *dst;
+	int err;
 
-	sq = cxt->sq;
-	ring_entries = sq->ring_entries;
-	ring_base = sq->desc_ring[0].qw;
-	rd_idx = &sq->cxt_sts->read_index;
-	wr_idx = sq->write_index;
-	db = cxt->db;
+	/* fixme: need to handle ring full, wait for a slot to open */
+	err = sdxi_ring_reserve(cxt->ring_state, 1, &resv);
+	if (WARN_ON(err))
+		return err;
 
-	return sdxi_enqueue(desc->qw, 1, ring_base, ring_entries,
-			    rd_idx, wr_idx, db);
+	/* We only set vl once the payload is in the ring. */
+	WARN_ON(sdxi_desc_valid(src));
+
+	dst = sdxi_ring_resv_next(&resv);
+	memcpy(dst, src, sizeof(*src));
+	sdxi_desc_make_valid(dst);
+
+	return 0;
 }
 
 static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
