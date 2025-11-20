@@ -80,8 +80,7 @@ int sdxi_encode_copy(struct sdxi_desc *desc, const struct sdxi_copy *params)
 			   }))
 		return -EINVAL;
 
-	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
-		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_COPY) |
+	opcode = (FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_COPY) |
 		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_DMAB));
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
@@ -108,8 +107,7 @@ int sdxi_encode_intr(struct sdxi_desc *desc,
 	u64 csb_ptr;
 	u32 opcode;
 
-	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
-		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_INTR) |
+	opcode = (FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_INTR) |
 		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_INTR));
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
@@ -135,8 +133,7 @@ int sdxi_encode_cxt_start(struct sdxi_desc *desc,
 	u64 csb_ptr;
 	u32 opcode;
 
-	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
-		  FIELD_PREP(SDXI_DSC_FE, 1) |
+	opcode = (FIELD_PREP(SDXI_DSC_FE, 1) |
 		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_CXT_START_NM) |
 		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_ADMIN));
 
@@ -166,8 +163,7 @@ int sdxi_encode_cxt_stop(struct sdxi_desc *desc,
 	u64 csb_ptr;
 	u32 opcode;
 
-	opcode = (FIELD_PREP(SDXI_DSC_VL, 1) |
-		  FIELD_PREP(SDXI_DSC_FE, 1) |
+	opcode = (FIELD_PREP(SDXI_DSC_FE, 1) |
 		  FIELD_PREP(SDXI_DSC_SUBTYPE, SDXI_DSC_OP_SUBTYPE_CXT_STOP) |
 		  FIELD_PREP(SDXI_DSC_TYPE, SDXI_DSC_OP_TYPE_ADMIN));
 
