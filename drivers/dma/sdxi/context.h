@@ -60,6 +60,18 @@ static inline void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
 	iowrite64(index, cxt->db);
 }
 
+static inline bool sdxi_cxt_stopped(const struct sdxi_cxt *cxt)
+{
+	switch (sdxi_cxt_sts_state(cxt->sq->cxt_sts)) {
+	case CXTV_STOP_SW:
+	case CXTV_STOP_FN:
+	case CXTV_ERR_FN:
+		return true;
+	default:
+		return false;
+	}
+}
+
 
 
 #endif /* __SDXI_SQ_H */
