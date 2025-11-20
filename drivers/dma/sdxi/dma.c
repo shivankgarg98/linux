@@ -110,8 +110,33 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
-	/* Flip the vl bits in all pending hwdescs; ring the doorbell. */
-	BUG();
+	struct virt_dma_chan *vchan = to_virt_chan(dma_chan);
+	struct virt_dma_desc *vdesc;
+	u64 dbval = 0;
+
+	scoped_guard(spinlock_irq, &vchan->lock) {
+		if (list_empty(&vchan->desc_submitted)) {
+			pr_info("submitted list empty?");
+			return;
+		}
+
+		list_for_each_entry(vdesc, &vchan->desc_submitted, node) {
+			struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
+			struct sdxi_desc *hwdesc;
+
+			sdxi_ring_resv_foreach(&sddesc->resv, hwdesc)
+				sdxi_desc_make_valid(hwdesc);
+			/*
+			 * The reservations ought to be ordered
+			 * ascending, but use umax() just in case.
+			 */
+			dbval = umax(sdxi_ring_resv_dbval(&sddesc->resv), dbval);
+		}
+
+		vchan_issue_pending(vchan);
+	}
+
+	sdxi_cxt_push_doorbell(to_sdxi_dma_chan(dma_chan)->cxt, dbval);
 }
 
 static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
