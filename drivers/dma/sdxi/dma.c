@@ -114,7 +114,7 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 	struct virt_dma_desc *vdesc;
 	u64 dbval = 0;
 
-	scoped_guard(spinlock_irq, &vchan->lock) {
+	scoped_guard(spinlock_irqsave, &vchan->lock) {
 		if (list_empty(&vchan->desc_submitted)) {
 			pr_info("submitted list empty?");
 			return;
