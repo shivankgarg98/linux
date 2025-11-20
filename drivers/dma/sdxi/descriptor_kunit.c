@@ -150,7 +150,7 @@ static void copy(struct kunit *t)
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_copy(&desc, &copy));
 
 	sdxi_desc_unpack(&unpacked, &desc);
-	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.subtype, SDXI_DSC_OP_SUBTYPE_COPY);
 	KUNIT_EXPECT_EQ(t, unpacked.type, SDXI_DSC_OP_TYPE_DMAB);
@@ -202,7 +202,7 @@ static void copy(struct kunit *t)
 	KUNIT_EXPECT_EQ(t, 2, le16_to_cpu(desc.copy.akey1));
 
 	sdxi_desc_unpack(&unpacked, &desc);
-	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.subtype, SDXI_DSC_OP_SUBTYPE_COPY);
 	KUNIT_EXPECT_EQ(t, unpacked.type, SDXI_DSC_OP_TYPE_DMAB);
@@ -226,7 +226,7 @@ static void intr(struct kunit *t)
 	KUNIT_EXPECT_EQ(t, 1234, le16_to_cpu(desc.intr.akey));
 
 	sdxi_desc_unpack(&unpacked, &desc);
-	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.subtype, SDXI_DSC_OP_SUBTYPE_INTR);
 	KUNIT_EXPECT_EQ(t, unpacked.type, SDXI_DSC_OP_TYPE_INTR);
@@ -256,7 +256,7 @@ static void cxt_start(struct kunit *t)
 	 * according to the operation type.
 	 */
 	sdxi_desc_unpack(&unpacked, &desc);
-	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.se, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.fe, 1);
 	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
@@ -287,7 +287,7 @@ static void cxt_stop(struct kunit *t)
 	 * according to the operation type.
 	 */
 	sdxi_desc_unpack(&unpacked, &desc);
-	KUNIT_EXPECT_EQ(t, unpacked.vl, 1);
+	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.se, 0);
 	KUNIT_EXPECT_EQ(t, unpacked.fe, 1);
 	KUNIT_EXPECT_EQ(t, unpacked.ch, 0);
