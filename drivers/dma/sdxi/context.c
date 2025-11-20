@@ -622,3 +622,35 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 
 	sdxi_cxt_free(cxt);
 }
+
+int sdxi_cxt_initiate_stop(struct sdxi_cxt *cxt)
+{
+	struct sdxi_cxt *adm = cxt->sdxi->admin_cxt;
+	struct sdxi_ring_resv resv;
+	struct sdxi_desc *desc;
+	const struct sdxi_cxt_stop params = {
+		.range = sdxi_cxt_range(cxt->id),
+	};
+	int err;
+
+	err = sdxi_ring_reserve(adm->ring_state, 1, &resv);
+	if (err)
+		return err;
+
+	desc = sdxi_ring_resv_next(&resv);
+	err = sdxi_encode_cxt_stop(desc, &params);
+	if (err)
+		goto nop_resv;
+
+	sdxi_desc_make_valid(desc);
+
+	sdxi_cxt_push_doorbell(adm, sdxi_ring_resv_dbval(&resv));
+
+	return 0;
+
+nop_resv:
+	sdxi_serialize_nop(desc); /* FIXME? can you write nops to an admin context? */
+	sdxi_desc_make_valid(desc);
+
+	return err;
+}
