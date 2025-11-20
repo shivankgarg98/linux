@@ -7,6 +7,7 @@
  */
 
 #include <linux/cleanup.h>
+#include <linux/delay.h>
 #include <linux/container_of.h>
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
@@ -32,6 +33,8 @@ struct sdxi_dma_chan {
 struct sdxi_dma_desc {
 	struct virt_dma_desc vdesc;
 	struct sdxi_ring_resv resv;
+	struct sdxi_cst_blk *cst_blk;
+	dma_addr_t cst_blk_dma;
 };
 
 static struct sdxi_dma_chan *to_sdxi_dma_chan(const struct dma_chan *dma_chan)
@@ -71,8 +74,9 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 {
 	struct dma_async_tx_descriptor *txd;
 	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
+	struct sdxi_cst_blk *cst_blk;
+	dma_addr_t cst_blk_dma;
 	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
-	struct sdxi_desc check;
 	struct sdxi_copy copy = {
 		.src = src,
 		.dst = dst,
@@ -91,12 +95,30 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	 * the stack so we can reject bad inputs without touching the
 	 * ring state.
 	 */
-	if (sdxi_encode_copy(&check, &copy))
+	if (sdxi_encode_copy(&(struct sdxi_desc){}, &copy))
 		return NULL;
 
-	sddesc = kzalloc(sizeof(*sddesc), GFP_NOWAIT);
+	/* FIXME: use a pool? this is wasteful. */
+	/* FIXME also: this leaks when the reservation fails.*/
+	cst_blk = dma_alloc_coherent(sdxi_to_dev(cxt->sdxi), sizeof(*cst_blk),
+				     &cst_blk_dma, GFP_NOWAIT);
+	if (!cst_blk)
+		return NULL;
+
+	/* temp hack: all txds error right now */
+	cst_blk->flags = cpu_to_le32(FIELD_PREP(SDXI_CST_BLK_ER_BIT, 1));
+	cst_blk->signal = cpu_to_le64(1);
+
+	/* FIXME associate cst_blk with the final hwdesc */
+
+	sddesc = kmalloc(sizeof(*sddesc), GFP_NOWAIT);
 	if (!sddesc)
 		return NULL;
+
+	*sddesc = (typeof(*sddesc)) {
+		.cst_blk = cst_blk,
+		.cst_blk_dma = cst_blk_dma,
+	};
 
 	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
 		return NULL;
@@ -107,6 +129,48 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	retain_and_null_ptr(sddesc);
 	return txd;
 }
+
+static bool sdxi_cst_blk_erred(const struct sdxi_cst_blk *cst)
+{
+	return FIELD_GET(SDXI_CST_BLK_ER_BIT, le32_to_cpu(cst->flags));
+}
+
+static bool sdxi_cst_blk_complete(const struct sdxi_cst_blk *cst)
+{
+	return cst->signal == 0;
+}
+
+static enum dma_status sdxi_tx_status(struct dma_chan *chan,
+				      dma_cookie_t cookie,
+				      struct dma_tx_state *state)
+{
+	struct sdxi_dma_chan *sdchan = to_sdxi_dma_chan(chan);
+	struct sdxi_dma_desc *sddesc;
+	enum dma_status status;
+	struct virt_dma_desc *vdesc;
+
+	status = dma_cookie_status(chan, cookie, state);
+	if (status == DMA_COMPLETE)
+		return status;
+
+	guard(spinlock_irqsave)(&sdchan->vchan.lock);
+
+	vdesc = vchan_find_desc(&sdchan->vchan, cookie);
+	if (!vdesc)
+		return status;
+
+	sddesc = to_sdxi_dma_desc(vdesc);
+
+	if (sdxi_cst_blk_erred(sddesc->cst_blk))
+		return DMA_ERROR;
+
+	/* fixme? should this happen? */
+	if (sdxi_cst_blk_complete(sddesc->cst_blk))
+		return DMA_COMPLETE;
+
+	return DMA_IN_PROGRESS;
+}
+
 
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
@@ -136,6 +200,11 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 		vchan_issue_pending(vchan);
 	}
 
+	/*
+	 * The implementation is required to handle out-of-order
+	 * doorbell updates; we can do this after dropping the
+	 * lock.
+	 */
 	sdxi_cxt_push_doorbell(to_sdxi_dma_chan(dma_chan)->cxt, dbval);
 }
 
@@ -145,10 +214,11 @@ static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 	return sdxi_cxt_initiate_stop(to_sdxi_dma_chan(dma_chan)->cxt);
 }
 
-static void sdxi_dma_synchronize(struct dma_chan *c)
+static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 {
-	BUG();
-	/* Submit a nop with fe=1 and poll for completion. Won't work if terminate_all stopped the context though. */
+	while (!sdxi_cxt_stopped(to_sdxi_dma_chan(dma_chan)->cxt))
+		msleep(100);
+	vchan_synchronize(to_virt_chan(dma_chan));
 }
 
 static struct sdxi_cxt *start_dma_cxt(struct sdxi_dev *sdxi)
@@ -232,7 +302,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 		.device_resume = NULL, /* fixme */
 		.device_terminate_all = sdxi_dma_terminate_all,
 		.device_synchronize = sdxi_dma_synchronize,
-		.device_tx_status = dma_cookie_status,
+		.device_tx_status = sdxi_tx_status,
 		.device_issue_pending = sdxi_dma_issue_pending,
 		.device_release = NULL, /* fixme */
 	};
