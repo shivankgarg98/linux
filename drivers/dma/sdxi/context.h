@@ -8,6 +8,9 @@
 #ifndef __SDXI_SQ_H
 #define __SDXI_SQ_H
 
+#include <linux/io-64-nonatomic-lo-hi.h>
+#include <asm/barrier.h>
+
 #include "sdxi.h"
 
 struct sdxi_cxt {
@@ -47,5 +50,15 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt);
 struct sdxi_cxt *sdxi_kcxt_new(struct sdxi_dev *sdxi);
 
 int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc);
+
+static inline void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
+{
+	/* Ensure write index is visible. */
+	dma_wmb();
+	sdxi_dbg(cxt->sdxi, "Ringing doorbell: %llu\n", index);
+	iowrite64(index, cxt->db);
+}
+
+
 
 #endif /* __SDXI_SQ_H */
