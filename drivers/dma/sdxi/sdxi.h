@@ -169,13 +169,8 @@ struct sdxi_dev {
 	struct sdxi_errlog_hd_ent *err_log;
 	dma_addr_t err_log_dma;
 
-	/* DMA engine */
-	struct dma_device dma_dev;
-	struct sdxi_dma_chan *sdxi_dma_chan;
-
 	/* special contexts */
 	struct sdxi_cxt *admin_cxt;	/* admin context */
-	struct sdxi_cxt *dma_cxt;	/* DMA engine context */
 
 	const struct sdxi_dev_ops *dev_ops;
 	bool use_privileged_bits:1; /* Whether to set the 'pr' bit
