@@ -381,9 +381,6 @@ int sdxi_device_init(struct sdxi_dev *sdxi, const struct sdxi_dev_ops *ops)
 
 void sdxi_device_exit(struct sdxi_dev *sdxi)
 {
-	if (dma_engine)
-		sdxi_dma_unregister(sdxi);
-
 	/* Walk sdxi->cxt_array freeing any allocated rows. */
 	for (size_t i = 0; i < L2_TABLE_ENTRIES; ++i) {
 		if (!sdxi->cxt_array[i])
