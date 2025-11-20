@@ -105,11 +105,7 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	if (!cst_blk)
 		return NULL;
 
-	/* temp hack: all txds error right now */
-	cst_blk->flags = cpu_to_le32(FIELD_PREP(SDXI_CST_BLK_ER_BIT, 1));
 	cst_blk->signal = cpu_to_le64(1);
-
-	/* FIXME associate cst_blk with the final hwdesc */
 
 	sddesc = kmalloc(sizeof(*sddesc), GFP_NOWAIT);
 	if (!sddesc)
@@ -123,7 +119,10 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
 		return NULL;
 
-	(void)sdxi_encode_copy(sdxi_ring_resv_next(&sddesc->resv), &copy);
+	struct sdxi_desc *hwdesc = sdxi_ring_resv_next(&sddesc->resv);
+
+	(void)sdxi_encode_copy(hwdesc, &copy);
+	sdxi_desc_set_csb(hwdesc, cst_blk_dma);
 
 	txd = vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
 	retain_and_null_ptr(sddesc);
