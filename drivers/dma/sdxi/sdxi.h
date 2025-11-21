@@ -59,24 +59,6 @@ struct sdxi_sq {
 	/* NB: define doorbell here */
 };
 
-struct sdxi_tasklet_data {
-	struct sdxi_cmd *cmd;
-};
-
-struct sdxi_cmd {
-	struct work_struct work;
-	struct sdxi_cxt *cxt;
-	struct sdxi_cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
-	int ret;
-	size_t len;
-	u64 src_addr;
-	u64 dst_addr;
-	/* completion callback support */
-	void (*sdxi_cmd_callback)(void *data, int err);
-	void *data;
-};
-
 /*
  * The size of the AKey table is flexible, from 4KB to 1MB. Always use
  * the minimum size for now.
