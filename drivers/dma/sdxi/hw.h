@@ -249,6 +249,9 @@ struct sdxi_desc {
 			__le16 cxt_end;
 			__u8 rsvd_1[44];
 		);
+/* For use with cxt_stop.vflags */
+#define SDXI_DSC_CXT_STOP_HS BIT(6)
+#define SDXI_DSC_CXT_STOP_VF BIT(8)
 	};
 } __packed;
 static_assert(sizeof(struct sdxi_desc) == 64);
