@@ -83,6 +83,18 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	};
 
 	/*
+	 * Notes:
+	 *
+	 * Always reserve 2, write a nop to the second one. Issue
+	 * pending can overwrite the final vdesc's nop with an
+	 * interrupt command. This way we avoid interrupting on every
+	 * vdesc.
+	 *
+	 * Avoid setting fe bit until final interrupt desc to allow
+	 * concurrency in descriptor processing by the engine.
+	 */
+
+	/*
 	 * Sorry, no interrupt-signaled completion yet.
 	 */
 	if (WARN_ON_ONCE(flags & DMA_PREP_INTERRUPT))
