@@ -16,6 +16,7 @@
 
 #include "../dmaengine.h"
 #include "../virt-dma.h"
+#include "admin.h"
 #include "context.h"
 #include "descriptor.h"
 #include "dma.h"
@@ -53,14 +54,10 @@ to_sdxi_dma_desc(const struct virt_dma_desc *vdesc)
 
 static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
 {
-	struct sdxi_dma_chan *chan = to_sdxi_dma_chan(dma_chan);
-
 	/*
 	 * Dmaengine has drained all pending txds. Stop the context.
-	 * sdxi_working_cxt_exit() isn't what we want, it frees the
-	 * context.
 	 */
-	sdxi_working_cxt_exit(chan->cxt);
+	sdxi_cxt_stop(to_sdxi_dma_chan(dma_chan)->cxt);
 }
 
 static void sdxi_tx_desc_free(struct virt_dma_desc *vdesc)
@@ -220,36 +217,6 @@ static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 	vchan_synchronize(to_virt_chan(dma_chan));
 }
 
-static struct sdxi_cxt *start_dma_cxt(struct sdxi_dev *sdxi)
-{
-	struct sdxi_cxt_start params;
-	struct sdxi_desc desc;
-	struct sdxi_cxt *cxt;
-	int err;
-
-	cxt = sdxi_kcxt_new(sdxi);
-	if (!cxt)
-		return NULL;
-
-	params = (typeof(params)) {
-		.range = sdxi_cxt_range(cxt->id),
-	};
-
-	err = sdxi_encode_cxt_start(&desc, &params);
-	if (err)
-		goto cxt_exit;
-
-	err = sdxi_submit_desc(sdxi->admin_cxt, &desc);
-	if (err)
-		goto cxt_exit;
-
-	return cxt;
-
-cxt_exit:
-	sdxi_working_cxt_exit(cxt);
-	return NULL;
-}
-
 static void add_channel(struct dma_device *dma_dev)
 {
 	struct sdxi_dma_chan *sdchan;
@@ -259,7 +226,7 @@ static void add_channel(struct dma_device *dma_dev)
 	if (!sdchan)
 		return;
 
-	sdchan->cxt = start_dma_cxt(sdxi);
+	sdchan->cxt = sdxi_kcxt_new(sdxi);
 	if (!sdchan->cxt) {
 		devm_kfree(dma_dev->dev, sdchan);
 		return;
@@ -267,6 +234,12 @@ static void add_channel(struct dma_device *dma_dev)
 
 	sdchan->vchan.desc_free = sdxi_tx_desc_free;
 	vchan_init(&sdchan->vchan, dma_dev);
+}
+
+static int sdxi_dma_alloc_chan_resources(struct dma_chan *dma_chan)
+{
+	/* Just start the context, no real allocations to perform. */
+	return sdxi_adm_start_cxt(to_sdxi_dma_chan(dma_chan)->cxt);
 }
 
 int sdxi_dma_register(struct sdxi_dev *sdxi)
@@ -292,7 +265,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 		.directions          = BIT(DMA_MEM_TO_MEM),
 		.residue_granularity = DMA_RESIDUE_GRANULARITY_DESCRIPTOR,
 
-		.device_alloc_chan_resources = NULL, /* fixme */
+		.device_alloc_chan_resources = sdxi_dma_alloc_chan_resources,
 		.device_free_chan_resources  = sdxi_dma_free_chan_resources,
 
 		.device_prep_dma_memcpy = sdxi_dma_prep_memcpy,
