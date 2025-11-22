@@ -654,3 +654,40 @@ nop_resv:
 
 	return err;
 }
+
+bool sdxi_cxt_stopped(const struct sdxi_cxt *cxt)
+{
+	enum cxt_sts_state state = sdxi_cxt_sts_state(cxt->sq->cxt_sts);
+	switch (state) {
+	case CXTV_STOP_SW:
+	case CXTV_STOP_FN:
+	case CXTV_ERR_FN:
+		sdxi_dbg(cxt->sdxi, "context %u stopped (state=%s)\n",
+			 cxt->id, cxt_sts_state_str(state));
+		return true;
+	default:
+		return false;
+	}
+}
+
+void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
+{
+	enum cxt_sts_state state = sdxi_cxt_sts_state(cxt->sq->cxt_sts);
+	/* Ensure write index is visible. */
+	dma_wmb();
+	sdxi_dbg(cxt->sdxi, "Ringing context %u (state = %s) doorbell: %llu\n",
+		 cxt->id, cxt_sts_state_str(state), index);
+	iowrite64(index, cxt->db);
+}
+
+int sdxi_cxt_start(struct sdxi_cxt *cxt)
+{
+
+	return 0;
+}
+
+void sdxi_cxt_stop(struct sdxi_cxt *cxt)
+{
+
+}
+

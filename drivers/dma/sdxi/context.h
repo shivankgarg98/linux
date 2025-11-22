@@ -51,27 +51,10 @@ int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *desc);
 
 int sdxi_cxt_initiate_stop(struct sdxi_cxt *cxt);
 
-static inline void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
-{
-	/* Ensure write index is visible. */
-	dma_wmb();
-	sdxi_dbg(cxt->sdxi, "Ringing context %u doorbell: %llu\n",
-		 cxt->id, index);
-	iowrite64(index, cxt->db);
-}
+void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index);
 
-static inline bool sdxi_cxt_stopped(const struct sdxi_cxt *cxt)
-{
-	switch (sdxi_cxt_sts_state(cxt->sq->cxt_sts)) {
-	case CXTV_STOP_SW:
-	case CXTV_STOP_FN:
-	case CXTV_ERR_FN:
-		return true;
-	default:
-		return false;
-	}
-}
-
-
+int sdxi_cxt_start(struct sdxi_cxt *cxt);
+void sdxi_cxt_stop(struct sdxi_cxt *cxt);
+bool sdxi_cxt_stopped(const struct sdxi_cxt *cxt);
 
 #endif /* __SDXI_SQ_H */
