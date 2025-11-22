@@ -252,6 +252,21 @@ struct sdxi_desc {
 /* For use with cxt_stop.vflags */
 #define SDXI_DSC_CXT_STOP_HS BIT(6)
 #define SDXI_DSC_CXT_STOP_VF BIT(8)
+
+#define SDXI_DSC_OP_SUBTYPE_SYNC 0x06
+		/* AdminGrp: DSC_SYNC */
+		define_sdxi_dsc(sdxi_dsc_sync, sync,
+				__u8 cflags;
+				__u8 vflags;
+				__le16 vf_num;
+				__le16 cxt_start;
+				__le16 cxt_end;
+				__le16 key_start;
+				__le16 key_end;
+				__u8 rsvd_0[40];
+		);
+/* For use with sync.cflags */
+#define SDXI_DSC_SYNC_FLT GENMASK(2, 0)
 	};
 } __packed;
 static_assert(sizeof(struct sdxi_desc) == 64);
