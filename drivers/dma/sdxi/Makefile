@@ -2,6 +2,7 @@
 obj-$(CONFIG_SDXI) += sdxi.o
 
 sdxi-objs += \
+	admin.o       \
 	context.o     \
 	descriptor.o  \
 	device.o      \
