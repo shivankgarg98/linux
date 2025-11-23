@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * SDXI DMA engine implementation
- *   Derived from ptdma code
+ * SDXI dmaengine provider
  *
  * Copyright (C) 2025 Advanced Micro Devices, Inc.
  */
