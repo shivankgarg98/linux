@@ -190,6 +190,7 @@ int sdxi_encode_sync(struct sdxi_desc *desc, const struct sdxi_sync *params)
 
 	*desc = (typeof(*desc)) {
 		.sync = (typeof(desc->sync)) {
+			.opcode = cpu_to_le32(opcode),
 			.cflags = cflags,
 			.cxt_start = cpu_to_le16(params->range.cxt_start),
 			.cxt_end = cpu_to_le16(params->range.cxt_end),
