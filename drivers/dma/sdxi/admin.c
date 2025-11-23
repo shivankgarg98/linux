@@ -4,60 +4,11 @@
 #include <asm/rwonce.h>
 
 #include "admin.h"
+#include "completion.h"
 #include "context.h"
 #include "descriptor.h"
 #include "ring.h"
 #include "sdxi.h"
-
-/*
- * Polled completion status block that can be attached to a
- * descriptor.
- */
-struct sdxi_completion {
-	struct sdxi_dev *sdxi;
-	struct sdxi_cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
-};
-
-static struct sdxi_completion *sdxi_completion_alloc(struct sdxi_dev *sdxi)
-{
-	struct sdxi_completion *sc __free(kfree);
-	struct sdxi_cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
-
-	sc = kmalloc(sizeof(*sc), GFP_KERNEL);
-	if (!sc)
-		return NULL;
-
-	/* Should use a dma_pool. */
-	cst_blk = dma_alloc_coherent(sdxi_to_dev(sdxi), sizeof(*cst_blk),
-				     &cst_blk_dma, GFP_KERNEL);
-	if (!cst_blk)
-		return NULL;
-
-	*sc = (typeof(*sc)) {
-		.sdxi        = sdxi,
-		.cst_blk     = cst_blk,
-		.cst_blk_dma = cst_blk_dma,
-	};
-
-	return_ptr(sc);
-}
-
-static void sdxi_completion_free(struct sdxi_completion *sc)
-{
-	dma_free_coherent(sdxi_to_dev(sc->sdxi), sizeof(*sc->cst_blk),
-			  sc->cst_blk, sc->cst_blk_dma);
-	kfree(sc);
-}
-
-DEFINE_FREE(sdxi_completion, struct sdxi_completion *, if (_T) sdxi_completion_free(_T))
-
-static void sdxi_completion_poll(const struct sdxi_completion *sc)
-{
-	while (READ_ONCE(sc->cst_blk->signal) != 0)
-		cpu_relax();
-}
 
 static struct sdxi_cxt *to_admin_cxt(const struct sdxi_cxt *cxt)
 {
@@ -91,7 +42,7 @@ int sdxi_adm_start_cxt(struct sdxi_cxt *cxt)
 	sdxi_encode_cxt_start(desc, &(const struct sdxi_cxt_start) {
 			.range = sdxi_cxt_range(cxt->id),
 		});
-	sdxi_desc_set_csb(desc, sc->cst_blk_dma);
+	sdxi_completion_attach(desc, sc);
 	sdxi_desc_make_valid(desc);
 	sdxi_cxt_push_doorbell(adm, sdxi_ring_resv_dbval(&resv));
 	sdxi_completion_poll(sc);
@@ -132,7 +83,7 @@ void sdxi_adm_stop_cxt(struct sdxi_cxt *cxt)
 			.filter = SDXI_SYNC_FLT_STOP,
 			.range = sdxi_cxt_range(cxt->id),
 		});
-	sdxi_desc_set_csb(sync, sc->cst_blk_dma);
+	sdxi_completion_attach(sync, sc);
 	sdxi_desc_make_valid(stop);
 	sdxi_desc_make_valid(sync);
 	sdxi_cxt_push_doorbell(adm, sdxi_ring_resv_dbval(&resv));
