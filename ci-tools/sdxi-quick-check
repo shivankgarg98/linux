@@ -163,7 +163,11 @@ test -v tc_args["$_arg_compiler"] ||
 declare -A sparse_arg_map=(
     [off]=""
     [warn]="C=1 CF=--arch=$sparse_arch"
-    [fatal]="C=1 CF='--arch=$sparse_arch -Wsparse-error'"
+    # Sparse's -Wcontext doesn't understand guard() and some Linux
+    # locking primitives lack the necessary annotations, so it's of
+    # limited utility. Disable it for runs where sparse diagnostics
+    # are fatal.
+    [fatal]="C=1 CF='--arch=$sparse_arch -Wsparse-error -Wno-context'"
 )
 test -v sparse_arg_map["$_arg_sparse"] ||
     _PRINT_HELP=yes die "unknown sparse mode '$_arg_sparse'" 1
