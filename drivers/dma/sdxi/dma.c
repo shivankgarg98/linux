@@ -79,14 +79,6 @@ to_sdxi_dma_desc(const struct virt_dma_desc *vdesc)
 	return container_of(vdesc, struct sdxi_dma_desc, vdesc);
 }
 
-static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
-{
-	/*
-	 * Dmaengine has drained all pending txds. Stop the context.
-	 */
-	sdxi_cxt_stop(to_sdxi_dma_chan(dma_chan)->cxt);
-}
-
 static void sdxi_tx_desc_free(struct virt_dma_desc *vdesc)
 {
 	kfree(to_sdxi_dma_desc(vdesc));
@@ -256,6 +248,17 @@ static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 	vchan_synchronize(to_virt_chan(dma_chan));
 }
 
+static int sdxi_dma_alloc_chan_resources(struct dma_chan *dma_chan)
+{
+	return sdxi_adm_start_cxt(to_sdxi_dma_chan(dma_chan)->cxt);
+}
+
+static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
+{
+	sdxi_adm_stop_cxt(to_sdxi_dma_chan(dma_chan)->cxt);
+	vchan_free_chan_resources(to_virt_chan(dma_chan));
+}
+
 static void add_channel(struct dma_device *dma_dev)
 {
 	struct sdxi_dma_chan *sdchan;
@@ -273,12 +276,6 @@ static void add_channel(struct dma_device *dma_dev)
 
 	sdchan->vchan.desc_free = sdxi_tx_desc_free;
 	vchan_init(&sdchan->vchan, dma_dev);
-}
-
-static int sdxi_dma_alloc_chan_resources(struct dma_chan *dma_chan)
-{
-	/* Just start the context, no real allocations to perform. */
-	return sdxi_adm_start_cxt(to_sdxi_dma_chan(dma_chan)->cxt);
 }
 
 int sdxi_dma_register(struct sdxi_dev *sdxi)
