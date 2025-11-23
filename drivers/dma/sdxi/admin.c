@@ -70,7 +70,7 @@ void sdxi_adm_stop_cxt(struct sdxi_cxt *cxt)
 	 * succeeds.
 	 */
 	err = sdxi_ring_reserve(adm->ring_state, 2, &resv);
-	if (err)
+	if (WARN_ON_ONCE(err))
 		return;
 
 	stop = sdxi_ring_resv_next(&resv);
