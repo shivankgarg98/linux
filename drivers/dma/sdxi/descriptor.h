@@ -57,6 +57,15 @@ static inline bool sdxi_desc_valid(const struct sdxi_desc *desc)
 	return FIELD_GET(SDXI_DSC_VL, le32_to_cpu(desc->opcode));
 }
 
+static inline void sdxi_desc_set_fence(struct sdxi_desc *desc)
+{
+	u32 opcode = le32_to_cpu(desc->opcode);
+
+	WARN_ON_ONCE(FIELD_GET(SDXI_DSC_VL, opcode) == 1);
+	FIELD_MODIFY(SDXI_DSC_FE, &opcode, 1);
+	desc->opcode = cpu_to_le32(opcode);
+}
+
 struct sdxi_cxt_range {
 	u16 cxt_start;
 	u16 cxt_end;
