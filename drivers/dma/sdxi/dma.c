@@ -22,6 +22,34 @@
 #include "ring.h"
 #include "sdxi.h"
 
+/*
+ * This provider uses virt_dma_chan / virt_dma_desc.
+ *
+ * SDXI supports up to 16K submission queues (contexts) per device. One
+ * SDXI context is allocated for each virtual DMA channel.
+ *
+ * Each context has a descriptor ring with a minimum of 1K slots. SDXI
+ * supports a variety of primitive operations, e.g. copy, interrupt,
+ * nop. Each Linux virtual DMA descriptor may be composed of a
+ * grouping of SDXI descriptors in the ring. E.g. two SDXI descriptors
+ * (copy, then interrupt) to implement a dma_async_tx_descriptor for
+ * memcpy with DMA_PREP_INTERRUPT flag.
+ *
+ * dma_device->device_prep_dma_* functions reserve space in the
+ * descriptor ring and serialize SDXI descriptors implementing the
+ * operation to the reserved slots, leaving their valid (vl) bits
+ * clear. A single virtual descriptor is added to the allocated list.
+ *
+ * dma_async_tx_descriptor->tx_submit() invokes vchan_tx_submit(),
+ * which merely assigns a cookie and moves the txd to the submitted
+ * list without entering the SDXI provider code.
+ *
+ * dma_device->device_issue_pending (sdxi_dma_issue_pending()) sets vl
+ * on each SDXI descriptor reachable from the submitted list, then
+ * rings the doorbell. The submitted txds are moved to the issued list
+ * via vchan_issue_pending().
+ */
+
 struct sdxi_dma_chan {
 	struct virt_dma_chan vchan;
 	struct sdxi_cxt *cxt;
