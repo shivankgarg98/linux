@@ -245,14 +245,63 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 
 static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 {
-	/* FIXME: do we really want to stop the context? */
-	return sdxi_cxt_initiate_stop(to_sdxi_dma_chan(dma_chan)->cxt);
+	struct virt_dma_chan *vchan = to_virt_chan(dma_chan);
+	struct virt_dma_desc *vdesc;
+	LIST_HEAD(head);
+
+	/*
+	 * Allocated and submitted txds are in the ring but not valid
+	 * yet. Overwrite them with nops.
+	 *
+	 * The implementation may start consuming these as soon as the
+	 * valid bits flip; sdxi_dma_synchronize() will ring the
+	 * doorbell and wait to ensure they're all done.
+	 */
+	guard(spinlock_irqsave)(&vchan->lock);
+
+	list_splice_tail_init(&vchan->desc_allocated, &head);
+	list_splice_tail_init(&vchan->desc_submitted, &head);
+
+	list_for_each_entry(vdesc, &head, node) {
+		struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
+		struct sdxi_desc *hwdesc;
+
+		sdxi_ring_resv_foreach(&sddesc->resv, hwdesc) {
+			sdxi_serialize_nop(hwdesc);
+			sdxi_desc_make_valid(hwdesc);
+		}
+	}
+
+	list_add_tail(&head, &vchan->desc_terminated);
+
+	return 0;
 }
 
 static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 {
-	while (!sdxi_cxt_stopped(to_sdxi_dma_chan(dma_chan)->cxt))
-		msleep(100);
+	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
+	struct sdxi_ring_resv resv;
+	struct sdxi_desc *nop;
+
+	/* Submit a single nop with fence and wait for it to complete. */
+
+	/* FIXME: Need a blocking reservation API... */
+	if (WARN_ON_ONCE(sdxi_ring_reserve(cxt->ring_state, 1, &resv)))
+		return;
+
+	struct sdxi_completion *sc __free(sdxi_completion) =
+		sdxi_completion_alloc(cxt->sdxi);
+	if (!sc)
+		return;
+
+	nop = sdxi_ring_resv_next(&resv);
+	sdxi_serialize_nop(nop);
+	sdxi_completion_attach(nop, sc);
+	sdxi_desc_set_fence(nop);
+	sdxi_desc_make_valid(nop);
+	sdxi_cxt_push_doorbell(cxt, sdxi_ring_resv_dbval(&resv));
+	sdxi_completion_poll(sc);
+
 	vchan_synchronize(to_virt_chan(dma_chan));
 }
 
