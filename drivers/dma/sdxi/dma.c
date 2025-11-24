@@ -11,6 +11,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/dmaengine.h>
 #include <linux/list.h>
+#include <linux/pci.h>
 #include <linux/spinlock.h>
 
 #include "../dmaengine.h"
@@ -54,6 +55,7 @@
 struct sdxi_dma_chan {
 	struct virt_dma_chan vchan;
 	struct sdxi_cxt *cxt;
+	u16 intr_akey;
 };
 
 /*
@@ -62,8 +64,6 @@ struct sdxi_dma_chan {
 struct sdxi_dma_desc {
 	struct virt_dma_desc vdesc;
 	struct sdxi_ring_resv resv;
-	struct sdxi_cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
 	struct sdxi_completion *completion; // Should this be optional? Maybe there should always be one completion per txd.
 };
 
@@ -85,22 +85,75 @@ static void sdxi_tx_desc_free(struct virt_dma_desc *vdesc)
 {
 	struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
 
-	if (sddesc->cst_blk)
-		pr_err_ratelimited("leaking cst_blk for %d\n", vdesc->tx.cookie);
-	if (sddesc->completion)
-		sdxi_completion_free(sddesc->completion);
+	sdxi_completion_free(sddesc->completion);
 	kfree(to_sdxi_dma_desc(vdesc));
+}
+
+static struct sdxi_dma_desc *
+prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
+{
+	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
+	struct sdxi_completion *completion __free(sdxi_completion) = NULL;
+	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
+	struct sdxi_desc *copy, *intr;
+
+	completion = sdxi_completion_alloc(cxt->sdxi);
+	if (!completion)
+		return NULL;
+
+	sddesc = kzalloc(sizeof(*sddesc), GFP_NOWAIT);
+	if (!sddesc)
+		return NULL;
+
+	if (sdxi_ring_reserve(cxt->ring_state, 2, &sddesc->resv))
+		return NULL;
+
+	copy = sdxi_ring_resv_next(&sddesc->resv);
+	(void)sdxi_encode_copy(copy, params); /* Caller checked validity. */
+	sdxi_completion_attach(copy, completion);
+
+	sddesc->completion = no_free_ptr(completion);
+
+	intr = sdxi_ring_resv_next(&sddesc->resv);
+	sdxi_encode_intr(intr, &(const struct sdxi_intr) {
+			.akey = to_sdxi_dma_chan(dma_chan)->intr_akey,
+		});
+	sdxi_desc_set_fence(intr);
+	return_ptr(sddesc);
+}
+
+static struct sdxi_dma_desc *
+prep_memcpy_polled(struct dma_chan *dma_chan, const struct sdxi_copy *params)
+{
+	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
+	struct sdxi_completion *completion __free(sdxi_completion) = NULL;
+	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
+	struct sdxi_desc *copy;
+
+	completion = sdxi_completion_alloc(cxt->sdxi);
+	if (!completion)
+		return NULL;
+
+	sddesc = kzalloc(sizeof(*sddesc), GFP_NOWAIT);
+	if (!sddesc)
+		return NULL;
+
+	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
+		return NULL;
+
+	copy = sdxi_ring_resv_next(&sddesc->resv);
+	(void)sdxi_encode_copy(copy, params); /* Caller checked validity. */
+	sdxi_completion_attach(copy, completion);
+
+	sddesc->completion = no_free_ptr(completion);
+	return_ptr(sddesc);
 }
 
 static struct dma_async_tx_descriptor *
 sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		     dma_addr_t src, size_t len, unsigned long flags)
 {
-	struct dma_async_tx_descriptor *txd;
-	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
-	struct sdxi_cst_blk *cst_blk;
-	dma_addr_t cst_blk_dma;
-	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
+	struct sdxi_dma_desc *sddesc;
 	struct sdxi_copy copy = {
 		.src = src,
 		.dst = dst,
@@ -109,25 +162,6 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		.len = len,
 	};
 
-	/* FIXME: honor DMA_PREP_FENCE by appending nop with fe=1. */
-
-	/*
-	 * Notes:
-	 *
-	 * Always reserve 2, write a nop to the second one. Issue
-	 * pending can overwrite the final vdesc's nop with an
-	 * interrupt command. This way we avoid interrupting on every
-	 * vdesc.
-	 *
-	 * Avoid setting fe bit until final interrupt desc to allow
-	 * concurrency in descriptor processing by the engine.
-	 */
-
-	/*
-	 * Sorry, no interrupt-signaled completion yet.
-	 */
-	if (WARN_ON_ONCE(flags & DMA_PREP_INTERRUPT))
-		return NULL;
 	/*
 	 * temp hack: perform a trial encode to a dummy descriptor on
 	 * the stack so we can reject bad inputs without touching the
@@ -136,46 +170,11 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	if (sdxi_encode_copy(&(struct sdxi_desc){}, &copy))
 		return NULL;
 
-	/* FIXME: use a pool? this is wasteful. */
-	/* FIXME also: this leaks when the reservation fails.*/
-	cst_blk = dma_alloc_coherent(sdxi_to_dev(cxt->sdxi), sizeof(*cst_blk),
-				     &cst_blk_dma, GFP_NOWAIT);
-	if (!cst_blk)
-		return NULL;
+	sddesc = (flags & DMA_PREP_INTERRUPT) ?
+		prep_memcpy_intr(dma_chan, &copy) :
+		prep_memcpy_polled(dma_chan, &copy);
 
-	cst_blk->signal = cpu_to_le64(1);
-
-	sddesc = kmalloc(sizeof(*sddesc), GFP_NOWAIT);
-	if (!sddesc)
-		return NULL;
-
-	*sddesc = (typeof(*sddesc)) {
-		.cst_blk = cst_blk,
-		.cst_blk_dma = cst_blk_dma,
-	};
-
-	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
-		return NULL;
-
-	struct sdxi_desc *hwdesc = sdxi_ring_resv_next(&sddesc->resv);
-
-	(void)sdxi_encode_copy(hwdesc, &copy);
-	sdxi_desc_set_csb(hwdesc, cst_blk_dma);
-
-	txd = vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
-	retain_and_null_ptr(sddesc);
-	return txd;
-}
-
-#if 0
-static bool sdxi_cst_blk_erred(const struct sdxi_cst_blk *cst)
-{
-	return FIELD_GET(SDXI_CST_BLK_ER_BIT, le32_to_cpu(cst->flags));
-}
-
-static bool sdxi_cst_blk_complete(const struct sdxi_cst_blk *cst)
-{
-	return cst->signal == 0;
+	return vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
 }
 
 static enum dma_status sdxi_tx_status(struct dma_chan *chan,
@@ -199,16 +198,20 @@ static enum dma_status sdxi_tx_status(struct dma_chan *chan,
 
 	sddesc = to_sdxi_dma_desc(vdesc);
 
-	if (sdxi_cst_blk_erred(sddesc->cst_blk))
+	/* Maybe we should always set up a completion even with DMA_PREP_INTERRUPT? */
+	if (WARN_ON_ONCE(!sddesc->completion))
 		return DMA_ERROR;
 
-	/* fixme? should this happen? */
-	if (sdxi_cst_blk_complete(sddesc->cst_blk))
-		return DMA_COMPLETE;
+	if (!sdxi_completion_signaled(sddesc->completion))
+		return DMA_IN_PROGRESS;
 
-	return DMA_IN_PROGRESS;
+	if (sdxi_completion_errored(sddesc->completion))
+		return DMA_ERROR;
+
+	vchan_cookie_complete(vdesc);
+
+	return dma_cookie_status(chan, cookie, state);
 }
-#endif
 
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
@@ -308,6 +311,28 @@ static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 	vchan_synchronize(to_virt_chan(dma_chan));
 }
 
+static irqreturn_t sdxi_dma_cxt_irq(int irq, void *data)
+{
+	struct sdxi_dma_chan *sdchan = data;
+	struct virt_dma_chan *vchan = &sdchan->vchan;
+
+	sdxi_info(sdchan->cxt->sdxi, "hello from %s\n", __func__);
+
+	guard(spinlock_irqsave)(&vchan->lock);
+
+	for (struct virt_dma_desc *vdesc = vchan_next_desc(vchan);
+	     vdesc; vdesc = vchan_next_desc(vchan)) {
+		struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
+
+		if (!sdxi_completion_signaled(sddesc->completion))
+			continue;
+		list_del(&vdesc->node);
+		vchan_cookie_complete(&sddesc->vdesc);
+	}
+
+	return IRQ_HANDLED;
+}
+
 static int sdxi_dma_alloc_chan_resources(struct dma_chan *dma_chan)
 {
 	return sdxi_adm_start_cxt(to_sdxi_dma_chan(dma_chan)->cxt);
@@ -319,10 +344,15 @@ static void sdxi_dma_free_chan_resources(struct dma_chan *dma_chan)
 	vchan_free_chan_resources(to_virt_chan(dma_chan));
 }
 
+#define BAD_HARDCODED_MSG 1
+#define BAD_HARDCODED_AKEY_IDX 1
+
 static void add_channel(struct dma_device *dma_dev)
 {
 	struct sdxi_dma_chan *sdchan;
 	struct sdxi_dev *sdxi = dev_get_drvdata(dma_dev->dev);
+	unsigned int irq = pci_irq_vector(to_pci_dev(sdxi_to_dev(sdxi)),
+					  BAD_HARDCODED_MSG);
 
 	sdchan = devm_kzalloc(dma_dev->dev, sizeof(*sdchan), GFP_KERNEL);
 	if (!sdchan)
@@ -334,6 +364,18 @@ static void add_channel(struct dma_device *dma_dev)
 		return;
 	}
 
+	/* FIXME: remove PCI dependency and hardcoded irq */
+	(void)request_irq(irq, sdxi_dma_cxt_irq,
+			  IRQF_TRIGGER_NONE, "SDXI DMAengine", sdchan);
+
+	/* FIXME: Add an akey allocation API, don't hardcode the index. */
+	sdchan->cxt->akey_table->entry[BAD_HARDCODED_AKEY_IDX] = (struct sdxi_akey_ent) {
+		.intr_num = cpu_to_le16(FIELD_PREP(SDXI_AKEY_ENT_VL, 1) |
+					FIELD_PREP(SDXI_AKEY_ENT_IV, 1) |
+					FIELD_PREP(SDXI_AKEY_ENT_INTR_NUM,
+						   BAD_HARDCODED_MSG)),
+	};
+	sdchan->intr_akey = BAD_HARDCODED_AKEY_IDX;
 	sdchan->vchan.desc_free = sdxi_tx_desc_free;
 	vchan_init(&sdchan->vchan, dma_dev);
 }
@@ -370,7 +412,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 		.device_resume = NULL, /* fixme */
 		.device_terminate_all = sdxi_dma_terminate_all,
 		.device_synchronize = sdxi_dma_synchronize,
-		.device_tx_status = dma_cookie_status,
+		.device_tx_status = sdxi_tx_status,
 		.device_issue_pending = sdxi_dma_issue_pending,
 		.device_release = NULL, /* fixme */
 	};
