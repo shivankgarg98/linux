@@ -26,6 +26,8 @@ struct sdxi_completion *sdxi_completion_alloc(struct sdxi_dev *sdxi)
 	if (!cst_blk)
 		return NULL;
 
+	cst_blk->signal = cpu_to_le64(1);
+
 	*sc = (typeof(*sc)) {
 		.sdxi        = sdxi,
 		.cst_blk     = cst_blk,
