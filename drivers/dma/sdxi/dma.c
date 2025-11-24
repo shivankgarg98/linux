@@ -16,6 +16,7 @@
 #include "../dmaengine.h"
 #include "../virt-dma.h"
 #include "admin.h"
+#include "completion.h"
 #include "context.h"
 #include "descriptor.h"
 #include "dma.h"
@@ -63,6 +64,7 @@ struct sdxi_dma_desc {
 	struct sdxi_ring_resv resv;
 	struct sdxi_cst_blk *cst_blk;
 	dma_addr_t cst_blk_dma;
+	struct sdxi_completion *completion; // Should this be optional? Maybe there should always be one completion per txd.
 };
 
 static struct sdxi_dma_chan *to_sdxi_dma_chan(const struct dma_chan *dma_chan)
@@ -81,6 +83,12 @@ to_sdxi_dma_desc(const struct virt_dma_desc *vdesc)
 
 static void sdxi_tx_desc_free(struct virt_dma_desc *vdesc)
 {
+	struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
+
+	if (sddesc->cst_blk)
+		pr_err_ratelimited("leaking cst_blk for %d\n", vdesc->tx.cookie);
+	if (sddesc->completion)
+		sdxi_completion_free(sddesc->completion);
 	kfree(to_sdxi_dma_desc(vdesc));
 }
 
