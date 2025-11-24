@@ -109,6 +109,8 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		.len = len,
 	};
 
+	/* FIXME: honor DMA_PREP_FENCE by appending nop with fe=1. */
+
 	/*
 	 * Notes:
 	 *
