@@ -118,7 +118,9 @@ static inline enum cxt_sts_state sdxi_cxt_sts_state(const struct sdxi_cxt_sts *s
 struct sdxi_akey_ent {
 	__le16 intr_num;
 #define SDXI_AKEY_ENT_VL BIT(0)
+#define SDXI_AKEY_ENT_IV BIT(1)
 #define SDXI_AKEY_ENT_PV BIT(2)
+#define SDXI_AKEY_ENT_INTR_NUM GENMASK(14, 4)
 	__le16 tgt_sfunc;
 	__le32 pasid;
 #define SDXI_AKEY_ENT_PASID GENMASK(19, 0)
