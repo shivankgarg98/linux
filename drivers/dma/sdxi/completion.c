@@ -52,11 +52,13 @@ void sdxi_completion_poll(const struct sdxi_completion *sc)
 
 bool sdxi_completion_signaled(const struct sdxi_completion *sc)
 {
+	dma_rmb();
 	return (sc->cst_blk->signal == 0);
 }
 
 bool sdxi_completion_errored(const struct sdxi_completion *sc)
 {
+	dma_rmb();
 	return FIELD_GET(SDXI_CST_BLK_ER_BIT, le32_to_cpu(sc->cst_blk->flags));
 }
 
