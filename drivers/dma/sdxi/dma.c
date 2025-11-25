@@ -119,6 +119,7 @@ prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 	sdxi_encode_intr(intr, &(const struct sdxi_intr) {
 			.akey = to_sdxi_dma_chan(dma_chan)->intr_akey,
 		});
+	/* Raise the interrupt only after the copy has completed. */
 	sdxi_desc_set_fence(intr);
 	return_ptr(sddesc);
 }
