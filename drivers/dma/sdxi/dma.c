@@ -110,6 +110,7 @@ prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 
 	copy = sdxi_ring_resv_next(&sddesc->resv);
 	(void)sdxi_encode_copy(copy, params); /* Caller checked validity. */
+	sdxi_desc_set_fence(copy); /* Conservatively fence every descriptor. */
 	sdxi_completion_attach(copy, completion);
 
 	sddesc->completion = no_free_ptr(completion);
