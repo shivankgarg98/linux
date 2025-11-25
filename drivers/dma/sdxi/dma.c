@@ -303,7 +303,7 @@ static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 		}
 	}
 
-	list_add_tail(&head, &vchan->desc_terminated);
+	list_splice_tail(&head, &vchan->desc_terminated);
 
 	return 0;
 }
