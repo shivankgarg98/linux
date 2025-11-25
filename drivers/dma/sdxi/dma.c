@@ -327,25 +327,18 @@ static irqreturn_t sdxi_dma_cxt_irq(int irq, void *data)
 {
 	struct sdxi_dma_chan *sdchan = data;
 	struct virt_dma_chan *vchan = &sdchan->vchan;
-	struct virt_dma_desc *vdesc;
-	struct sdxi_dma_desc *sddesc;
 
-	/*
-	 * One interrupt per txd; complete them one at a time to keep
-	 * things simple.
-	 */
 	guard(spinlock_irqsave)(&vchan->lock);
 
-	vdesc = vchan_next_desc(vchan);
-	if (WARN_ON(!vdesc))
-		return IRQ_HANDLED;
+	for (struct virt_dma_desc *vdesc = vchan_next_desc(vchan);
+	     vdesc; vdesc = vchan_next_desc(vchan)) {
+		struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
 
-	sddesc = to_sdxi_dma_desc(vdesc);
-	if (WARN_ON(!sdxi_completion_signaled(sddesc->completion)))
-		return IRQ_HANDLED; /* Whoops, things got out of order somehow. */
-
-	list_del(&vdesc->node);
-	vchan_cookie_complete(&sddesc->vdesc);
+		if (!sdxi_completion_signaled(sddesc->completion))
+			continue;
+		list_del(&vdesc->node);
+		vchan_cookie_complete(&sddesc->vdesc);
+	}
 
 	return IRQ_HANDLED;
 }
