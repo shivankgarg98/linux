@@ -537,9 +537,6 @@ int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *src)
 	if (WARN_ON(err))
 		return err;
 
-	/* We only set vl once the payload is in the ring. */
-	WARN_ON(sdxi_desc_valid(src));
-
 	dst = sdxi_ring_resv_next(&resv);
 	memcpy(dst, src, sizeof(*src));
 	sdxi_desc_make_valid(dst);
