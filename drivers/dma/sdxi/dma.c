@@ -228,10 +228,12 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 	u64 dbval = 0;
 
 	scoped_guard(spinlock_irqsave, &vchan->lock) {
-		if (list_empty(&vchan->desc_submitted)) {
-			pr_info("submitted list empty?");
+		/*
+		 * This can happen with racing submitters. We could
+		 * speculatively check this without taking the lock?
+		 */
+		if (list_empty(&vchan->desc_submitted))
 			return;
-		}
 
 		list_for_each_entry(vdesc, &vchan->desc_submitted, node) {
 			struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
