@@ -95,7 +95,7 @@ prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 	struct sdxi_cxt *cxt = to_sdxi_dma_chan(dma_chan)->cxt;
 	struct sdxi_completion *completion __free(sdxi_completion) = NULL;
 	struct sdxi_dma_desc *sddesc __free(kfree) = NULL;
-	struct sdxi_desc *copy, *nop;
+	struct sdxi_desc *copy, *intr;
 
 	completion = sdxi_completion_alloc(cxt->sdxi);
 	if (!completion)
@@ -115,8 +115,12 @@ prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 
 	sddesc->completion = no_free_ptr(completion);
 
-	nop = sdxi_ring_resv_next(&sddesc->resv);
-	sdxi_serialize_nop(nop);
+	intr = sdxi_ring_resv_next(&sddesc->resv);
+	sdxi_encode_intr(intr, &(const struct sdxi_intr) {
+			.akey = to_sdxi_dma_chan(dma_chan)->intr_akey,
+		});
+	/* Raise the interrupt only after the copy has completed. */
+	sdxi_desc_set_fence(intr);
 	return_ptr(sddesc);
 }
 
@@ -217,14 +221,6 @@ static enum dma_status sdxi_tx_status(struct dma_chan *chan,
 	return dma_cookie_status(chan, cookie, state);
 }
 
-static bool sdxi_desc_is_nop(const struct sdxi_desc *desc)
-{
-	u32 opcode = le32_to_cpu(desc->opcode);
-
-	return FIELD_GET(SDXI_DSC_TYPE, opcode) == SDXI_DSC_OP_TYPE_DMAB &&
-		FIELD_GET(SDXI_DSC_SUBTYPE, opcode) == SDXI_DSC_OP_SUBTYPE_NOP;
-}
-
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
 	struct virt_dma_chan *vchan = to_virt_chan(dma_chan);
@@ -232,7 +228,6 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 	u64 dbval = 0;
 
 	scoped_guard(spinlock_irqsave, &vchan->lock) {
-		bool intr_setup = false;
 		/*
 		 * This can happen with racing submitters. We could
 		 * speculatively check this without taking the lock?
@@ -240,26 +235,16 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 		if (list_empty(&vchan->desc_submitted))
 			return;
 
-		list_for_each_entry_reverse(vdesc, &vchan->desc_submitted, node) {
+		list_for_each_entry(vdesc, &vchan->desc_submitted, node) {
 			struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
 			struct sdxi_desc *hwdesc;
 
-			sdxi_ring_resv_foreach(&sddesc->resv, hwdesc) {
-				if (!intr_setup && sdxi_desc_is_nop(hwdesc)) {
-					/*
-					 * Overwrite the last nop in
-					 * the submitted list with an
-					 * interrupt command.
-					 */
-					intr_setup = true;
-					sdxi_encode_intr(hwdesc, &(const struct sdxi_intr) {
-							.akey = to_sdxi_dma_chan(dma_chan)->intr_akey,
-						});
-					sdxi_desc_set_fence(hwdesc);
-				}
+			sdxi_ring_resv_foreach(&sddesc->resv, hwdesc)
 				sdxi_desc_make_valid(hwdesc);
-			}
-
+			/*
+			 * The reservations ought to be ordered
+			 * ascending, but use umax() just in case.
+			 */
 			dbval = umax(sdxi_ring_resv_dbval(&sddesc->resv), dbval);
 		}
 
