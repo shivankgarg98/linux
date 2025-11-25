@@ -377,6 +377,7 @@ static void add_channel(struct dma_device *dma_dev)
 	struct sdxi_dev *sdxi = dev_get_drvdata(dma_dev->dev);
 	unsigned int irq = pci_irq_vector(to_pci_dev(sdxi_to_dev(sdxi)),
 					  BAD_HARDCODED_MSG);
+	int err;
 
 	sdchan = devm_kzalloc(dma_dev->dev, sizeof(*sdchan), GFP_KERNEL);
 	if (!sdchan)
@@ -389,8 +390,10 @@ static void add_channel(struct dma_device *dma_dev)
 	}
 
 	/* FIXME: remove PCI dependency and hardcoded irq */
-	(void)request_irq(irq, sdxi_dma_cxt_irq,
+	err = request_irq(irq, sdxi_dma_cxt_irq,
 			  IRQF_TRIGGER_NONE, "SDXI DMAengine", sdchan);
+	if (err)
+		return;	/* FIXME: leaks sdchan and cxt */
 
 	/* FIXME: Add an akey allocation API, don't hardcode the index. */
 	sdchan->cxt->akey_table->entry[BAD_HARDCODED_AKEY_IDX] = (struct sdxi_akey_ent) {
