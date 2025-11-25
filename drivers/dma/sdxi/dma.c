@@ -185,6 +185,7 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 	return vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
 }
 
+#if 0
 static enum dma_status sdxi_tx_status(struct dma_chan *chan,
 				      dma_cookie_t cookie,
 				      struct dma_tx_state *state)
@@ -220,6 +221,7 @@ static enum dma_status sdxi_tx_status(struct dma_chan *chan,
 
 	return dma_cookie_status(chan, cookie, state);
 }
+#endif
 
 static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 {
@@ -427,7 +429,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 		.device_resume = NULL, /* fixme */
 		.device_terminate_all = sdxi_dma_terminate_all,
 		.device_synchronize = sdxi_dma_synchronize,
-		.device_tx_status = sdxi_tx_status,
+		.device_tx_status = dma_cookie_status,
 		.device_issue_pending = sdxi_dma_issue_pending,
 		.device_release = NULL, /* fixme */
 	};
