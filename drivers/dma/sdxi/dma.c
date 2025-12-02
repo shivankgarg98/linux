@@ -262,33 +262,43 @@ static void sdxi_dma_issue_pending(struct dma_chan *dma_chan)
 static int sdxi_dma_terminate_all(struct dma_chan *dma_chan)
 {
 	struct virt_dma_chan *vchan = to_virt_chan(dma_chan);
-	struct virt_dma_desc *vdesc;
-	LIST_HEAD(head);
+	u64 dbval = 0;
 
 	/*
 	 * Allocated and submitted txds are in the ring but not valid
-	 * yet. Overwrite them with nops.
+	 * yet. Overwrite them with nops and then set their valid
+	 * bits.
 	 *
 	 * The implementation may start consuming these as soon as the
-	 * valid bits flip; sdxi_dma_synchronize() will ring the
-	 * doorbell and wait to ensure they're all done.
+	 * valid bits flip. sdxi_dma_synchronize() will ensure they're
+	 * all done.
 	 */
-	guard(spinlock_irqsave)(&vchan->lock);
+	scoped_guard(spinlock_irqsave, &vchan->lock) {
+		struct virt_dma_desc *vdesc;
+		LIST_HEAD(head);
 
-	list_splice_tail_init(&vchan->desc_allocated, &head);
-	list_splice_tail_init(&vchan->desc_submitted, &head);
+		list_splice_tail_init(&vchan->desc_allocated, &head);
+		list_splice_tail_init(&vchan->desc_submitted, &head);
 
-	list_for_each_entry(vdesc, &head, node) {
-		struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
-		struct sdxi_desc *hwdesc;
+		if (list_empty(&head))
+			return 0;
 
-		sdxi_ring_resv_foreach(&sddesc->resv, hwdesc) {
-			sdxi_serialize_nop(hwdesc);
-			sdxi_desc_make_valid(hwdesc);
+		list_for_each_entry(vdesc, &head, node) {
+			struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
+			struct sdxi_desc *hwdesc;
+
+			sdxi_ring_resv_foreach(&sddesc->resv, hwdesc) {
+				sdxi_serialize_nop(hwdesc);
+				sdxi_desc_make_valid(hwdesc);
+			}
+
+			dbval = umax(sdxi_ring_resv_dbval(&sddesc->resv), dbval);
 		}
+
+		list_splice_tail(&head, &vchan->desc_terminated);
 	}
 
-	list_splice_tail(&head, &vchan->desc_terminated);
+	sdxi_cxt_push_doorbell(to_sdxi_dma_chan(dma_chan)->cxt, dbval);
 
 	return 0;
 }
