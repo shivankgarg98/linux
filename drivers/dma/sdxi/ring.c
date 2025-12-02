@@ -98,6 +98,12 @@ int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
 	return 0;
 }
 
+/* Completion code should call this whenever descriptors have been consumed. */
+void sdxi_ring_wake_up(struct sdxi_ring_state *rs)
+{
+	wake_up_all(&rs->wqh);
+}
+
 static struct sdxi_desc *
 sdxi_desc_ring_entry(const struct sdxi_ring_state *rs, u64 index)
 {

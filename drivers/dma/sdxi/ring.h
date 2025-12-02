@@ -50,6 +50,7 @@ struct sdxi_ring_resv {
 void sdxi_ring_state_init(struct sdxi_ring_state *ring, const __le64 *read_index,
 			  __le64 *write_index, u32 entries,
 			  struct sdxi_desc descs[static SZ_1K]);
+void sdxi_ring_wake_up(struct sdxi_ring_state *rs);
 int sdxi_ring_reserve(struct sdxi_ring_state *ring, size_t nr,
 		      struct sdxi_ring_resv *resv);
 struct sdxi_desc *sdxi_ring_resv_next(struct sdxi_ring_resv *resv);
