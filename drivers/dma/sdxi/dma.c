@@ -326,6 +326,7 @@ static irqreturn_t sdxi_dma_cxt_irq(int irq, void *data)
 	struct sdxi_dma_chan *sdchan = data;
 	struct virt_dma_chan *vchan = &sdchan->vchan;
 	struct virt_dma_desc *vdesc;
+	bool completed = false;
 
 	guard(spinlock_irqsave)(&vchan->lock);
 
@@ -337,7 +338,11 @@ static irqreturn_t sdxi_dma_cxt_irq(int irq, void *data)
 
 		list_del(&vdesc->node);
 		vchan_cookie_complete(&sddesc->vdesc);
+		completed = true;
 	}
+
+	if (completed)
+		sdxi_ring_wake_up(sdchan->cxt->ring_state);
 
 	return IRQ_HANDLED;
 }
