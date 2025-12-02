@@ -5,6 +5,7 @@
 #include <linux/range.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
+#include <linux/wait.h>
 #include <asm/barrier.h>
 #include <asm/byteorder.h>
 #include <asm/div64.h>
@@ -25,6 +26,7 @@
  *   the SDXI implementation.
  * @entries: Number of entries in the ring.
  * @entry: The descriptor ring itself, shared with the SDXI implementation.
+ * @wqh: Pending reservations.
  */
 struct sdxi_ring_state {
 	spinlock_t lock;
@@ -33,6 +35,7 @@ struct sdxi_ring_state {
 	const __le64 *read_index_ptr;
 	u32 entries;
 	struct sdxi_desc *entry;
+	wait_queue_head_t wqh;
 };
 
 /*

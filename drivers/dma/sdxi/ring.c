@@ -2,6 +2,7 @@
 #include <linux/range.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
+#include <linux/wait.h>
 #include <asm/barrier.h>
 #include <asm/byteorder.h>
 #include <asm/div64.h>
@@ -31,6 +32,7 @@ void sdxi_ring_state_init(struct sdxi_ring_state *rs, const __le64 *read_index,
 		.entry = descs,
 	};
 	spin_lock_init(&rs->lock);
+	init_waitqueue_head(&rs->wqh);
 
 	pr_debug("initialized ring state at %p with %u entries\n",
 		 rs, rs->entries);
