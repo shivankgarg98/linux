@@ -105,7 +105,7 @@ prep_memcpy_intr(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 	if (!sddesc)
 		return NULL;
 
-	if (sdxi_ring_reserve(cxt->ring_state, 2, &sddesc->resv))
+	if (sdxi_ring_try_reserve(cxt->ring_state, 2, &sddesc->resv))
 		return NULL;
 
 	copy = sdxi_ring_resv_next(&sddesc->resv);
@@ -140,7 +140,7 @@ prep_memcpy_polled(struct dma_chan *dma_chan, const struct sdxi_copy *params)
 	if (!sddesc)
 		return NULL;
 
-	if (sdxi_ring_reserve(cxt->ring_state, 1, &sddesc->resv))
+	if (sdxi_ring_try_reserve(cxt->ring_state, 1, &sddesc->resv))
 		return NULL;
 
 	copy = sdxi_ring_resv_next(&sddesc->resv);
@@ -301,8 +301,7 @@ static void sdxi_dma_synchronize(struct dma_chan *dma_chan)
 
 	/* Submit a single nop with fence and wait for it to complete. */
 
-	/* FIXME: Need a blocking reservation API... */
-	if (WARN_ON_ONCE(sdxi_ring_reserve(cxt->ring_state, 1, &resv)))
+	if (sdxi_ring_reserve(cxt->ring_state, 1, &resv))
 		return;
 
 	struct sdxi_completion *sc = sdxi_completion_alloc(cxt->sdxi);

@@ -1,5 +1,6 @@
 #include <linux/io-64-nonatomic-lo-hi.h>
 #include <linux/range.h>
+#include <linux/sched.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
 #include <linux/wait.h>
@@ -50,8 +51,9 @@ static void sdxi_ring_state_store_widx(struct sdxi_ring_state *rs, u64 new_widx)
 	*rs->write_index_ptr = cpu_to_le64(rs->write_index = new_widx);
 }
 
-int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
-		      struct sdxi_ring_resv *resv)
+/* Non-blocking ring reservation. Callers must handle ring full (-EBUSY). */
+int sdxi_ring_try_reserve(struct sdxi_ring_state *rs, size_t nr,
+			  struct sdxi_ring_resv *resv)
 {
 	u64 new_widx;
 
@@ -96,6 +98,18 @@ int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
 	};
 
 	return 0;
+}
+
+/* Blocking ring reservation. Retries until success or non-transient error. */
+int sdxi_ring_reserve(struct sdxi_ring_state *rs, size_t nr,
+		      struct sdxi_ring_resv *resv)
+{
+	int ret;
+
+	wait_event(rs->wqh,
+		   (ret = sdxi_ring_try_reserve(rs, nr, resv)) != -EBUSY);
+
+	return ret;
 }
 
 /* Completion code should call this whenever descriptors have been consumed. */

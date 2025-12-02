@@ -32,7 +32,7 @@ static void valid(struct kunit *t)
 	ri = wi = 0;
 	sdxi_ring_state_init(&r, &ri, &wi, SZ_1K, descs);
 
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&r, r.entries, &resv), 0);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&r, r.entries, &resv), 0);
 	KUNIT_EXPECT_EQ(t, resv.range.start, 0);
 	KUNIT_EXPECT_EQ(t, resv.range.end, r.entries - 1);
 	KUNIT_EXPECT_EQ(t, le64_to_cpu(wi), r.entries);
@@ -42,7 +42,7 @@ static void valid(struct kunit *t)
 	}
 
 	ri = cpu_to_le64(1);
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&r, 1, &resv), 0);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&r, 1, &resv), 0);
 	KUNIT_EXPECT_EQ(t, le64_to_cpu(wi), r.entries + 1);
 	KUNIT_EXPECT_NOT_NULL(t, sdxi_ring_resv_next(&resv));
 }
@@ -61,21 +61,21 @@ static void invalid(struct kunit *t)
 	ri = wi = 0;
 	sdxi_ring_state_init(&rs, &ri, &wi, SZ_1K, descs);
 
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&rs, 0, &resv), -EINVAL);
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&rs, rs.entries + 1, &resv), -EINVAL);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&rs, 0, &resv), -EINVAL);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&rs, rs.entries + 1, &resv), -EINVAL);
 
 	ri = cpu_to_le64(1);
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&rs, 1, &resv), -EIO);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&rs, 1, &resv), -EIO);
 
 	ri = 0;
 	wi = cpu_to_le64(rs.entries);
 	sdxi_ring_state_init(&rs, &ri, &wi, SZ_1K, descs);
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&rs, 1, &resv), -EBUSY);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&rs, 1, &resv), -EBUSY);
 
 	ri = cpu_to_le64(rs.entries);
 	wi = cpu_to_le64(rs.entries + 1);
 	sdxi_ring_state_init(&rs, &ri, &wi, SZ_1K, descs);
-	KUNIT_EXPECT_EQ(t, sdxi_ring_reserve(&rs, rs.entries, &resv), -EBUSY);
+	KUNIT_EXPECT_EQ(t, sdxi_ring_try_reserve(&rs, rs.entries, &resv), -EBUSY);
 }
 
 static struct kunit_case testcases[] = {

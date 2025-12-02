@@ -53,6 +53,8 @@ void sdxi_ring_state_init(struct sdxi_ring_state *ring, const __le64 *read_index
 void sdxi_ring_wake_up(struct sdxi_ring_state *rs);
 int sdxi_ring_reserve(struct sdxi_ring_state *ring, size_t nr,
 		      struct sdxi_ring_resv *resv);
+int sdxi_ring_try_reserve(struct sdxi_ring_state *ring, size_t nr,
+			  struct sdxi_ring_resv *resv);
 struct sdxi_desc *sdxi_ring_resv_next(struct sdxi_ring_resv *resv);
 
 /* Reset reservation's internal iterator. */
