@@ -112,7 +112,6 @@ int sdxi_encode_intr(struct sdxi_desc *desc,
 
 	csb_ptr = FIELD_PREP(SDXI_DSC_NP, 1);
 
-
 	*desc = (typeof(*desc)) {
 		.intr = (typeof(desc->intr)) {
 			.opcode = cpu_to_le32(opcode),
