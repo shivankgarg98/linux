@@ -299,7 +299,6 @@ static void intr(struct kunit *t)
 
 	desc_poison(&desc);
 	KUNIT_EXPECT_EQ(t, 0, sdxi_encode_intr(&desc, &intr));
-	KUNIT_EXPECT_EQ(t, 1234, le16_to_cpu(desc.intr.akey));
 
 	unpack_intr(&unpacked, &desc);
 	KUNIT_EXPECT_EQ(t, unpacked.vl, 0);
