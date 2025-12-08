@@ -682,15 +682,3 @@ void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
 		 cxt->id, cxt_sts_state_str(state), index);
 	iowrite64(index, cxt->db);
 }
-
-int sdxi_cxt_start(struct sdxi_cxt *cxt)
-{
-
-	return 0;
-}
-
-void sdxi_cxt_stop(struct sdxi_cxt *cxt)
-{
-
-}
-
