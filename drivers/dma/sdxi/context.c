@@ -15,9 +15,9 @@
 #include <linux/types.h>
 #include <linux/wordpart.h>
 
+#include "admin.h"
 #include "context.h"
 #include "descriptor.h"
-#include "enqueue.h"
 #include "hw.h"
 #include "ring.h"
 #include "sdxi.h"
@@ -544,64 +544,6 @@ int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *src)
 	return 0;
 }
 
-static void sdxi_cxt_shutdown(struct sdxi_cxt *target_cxt)
-{
-	unsigned long deadline = jiffies + msecs_to_jiffies(1000);
-	struct sdxi_cxt *admin_cxt = target_cxt->sdxi->admin_cxt;
-	struct sdxi_dev *sdxi = target_cxt->sdxi;
-	struct sdxi_cxt_sts *sts = target_cxt->sq->cxt_sts;
-	struct sdxi_desc desc;
-	u16 cxtid = target_cxt->id;
-	struct sdxi_cxt_stop params = {
-		.range = sdxi_cxt_range(cxtid),
-	};
-	enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
-	int err;
-
-	sdxi_dbg(sdxi, "%s entry: context state: %s",
-		 __func__, cxt_sts_state_str(state));
-
-	err = sdxi_encode_cxt_stop(&desc, &params);
-	if (err)
-		return;
-
-	err = sdxi_submit_desc(admin_cxt, &desc);
-	if (err)
-		return;
-
-	sdxi_dbg(sdxi, "shutting down context %u\n", cxtid);
-
-	do {
-		enum cxt_sts_state state = sdxi_cxt_sts_state(sts);
-
-		sdxi_dbg(sdxi, "context %u state: %s", cxtid,
-			 cxt_sts_state_str(state));
-
-		switch (state) {
-		case CXTV_ERR_FN:
-			sdxi_err(sdxi, "context %u went into error state while stopping\n",
-				cxtid);
-			fallthrough;
-		case CXTV_STOP_SW:
-		case CXTV_STOP_FN:
-			return;
-		case CXTV_RUN:
-		case CXTV_STOPG_SW:
-		case CXTV_STOPG_FN:
-			/* transitional states */
-			fsleep(1000);
-			break;
-		default:
-			sdxi_err(sdxi, "context %u in unknown state %u\n",
-				 cxtid, state);
-			return;
-		}
-	} while (time_before(jiffies, deadline));
-
-	sdxi_err(sdxi, "stopping context %u timed out (state = %u)\n",
-		cxtid, sdxi_cxt_sts_state(sts));
-}
-
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 {
 	struct sdxi_sq *sq;
@@ -613,7 +555,7 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 	if (!sq)
 		return;
 
-	sdxi_cxt_shutdown(cxt);
+	sdxi_adm_stop_cxt(cxt);
 
 	sdxi_sq_free(sq);
 
