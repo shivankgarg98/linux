@@ -172,10 +172,8 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 
 	p->cxt = cxt;
 	err = sdxi_bind_process_to_device(p);
-	if (err) {
-		err = -ESRCH;
-		goto err_bind_process;
-	}
+	if (err)
+		goto free_context;
 
 	/* return values to caller */
 	args->pasid = p->pasid;
@@ -201,7 +199,8 @@ static int sdxi_ioctl_create_cxt(struct file *filep, struct sdxi_process *p,
 	pr_debug("Context id %d was created successfully\n", args->cxt_id);
 	return 0;
 
-err_bind_process:
+free_context:
+	sdxi_working_cxt_exit(cxt);
 	mutex_unlock(&p->mutex);
 	return err;
 }
