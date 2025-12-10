@@ -521,29 +521,6 @@ static const char *cxt_sts_state_str(enum cxt_sts_state state)
 	return str;
 }
 
-/*
- * Temporary compatibility function, callers should convert to
- * sdxi_ring_reserve() etc. instead of encoding descriptors to
- * temporary storage and then copying to ring.
- */
-int sdxi_submit_desc(struct sdxi_cxt *cxt, const struct sdxi_desc *src)
-{
-	struct sdxi_ring_resv resv;
-	struct sdxi_desc *dst;
-	int err;
-
-	/* fixme: need to handle ring full, wait for a slot to open */
-	err = sdxi_ring_reserve(cxt->ring_state, 1, &resv);
-	if (WARN_ON(err))
-		return err;
-
-	dst = sdxi_ring_resv_next(&resv);
-	memcpy(dst, src, sizeof(*src));
-	sdxi_desc_make_valid(dst);
-
-	return 0;
-}
-
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 {
 	struct sdxi_sq *sq;
@@ -560,53 +537,6 @@ void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 	sdxi_sq_free(sq);
 
 	sdxi_cxt_free(cxt);
-}
-
-int sdxi_cxt_initiate_stop(struct sdxi_cxt *cxt)
-{
-	struct sdxi_cxt *adm = cxt->sdxi->admin_cxt;
-	struct sdxi_ring_resv resv;
-	struct sdxi_desc *desc;
-	const struct sdxi_cxt_stop params = {
-		.range = sdxi_cxt_range(cxt->id),
-	};
-	int err;
-
-	err = sdxi_ring_reserve(adm->ring_state, 1, &resv);
-	if (err)
-		return err;
-
-	desc = sdxi_ring_resv_next(&resv);
-	err = sdxi_encode_cxt_stop(desc, &params);
-	if (err)
-		goto nop_resv;
-
-	sdxi_desc_make_valid(desc);
-
-	sdxi_cxt_push_doorbell(adm, sdxi_ring_resv_dbval(&resv));
-
-	return 0;
-
-nop_resv:
-	sdxi_serialize_nop(desc); /* FIXME? can you write nops to an admin context? */
-	sdxi_desc_make_valid(desc);
-
-	return err;
-}
-
-bool sdxi_cxt_stopped(const struct sdxi_cxt *cxt)
-{
-	enum cxt_sts_state state = sdxi_cxt_sts_state(cxt->sq->cxt_sts);
-	switch (state) {
-	case CXTV_STOP_SW:
-	case CXTV_STOP_FN:
-	case CXTV_ERR_FN:
-		sdxi_dbg(cxt->sdxi, "context %u stopped (state=%s)\n",
-			 cxt->id, cxt_sts_state_str(state));
-		return true;
-	default:
-		return false;
-	}
 }
 
 void sdxi_cxt_push_doorbell(struct sdxi_cxt *cxt, u64 index)
