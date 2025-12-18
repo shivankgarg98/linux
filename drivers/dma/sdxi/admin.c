@@ -30,10 +30,7 @@ int sdxi_adm_start_cxt(struct sdxi_cxt *cxt)
 	/* This is not how to start the admin context. */
 	if (WARN_ON(adm == cxt))
 		return -EINVAL;
-	/*
-	 * FIXME: For admin tasks, we should block until reservation
-	 * succeeds.
-	 */
+
 	err = sdxi_ring_reserve(adm->ring_state, 1, &resv);
 	if (err)
 		return err;
@@ -65,10 +62,7 @@ void sdxi_adm_stop_cxt(struct sdxi_cxt *cxt)
 	/* This is not how to stop the admin context. */
 	if (WARN_ON(adm == cxt))
 		return;
-	/*
-	 * FIXME: For admin tasks, we should block until reservation
-	 * succeeds.
-	 */
+
 	err = sdxi_ring_reserve(adm->ring_state, 2, &resv);
 	if (WARN_ON_ONCE(err))
 		return;
