@@ -523,19 +523,8 @@ static const char *cxt_sts_state_str(enum cxt_sts_state state)
 
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 {
-	struct sdxi_sq *sq;
-
-	if (!cxt)
-		return;
-
-	sq = cxt->sq;
-	if (!sq)
-		return;
-
 	sdxi_adm_stop_cxt(cxt);
-
-	sdxi_sq_free(sq);
-
+	sdxi_sq_free(cxt->sq);
 	sdxi_cxt_free(cxt);
 }
 
