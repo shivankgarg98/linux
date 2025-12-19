@@ -10,11 +10,6 @@
 #include "ring.h"
 #include "sdxi.h"
 
-static struct sdxi_cxt *to_admin_cxt(const struct sdxi_cxt *cxt)
-{
-	return cxt->sdxi->admin_cxt;
-}
-
 int sdxi_adm_start_cxt(struct sdxi_cxt *cxt)
 {
 	struct sdxi_cxt *adm = to_admin_cxt(cxt);
