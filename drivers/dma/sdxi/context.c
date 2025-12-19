@@ -17,7 +17,6 @@
 
 #include "admin.h"
 #include "context.h"
-#include "descriptor.h"
 #include "hw.h"
 #include "ring.h"
 #include "sdxi.h"
