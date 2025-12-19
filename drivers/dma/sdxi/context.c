@@ -522,7 +522,8 @@ static const char *cxt_sts_state_str(enum cxt_sts_state state)
 
 void sdxi_working_cxt_exit(struct sdxi_cxt *cxt)
 {
-	sdxi_adm_stop_cxt(cxt);
+	if (!sdxi_cxt_is_admin(cxt))
+		sdxi_adm_stop_cxt(cxt);
 	sdxi_sq_free(cxt->sq);
 	sdxi_cxt_free(cxt);
 }
