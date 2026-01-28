@@ -182,6 +182,9 @@ sdxi_dma_prep_memcpy(struct dma_chan *dma_chan, dma_addr_t dst,
 		prep_memcpy_intr(dma_chan, &copy) :
 		prep_memcpy_polled(dma_chan, &copy);
 
+	if (!sddesc)
+		return NULL;
+
 	return vchan_tx_prep(to_virt_chan(dma_chan), &sddesc->vdesc, flags);
 }
 
@@ -342,6 +345,9 @@ static irqreturn_t sdxi_dma_cxt_irq(int irq, void *data)
 	while ((vdesc = vchan_next_desc(vchan))) {
 		struct sdxi_dma_desc *sddesc = to_sdxi_dma_desc(vdesc);
 
+		if (!sddesc || !sddesc->completion)
+			break;
+
 		if (!sdxi_completion_signaled(sddesc->completion))
 			break;
 
@@ -410,6 +416,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 {
 	struct device *dev = sdxi_to_dev(sdxi);
 	struct dma_device *dma_dev;
+	int ret;
 
 	/*
 	 * FIXME: This code assumes the device supports the interrupt
@@ -451,5 +458,9 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 	for (size_t i = 0; i < 1; i++)
 		add_channel(dma_dev);
 
-	return dmaenginem_async_device_register(dma_dev);
+	ret = dmaenginem_async_device_register(dma_dev);
+	if (ret)
+		dev_err(dev, "Failed to register DMA device: %d\n", ret);
+
+	return ret;
 }
