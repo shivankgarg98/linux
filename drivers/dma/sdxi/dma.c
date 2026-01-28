@@ -444,6 +444,7 @@ int sdxi_dma_register(struct sdxi_dev *sdxi)
 	};
 
 	dma_cap_set(DMA_MEMCPY, dma_dev->cap_mask);
+	dma_cap_set(DMA_PRIVATE, dma_dev->cap_mask);
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64));
 	INIT_LIST_HEAD(&dma_dev->channels);
 
