@@ -9,6 +9,14 @@ struct migrator {
 	char name[MIGRATOR_NAME_LEN];
 	int (*migrate_offload_copy)(struct list_head *dst_list, struct list_head *src_list,
 			    unsigned int folio_cnt);
+	/**
+	 * should_handle - Decide whether to use offload copy for this batch.
+	 * @src_list: List of source folios in the batch.
+	 * @folio_cnt: Number of folios in the batch.
+	 * Return: true if the migrator wants to handle this batch (offload copy),
+	 *         false to use kernel copy.
+	 */
+	bool (*should_handle)(struct list_head *src_list, unsigned int folio_cnt);
 	struct rcu_head srcu_head;
 	struct module *owner;
 };
