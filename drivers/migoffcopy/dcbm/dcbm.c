@@ -302,8 +302,34 @@ fallback:
 	return 0;
 }
 
+/**
+ * dma_should_handle - Determine if DMA backend should handle this batch
+ * @src_list: Source folio list
+ * @nr_folios: Number of folios to migrate
+ * @reason: Migration reason
+ *
+ * Returns: true if DMA should handle this batch, false for CPU fallback
+ *
+ * Heuristics:
+ * - MR_SYSCALL: always use DMA (move_pages(2) etc.)
+ * - MR_DEMOTION, MR_NUMA_MISPLACED: use DMA for batches of 4+
+ *   (smaller batches: CPU overhead dominates)
+ * - TODO: Heuristics/Tuning need more thought.
+ */
+static bool dma_should_handle(struct list_head *src_list, unsigned int nr_folios,
+			      int reason)
+{
+	if (reason == MR_SYSCALL)
+		return true;
+	if (reason == MR_COMPACTION || reason == MR_DEMOTION ||
+	    reason == MR_NUMA_MISPLACED)
+		return nr_folios >= 4;
+	return false;
+}
+
 static struct migrator dma_migrator = {
 	.name = "DCBM",
+	.should_handle = dma_should_handle,
 	.migrate_offload_copy = folios_copy_dma,
 	.owner = THIS_MODULE,
 };

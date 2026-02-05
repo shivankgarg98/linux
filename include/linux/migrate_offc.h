@@ -9,6 +9,8 @@ struct migrator {
 	char name[MIGRATOR_NAME_LEN];
 	int (*migrate_offload_copy)(struct list_head *dst_list, struct list_head *src_list,
 			    unsigned int folio_cnt);
+	bool (*should_handle)(struct list_head *src_list, unsigned int nr_folios,
+			      int reason);
 	struct rcu_head srcu_head;
 	struct module *owner;
 };
