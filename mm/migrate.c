@@ -842,6 +842,14 @@ EXPORT_SYMBOL(folio_migrate_flags);
 #ifdef CONFIG_HAVE_STATIC_CALL
 DEFINE_STATIC_CALL(_folios_copy, folios_mc_copy);
 
+static bool migrate_should_handle_offload_default(struct list_head *src_list,
+						  unsigned int folio_cnt,
+						  int reason)
+{
+	return false;
+}
+DEFINE_STATIC_CALL(_should_handle, migrate_should_handle_offload_default);
+
 #ifdef CONFIG_OFFC_MIGRATION
 void srcu_mig_cb(struct rcu_head *head)
 {
@@ -866,6 +874,8 @@ int offc_update_migrator(struct migrator *mig)
 
 	strscpy(migrator.name, mig ? mig->name : "kernel", MIGRATOR_NAME_LEN);
 	static_call_update(_folios_copy, mig ? mig->migrate_offload_copy : folios_mc_copy);
+	static_call_update(_should_handle,
+		mig && mig->should_handle ? mig->should_handle : migrate_should_handle_offload_default);
 	xchg(&migrator.owner, mig ? mig->owner : NULL);
 	if (old_owner)
 		module_put(old_owner);
@@ -1909,8 +1919,11 @@ static void migrate_folios_batch_move(struct list_head *src_folios,
 	if (!nr_batched_folios)
 		goto out;
 
-	/* Batch copy the folios */
-	rc = static_call(_folios_copy)(dst_folios, src_folios, nr_batched_folios);
+	/* Batch copy the folios: use offload if migrator should_handle this batch */
+	if (static_call(_should_handle)(src_folios, nr_batched_folios, reason))
+		rc = static_call(_folios_copy)(dst_folios, src_folios, nr_batched_folios);
+	else
+		rc = folios_mc_copy(dst_folios, src_folios, nr_batched_folios);
 
 	/* TODO:  Is there a better way of handling the poison
 	 * recover for batch copy, instead of falling back to serial copy?
