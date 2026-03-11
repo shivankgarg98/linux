@@ -1828,21 +1828,24 @@ static int migrate_pages_batch(struct list_head *from,
 	struct folio *folio, *folio2, *dst = NULL;
 	int rc, rc_saved = 0, nr_pages;
 	unsigned int nr_batch = 0;
-	bool batch_copied = false;
+	bool nosplit = (reason == MR_NUMA_MISPLACED);
+	bool do_batch = false, batch_copied = false;
+	int srcu_ret_idx;
 	LIST_HEAD(src_batch);
 	LIST_HEAD(dst_batch);
 	LIST_HEAD(src_std);
 	LIST_HEAD(dst_std);
-	bool do_batch = false;
-	bool nosplit = (reason == MR_NUMA_MISPLACED);
 
 	VM_WARN_ON_ONCE(mode != MIGRATE_ASYNC &&
 			!list_empty(from) && !list_is_singular(from));
 
 #ifdef CONFIG_MIGRATION_COPY_OFFLOAD
 	/* Check if the offload driver wants to batch for this reason */
-	if (static_branch_unlikely(&migrate_offload_enabled))
+	if (static_branch_unlikely(&migrate_offload_enabled)) {
+		srcu_ret_idx = srcu_read_lock(&migrate_offload_srcu);
 		do_batch = static_call(migrate_should_batch)(reason);
+		srcu_read_unlock(&migrate_offload_srcu, srcu_ret_idx);
+	}
 #endif
 
 	for (pass = 0; pass < nr_pass && retry; pass++) {
@@ -2020,11 +2023,9 @@ move:
 #ifdef CONFIG_MIGRATION_COPY_OFFLOAD
 	/* Batch-copy eligible folios before the move phase */
 	if (!list_empty(&src_batch)) {
-		int idx = srcu_read_lock(&migrate_offload_srcu);
-
-		rc = static_call(migrate_offload_copy)(&dst_batch,
-				&src_batch, nr_batch);
-		srcu_read_unlock(&migrate_offload_srcu, idx);
+		srcu_ret_idx = srcu_read_lock(&migrate_offload_srcu);
+		rc = static_call(migrate_offload_copy)(&dst_batch, &src_batch, nr_batch);
+		srcu_read_unlock(&migrate_offload_srcu, srcu_ret_idx);
 		batch_copied = (rc == 0);
 	}
 #endif

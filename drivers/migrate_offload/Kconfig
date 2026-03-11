@@ -1,5 +1,5 @@
 config DCBM_DMA
-	bool "DMA Core Batch Migrator"
+	tristate "DMA Core Batch Migrator"
 	depends on MIGRATION_COPY_OFFLOAD && DMA_ENGINE
 	help
 	  DMA-based batch copy engine for page migration. Uses
